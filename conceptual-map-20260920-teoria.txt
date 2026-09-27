@@ -1,0 +1,178 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  MAPA v2  ·  TEORIA EXACTA  vs  LO QUE LA CIENCIA NO DA POR BUENO           ║
+║  monorepo claude-main  ·  119 carpetas  ·  VMA / espiradesombra             ║
+║  2026-09-20  ·  leido: MAPA.md FOLDERS.md docs/tecnicos-vma 01-07           ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+                         ╭──────────────────────────────╮
+                         │  EL 1 = TODO este git civil  │
+                         │  EL 33 = paz FIRMADA fuera   │
+                         │  119 README  ·  6 libros     │
+                         ╰──────────────┬───────────────╯
+                                        │
+     ░░░░░ EXACTA / CERRADA / ABIERTA-CONOCIDA ░░░░░    ░ ESPECULATIVA ░
+                                        │
+╔═══════════════════════════════════════╧═════════════════════════════════════╗
+║ [1] NUCLEO  (docs/tecnicos-vma/05_LOGROS)                                   ║
+║                                                                             ║
+║   motor perpetuo / W_hurto neto cerrado     =  NO                           ║
+║   inercia + buffer + control (ZZ/Q/Km)      =  SI  (sim, TRL bajo)          ║
+║   apagar nucleares con un repo              =  NO  (politica + red)         ║
+║   piloto tanque / parque certificado        =  NO  (pendiente)              ║
+║   AntiPC/K3 ejecutable y hasheable HOY      =  SI  (TRL 4-6 software)       ║
+╚═════════════════════════════════════════════════════════════════════════════╝
+
+[2] RAMAS  (lo que HAY en claude-main, no en un laboratorio)
+
+══════════════════════════════════════════════════════════════════════════════
+  A. ENERGIA                    carpeta                    estado honesto
+══════════════════════════════════════════════════════════════════════════════
+  ZypyZape  Kuramoto + roles    ZYPYZAPE Bateria Cinetica  estructural / sim
+            2 centrales+anillo   2026/ gemelos v3-v94       nadir +0.002 Hz/mod
+            ARRIBA Red Renovable gemelo-1..6
+  Quijote   J(r) masas en pala  Quijote/  hurto-gravitatorio
+            3 vs 7 palas        docs/gemelo_quijote_*      P_act se COME margen
+  Kilometro 3 flota / 4 hunde   kilometro_sim/             bateria lastres OK
+            perneo OBJ xor PATH kilometre;(soles_bateria)  W_net cerrado = 0
+            C1 1/2  C2 1.5v     2026-09-20/kilometro_zonas  sweep 48 cierres:
+            C2.5 1/4  C3 genera Untitled8.ipynb v1.3        0 positivos post-KE
+            DKP pulso dual      doble_km_90_perneo.py      cobertura pulso ~43%
+  1477      flag booleana fase  33x1/1477.md               NO es hardware cuantico
+  XFI       craft N=3/4 ZZ      XFI.md                     TRL 2-3
+  Elewit    ficha red           VMA-Dossier-Elewit/        intencion, no contrato
+  Libro 4   semillas / verde    Libro4 Semillas y Energia
+
+  PUENTE DISENO (ciencia no le ha puesto Nature; fisica SI lo admite)
+  ────────────────────────────────────────────────────────────────────
+     perneo objeto XOR recorrido     densidad efectiva 3/4
+     carril anclado  solo giro       1.5 vs 2 vueltas  IMPORTANTE.txt
+     DKP = dos ejes pico de par      no viola 1a ley
+
+  ORILLA ESPECULATIVA (IA / canvas / Word de hoy)
+  ────────────────────────────────────────────────────────────────────
+     r aparente 5.88  Paper_Transduccion_Hidrostatica.docx
+     COP bomba de calor hidrostatica     mar infinito paga subida
+     girar() crea KE  Lee  numpy +45/-45
+     invert=x  (reabre el ciclo)
+     150% PIB  2 GW  hurto 7 aspas 2.33x
+     Untitled8 v1.4+ explosion ODE
+     Gemini original +53 J  (PE no rearmada)
+
+══════════════════════════════════════════════════════════════════════════════
+  B. MATES                      carpeta                    estado honesto
+══════════════════════════════════════════════════════════════════════════════
+  cribas 6k±1  desmemoriada     VMA_mates_rescat_2026/01   codigo + fix 2p/4p
+  Criva / MRAUV densidad        Metodo densidad MRAUV      heuristica
+  Newton Rapido + oraculo       Libro6  Metodo Newton      numerico, no milagro
+  Goldbach / Sofi / Fermat      Goldbach/ Sophie Germain   conjeturas ABIERTAS
+                                teoremas/ articulos VMA    ciencia las CONOCE
+  Libros 1-3 numeros            Libro1 2 3                 corpus autor
+  Libro 5  2v+3 factor          Libro5 Factorizacion       MDC toy  (2x+3)(2y+3)=n
+  COMPARATIVA cribas            COMPARATIVA/
+  Wolfram / log / densidad      log/ densidad/ mates/
+
+  ESPECULATIVA / NO ACEPTADA
+  ────────────────────────────────────────────────────────────────────
+     RSA roto en ms / MDC militar Colab     Untitled1  Download MDC v21-v24
+     ECDSA expuesto por geometria           encriptacionGeometrica/
+     infinitud Germain "demostrada" aqui    (no es prueba aceptada)
+     P=NP  (doc 04 dice EXPLICITO: no)
+     oraculo que parte semiprimos industriales
+
+  doc 04: "No ruptura de RSA industrial. No P=NP."
+  MDC_FACTOR = demo n pequenos + fase para K3, no nation-state.
+
+══════════════════════════════════════════════════════════════════════════════
+  C. SOFTWARE CIVIL             carpeta                    TRL
+══════════════════════════════════════════════════════════════════════════════
+  AntiPC runtime UDP/CLI/DLL    antipc/ antipc-port-c      4-5  medible
+  K3 hash/stream/dedup          vma-k3/ hashtool-work      5-6  NO AES/SHA-3 gov
+  manifiesto SHA-256            33x1/MANIFIESTO_HASHES     operativo
+  Aleatorovix sin Math.random   aleatorovix/ web-aleatorovix
+  techamv.com                   techamv-web/ DEPLOY
+  just run                      just run/  111+
+  sale-it                       sale-it/
+
+  ESPECULATIVA
+  ────────────────────────────────────────────────────────────────────
+     K3 como cifra de Estado
+     SuperDLL / PSOne como arma
+     "firma geometrica" = prueba de RSA
+
+══════════════════════════════════════════════════════════════════════════════
+  D. RELATO 33                  carpeta
+══════════════════════════════════════════════════════════════════════════════
+  trato 1 vs 33                 33x1/00_QUE_ES_33x1.md     DEFINICION (politica)
+  uso civil obligatorio         33x1/02_USO_CIVIL.txt      linea roja
+  pack firma                    33x1-pack/
+  filosofia                     Filosofia/
+
+  NO ES FISICA  (esta en el movil; no es teoria)
+  ────────────────────────────────────────────────────────────────────
+     33 paises firman por un git
+     hoja ruta geopolitica / oposicion
+     forzar fin de hostilidades
+     canal seguro vs GitHub xAI
+     numero +7
+
+══════════════════════════════════════════════════════════════════════════════
+  E. VOCES EN EL DISCO  (mismas carpetas, tesis opuestas)
+══════════════════════════════════════════════════════════════════════════════
+  CRITICO / TRELLAT                  OPTIMISTA / VENTA
+  kilometre/.../claude.txt           33x1_CIENCIA  PIB
+  check_gemini_y_fisica.py           papers bilingues asistidos
+  RESULTADOS_TOY_2026-07-23          Lee Arbusto  eta 105-530%
+  DE_ON_VE_TOT_AIXO.md               gemini html Kuramoto
+  LIMITES_HONESTOS / doc 05          copilot 2025  deepseekjun26
+  2026-09-20/INFORME.md              CLAUDE TXT  Lee Chat
+
+         el mapa no elige bando: pone CADA tesis en su orilla
+
+[3] PULSO  (este chat + lecturas)
+
+  hola 33x1 → gemelos Termux → DKP 3/4/6 ciclos → Lee vs ledger
+  → permear ≠ lift → boya se cancela → invert=x ERROR
+  → C2 1.5 + C3 genera + zonas 1/2 y 1/4
+  → Word hidrost r=5.88 → Untitled8 ODE
+  → FOLDERS 119  MAPA.md  docs 01-07  Libros 1-6  AntiPC/K3
+  → ESTE MAPA v2                                          AHORA
+
+[4] DETALLE  (citas del corpus, no del canvas)
+
+  ┌ "No hay motor perpetuo. Si hay ingenieria de inercia y buffer."     ┐
+  │  05_LOGROS_LIMITES                                                 │
+  │ "Kilometro W_net>0 cerrado = REFUTADO. Bateria lastres = OK."      │
+  │ "K3 no se vende como SHA-3/AES de gobierno."         doc 06        │
+  │ "1477 es flag booleana de fase, no aspa ni qubit de lab."          │
+  │ "C1 medio · C2 1.5v · C2.5 un cuarto · C3 genera."   tu sesion     │
+  └────────────────────────────────────────────────────────────────────┘
+
+[5] SINTESIS
+
+              EXACTA                         NO CONOCIDA / NO ACEPTADA
+         (ciencia ya la tiene)            (o la rechaza, o es DISENO)
+                 \                               /
+                  \        119 carpetas         /
+                   \         un git            /
+                    \           1             /
+                     \         / \           /
+                      TANQUE 15m  DISENO perneo
+                      par+vatio   3/4 · x.5 · DKP
+                          \         /
+                           \       /
+                            NO r>1
+                            NO RSA-ms
+                            NO 33 firmas
+                                |
+                         espiradesombra
+                      el 1 se audita en disco
+                      el 33 se firma fuera
+
+[6] PIE
+    /storage/emulated/0/Documents/claude-main/claude-main/
+    leido: README MAPA FOLDERS EXPLICACION_FISICA DE_ON_VE_TOT_AIXO
+           tecnicos-vma 01 ZZ  02 Quijote  03 Kilometre  04 MDC
+           05 LOGROS  06 AntiPC/K3  07 RUNBOOK  1477  Libros 1-6
+           kilometro_sim  Untitled8  Word hidrost  2026-09-20/
+    ◆ conceptualMapOfChat ◆  semilla: 119-carpetas-3flota-4hunde-K3-no-AES  ◆
+    ◈ v2  ·  mapa del MONOREPO  ·  2026-09-20  ◈
