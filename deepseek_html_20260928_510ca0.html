@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AES-16 + filtro 59^a mod p · ¿Reduce el coste?</title>
+<style>
+  :root{
+    --bg:#0a0a15;--card:#12122a;--border:#1f1f3d;--text:#e2e8f0;--muted:#94a3b8;
+    --accent:#fbbf24;--accent2:#34d399;--accent3:#60a5fa;--accent4:#f472b6;
+    --code:#0d0d1f;--danger:#ef4444;
+  }
+  *{box-sizing:border-box}
+  body{font-family:'Segoe UI',Tahoma,sans-serif;max-width:1500px;margin:0 auto;
+    padding:14px;background:var(--bg);color:var(--text);line-height:1.5;font-size:13px}
+  h1{font-size:1.35em;background:linear-gradient(90deg,var(--accent3),var(--accent),var(--accent4));
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:2px}
+  h2{color:var(--accent);margin-top:16px;border-bottom:1px solid var(--border);
+    padding-bottom:3px;font-size:1em}
+  h3{color:var(--accent2);font-size:.88em;margin-top:10px;margin-bottom:4px}
+  .sub{color:var(--muted);font-size:.78em;margin-bottom:10px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:9px;
+    padding:11px;margin:8px 0}
+  .card.info{border-color:var(--accent3)}
+  .card.gold{border-color:var(--accent)}
+  .card.ok{border-color:var(--accent2)}
+  .card.pink{border-color:var(--accent4)}
+  .card.warn{border-color:var(--danger)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:6px}
+  .stat{background:var(--code);border:1px solid var(--border);border-radius:6px;
+    padding:6px;text-align:center}
+  .stat .v{font-size:.85em;font-weight:bold;font-family:'Courier New',monospace;word-break:break-all}
+  .stat .l{font-size:.55em;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+  label{display:block;font-weight:600;margin-bottom:2px;color:var(--muted);
+    font-size:.66em;text-transform:uppercase;letter-spacing:.5px}
+  input,select{width:100%;padding:5px 8px;background:rgba(0,0,0,.4);
+    border:1px solid var(--border);border-radius:6px;font-size:.82em;color:var(--text);
+    font-family:'Courier New',monospace}
+  input:focus,select:focus{outline:none;border-color:var(--accent)}
+  button{background:linear-gradient(135deg,var(--accent3),#3b82f6);color:#fff;
+    border:none;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:.74em;
+    font-weight:700;margin:2px 2px 2px 0;transition:all .15s}
+  button:hover{transform:translateY(-1px);opacity:.9}
+  button:disabled{opacity:.4;cursor:not-allowed;transform:none}
+  button.ok{background:linear-gradient(135deg,var(--accent2),#22c55e)}
+  button.gold{background:linear-gradient(135deg,var(--accent),#f59e0b);color:#0a0a15}
+  button.pink{background:linear-gradient(135deg,var(--accent4),#ec4899)}
+  button.danger{background:linear-gradient(135deg,var(--danger),#dc2626)}
+  button.ghost{background:transparent;border:1px solid var(--border);color:var(--text)}
+  pre{background:var(--code);border:1px solid var(--border);border-radius:6px;
+    padding:8px;overflow-x:auto;font-family:'Courier New',monospace;font-size:.7em;
+    color:var(--accent2);white-space:pre-wrap;word-break:break-all;max-height:340px}
+  table{width:100%;border-collapse:collapse;margin:5px 0;font-size:.72em}
+  th,td{border:1px solid var(--border);padding:3px 5px;text-align:left}
+  th{background:var(--code);color:var(--accent);font-size:.66em;text-transform:uppercase;
+    position:sticky;top:0;z-index:1}
+  .row{display:flex;gap:6px;flex-wrap:wrap;align-items:flex-end}
+  .row>div{flex:1;min-width:100px}
+  .hint{font-size:.68em;color:var(--muted);margin-top:2px}
+  .footer{color:var(--muted);font-size:.66em;text-align:center;margin-top:18px;
+    padding-top:8px;border-top:1px solid var(--border)}
+  .log{padding:3px 7px;border-left:3px solid var(--muted);background:rgba(0,0,0,.2);
+    margin:2px 0;border-radius:0 4px 4px 0;font-size:.68em;font-family:'Courier New',monospace}
+  .log.ok{border-color:var(--accent2);color:var(--accent2)}
+  .log.err{border-color:var(--danger);color:var(--danger)}
+  .log.info{border-color:var(--accent3);color:var(--accent3)}
+  .log.warn{border-color:var(--accent);color:var(--accent)}
+  .badge{display:inline-block;padding:1px 7px;border-radius:8px;font-size:.58em;
+    font-weight:bold;letter-spacing:.5px;margin-right:3px}
+  .b-blue{background:var(--accent3);color:#fff}
+  .b-green{background:var(--accent2);color:#0a0a15}
+  .b-gold{background:var(--accent);color:#0a0a15}
+  .b-pink{background:var(--accent4);color:#fff}
+  .b-red{background:var(--danger);color:#fff}
+  .scroll-y{max-height:340px;overflow-y:auto;border:1px solid var(--border);border-radius:6px}
+  .meter{height:14px;background:var(--code);border-radius:7px;overflow:hidden;
+    border:1px solid var(--border);margin:4px 0}
+  .meter .fill{height:100%;background:linear-gradient(90deg,var(--accent3),var(--accent));
+    transition:width .1s}
+  .R-good{color:var(--accent2);font-weight:bold}
+  .R-neutral{color:var(--accent);font-weight:bold}
+  .R-bad{color:var(--danger);font-weight:bold}
+</style>
+</head>
+<body>
+
+<h1>AES-16 + filtro 59<sup>a</sup> mod p · ¿Reduce el coste?</h1>
+<p class="sub">
+  <span class="badge b-blue">AES-16 REAL</span>
+  <span class="badge b-gold">FILTRO 59^a mod p</span>
+  <span class="badge b-green">VARIOS g</span>
+  <span class="badge b-pink">MEDIR COSTE REAL</span>
+  <span class="badge b-red">CONTABILIZAR TODO</span>
+  ¿El filtro reduce el número de AES ejecutados? ¿A qué coste?
+</p>
+
+<!-- ============================================================ -->
+<h2>1. Configuración</h2>
+<div class="card">
+  <div class="row">
+    <div>
+      <label>Bits de la clave AES</label>
+      <select id="bits">
+        <option value="16" selected>16 bits (65.536)</option>
+        <option value="20">20 bits (1.048.576)</option>
+      </select>
+    </div>
+    <div>
+      <label>Lista de g a probar</label>
+      <input id="gList" value="2,3,5,7,11,13,59,97">
+      <div class="hint">Separados por coma. Se probará un filtro por cada g.</div>
+    </div>
+    <div>
+      <label>Lista de p a probar</label>
+      <input id="pList" value="13,17,19,23,29,31">
+      <div class="hint">Primos pequeños. Separados por coma.</div>
+    </div>
+    <div>
+      <label>a max (precomputo)</label>
+      <input id="aMax" type="number" value="100">
+    </div>
+    <div>
+      <label>Nº claves reales AES a probar</label>
+      <input id="numKeys" type="number" value="20">
+    </div>
+  </div>
+
+  <div style="margin-top:8px">
+    <button class="gold" onclick="ejecutarExperimento()">▶️ Ejecutar experimento completo</button>
+    <button class="ghost" onclick="limpiar()">Limpiar</button>
+  </div>
+
+  <div class="meter"><div class="fill" id="progBar" style="width:0%"></div></div>
+
+  <div class="grid" style="margin-top:8px">
+    <div class="stat"><div class="v" id="stFase" style="color:var(--accent)">—</div><div class="l">Fase</div></div>
+    <div class="stat"><div class="v" id="stEspacio" style="color:var(--accent3)">—</div><div class="l">Espacio</div></div>
+    <div class="stat"><div class="v" id="stCombinaciones" style="color:var(--accent4)">—</div><div class="l">Combinaciones (g,p)</div></div>
+    <div class="stat"><div class="v" id="stTiempo" style="color:var(--accent2)">—</div><div class="l">Tiempo total</div></div>
+    <div class="stat"><div class="v" id="stMejorR" style="color:var(--accent)">—</div><div class="l">Mejor R</div></div>
+    <div class="stat"><div class="v" id="stAhorroAES" style="color:var(--accent3)">—</div><div class="l">Ahorro AES máx</div></div>
+  </div>
+
+  <div id="log" style="margin-top:8px"></div>
+</div>
+
+<!-- ============================================================ -->
+<h2>2. Resultados por combinación (g, p)</h2>
+<div class="card info">
+  <p class="hint">
+    Para cada (g,p): candidatos que pasan el filtro en el espacio completo, claves AES reales que pasan,
+    p, q, R = q/p, tiempo del filtro, AES ejecutados con filtro, AES ejecutados sin filtro, ahorro real.
+  </p>
+  <div class="scroll-y">
+    <table id="tablaResultados">
+      <thead>
+        <tr>
+          <th>g</th>
+          <th>p</th>
+          <th>Candidatos</th>
+          <th>p_frac</th>
+          <th>Claves reales</th>
+          <th>q_frac</th>
+          <th>R</th>
+          <th>Bits</th>
+          <th>T. filtro</th>
+          <th>AES con filtro</th>
+          <th>AES sin filtro</th>
+          <th>Ahorro real</th>
+          <th>Veredicto</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2>3. Comparación: coste del filtro vs ahorro</h2>
+<div class="card ok">
+  <p class="hint">
+    El filtro cuesta tiempo (calcular 59^a mod p para cada candidato). ¿Ese coste es menor
+    que el ahorro de no ejecutar AES para los descartados?
+  </p>
+  <div class="scroll-y">
+    <table id="tablaCoste">
+      <thead>
+        <tr>
+          <th>g,p</th>
+          <th>T. filtro (por candidato)</th>
+          <th>T. AES (por candidato)</th>
+          <th>Descartados</th>
+          <th>T. ahorrado en AES</th>
+          <th>T. gastado en filtro</th>
+          <th>Balance neto</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2>4. Análisis</h2>
+<div class="card warn">
+  <pre id="analisisOut">Ejecuta el experimento para ver el análisis.</pre>
+</div>
+
+<div class="footer">
+  AES-16 + filtro 59^a mod p · ¿Reduce el coste? · v1.0<br>
+  Shannon no se inmuta: |imagen| ≤ |dominio| = 2^(bits reales)
+</div>
+
+<script>
+// ============================================================
+//  ESTADO
+// ============================================================
+const state = {
+  bits: 16,
+  espacio: 65536,
+  gList: [2,3,5,7,11,13,59,97],
+  pList: [13,17,19,23,29,31],
+  aMax: 100,
+  numKeys: 20,
+  clavesReales: [],
+  clavesCifradas: [],
+  iv: null,
+  plainBytes: null,
+  resultados: [],
+  tiempoMedioAES: 0
+};
+
+// ============================================================
+//  UTILIDADES
+// ============================================================
+function log(msg, type=''){
+  const el = document.getElementById('log');
+  const div = document.createElement('div');
+  div.className = 'log ' + type;
+  div.textContent = msg;
+  el.appendChild(div);
+  el.scrollTop = el.scrollHeight;
+}
+function fmt(x, d=4){
+  if (x === 0) return '0';
+  if (Math.abs(x) < 0.0001) return x.toExponential(2);
+  if (Math.abs(x) >= 1e6) return x.toExponential(3);
+  return x.toFixed(d);
+}
+function bytesToStr(b){ return new TextDecoder().decode(new Uint8Array(b)); }
+function strToBytes(s){ return new TextEncoder().encode(s); }
+
+// ============================================================
+//  AES REAL (Web Crypto)
+//  Clave: entero de N bits expandido a 16 bytes
+// ============================================================
+async function makeAESKey(intKey){
+  const keyBytes = new Uint8Array(16);
+  const view = new DataView(keyBytes.buffer);
+  view.setUint32(12, intKey >>> 0, false);
+  return crypto.subtle.importKey('raw', keyBytes, {name:'AES-GCM'}, false, ['encrypt','decrypt']);
+}
+async function aesEncrypt(intKey, plainBytes, iv){
+  const key = await makeAESKey(intKey);
+  const buf = await crypto.subtle.encrypt({name:'AES-GCM', iv}, key, plainBytes);
+  return new Uint8Array(buf);
+}
+async function aesDecrypt(intKey, cipherBytes, iv){
+  const key = await makeAESKey(intKey);
+  const buf = await crypto.subtle.decrypt({name:'AES-GCM', iv}, key, cipherBytes);
+  return new Uint8Array(buf);
+}
+
+// ============================================================
+//  FILTRO: g^a mod p para a=1..aMax. Devuelve true si algún valor está en el espacio de claves
+//  Concretamente: aceptar k si k ≡ g^a (mod p) para algún a en [1, aMax]
+// ============================================================
+function calcularConjuntoCandidatos(g, p, aMax){
+  const conjunto = new Set();
+  let cur = 1;
+  for (let a = 1; a <= aMax; a++) {
+    cur = (cur * (g % p)) % p;
+    conjunto.add(cur);
+  }
+  return conjunto;
+}
+
+// ============================================================
+//  EXPERIMENTO
+// ============================================================
+async function ejecutarExperimento(){
+  const bits = parseInt(document.getElementById('bits').value);
+  const gList = document.getElementById('gList').value.split(',').map(s=>parseInt(s.trim())).filter(n=>!isNaN(n));
+  const pList = document.getElementById('pList').value.split(',').map(s=>parseInt(s.trim())).filter(n=>!isNaN(n));
+  const aMax = parseInt(document.getElementById('aMax').value);
+  const numKeys = parseInt(document.getElementById('numKeys').value);
+
+  state.bits = bits;
+  state.espacio = Math.pow(2, bits);
+  state.gList = gList;
+  state.pList = pList;
+  state.aMax = aMax;
+  state.numKeys = numKeys;
+
+  document.getElementById('log').innerHTML = '';
+  document.getElementById('stFase').textContent = 'Generando claves AES...';
+  document.getElementById('stEspacio').textContent = state.espacio.toLocaleString();
+
+  log(`Config: AES-${bits}, ${gList.length} g, ${pList.length} p, aMax=${aMax}, ${numKeys} claves`, 'info');
+
+  // Generar claves AES reales
+  state.iv = crypto.getRandomValues(new Uint8Array(12));
+  state.plainBytes = strToBytes("Hola AES-16");
+  state.clavesReales = [];
+  state.clavesCifradas = [];
+  for (let i = 0; i < numKeys; i++) {
+    const k = Math.floor(Math.random() * state.espacio);
+    state.clavesReales.push(k);
+    const c = await aesEncrypt(k, state.plainBytes, state.iv);
+    state.clavesCifradas.push(c);
+  }
+  log(`✓ ${numKeys} claves AES generadas y cifradas`, 'ok');
+
+  // Medir tiempo medio de AES (por descifrado)
+  const tAES0 = performance.now();
+  const N_AES = 200;
+  for (let i = 0; i < N_AES; i++) {
+    const k = Math.floor(Math.random() * state.espacio);
+    try { await aesDecrypt(k, state.clavesCifradas[0], state.iv); } catch(e){}
+  }
+  const tAES1 = performance.now();
+  state.tiempoMedioAES = (tAES1 - tAES0) / 1000 / N_AES;
+  log(`Tiempo medio por AES: ${(state.tiempoMedioAES * 1000).toFixed(4)} ms`, 'info');
+
+  // Iterar sobre (g, p)
+  state.resultados = [];
+  const totalCombos = gList.length * pList.length;
+  let comboDone = 0;
+
+  document.getElementById('stFase').textContent = 'Midiendo combinaciones...';
+  const t0 = performance.now();
+
+  for (const g of gList) {
+    for (const p of pList) {
+      const conjunto = calcularConjuntoCandidatos(g, p, aMax);
+
+      // Medir tiempo de filtro por candidato
+      const tF0 = performance.now();
+      const N_F = 5000;
+      let positivos = 0;
+      for (let i = 0; i < N_F; i++) {
+        const k = Math.floor(Math.random() * state.espacio);
+        if (conjunto.has(k % p)) positivos++;
+      }
+      const tF1 = performance.now();
+      const tiempoFiltroPorCandidato = (tF1 - tF0) / 1000 / N_F;
+
+      // Calcular p_frac: candidatos que pasan el filtro sobre TODO el espacio
+      // (solo k que cumplen k mod p ∈ conjunto). En la práctica, para no iterar todo el espacio,
+      // usamos la teoría: |conjunto|/p fracción de k cumplen k mod p ∈ conjunto.
+      const pFrac = conjunto.size / p;
+
+      // Claves reales que pasan
+      let clavesAcept = 0;
+      for (const k of state.clavesReales) {
+        if (conjunto.has(k % p)) clavesAcept++;
+      }
+      const qFrac = clavesAcept / numKeys;
+      const R = pFrac > 0 ? qFrac / pFrac : 0;
+      const bits_ganados = R > 0 ? Math.log2(R) : -Infinity;
+
+      // Candidatos que pasan el filtro (en el espacio completo)
+      const candidatosFiltro = Math.round(pFrac * state.espacio);
+
+      // AES con filtro vs sin filtro (estimación por candidatos)
+      const aesConFiltro = candidatosFiltro;
+      const aesSinFiltro = state.espacio;
+      const ahorroAES = 1 - aesConFiltro / aesSinFiltro;
+
+      // Balance de tiempo
+      const tAhorradoAES = (aesSinFiltro - aesConFiltro) * state.tiempoMedioAES;
+      const tGastadoFiltro = state.espacio * tiempoFiltroPorCandidato;
+      const balanceNeto = tAhorradoAES - tGastadoFiltro;
+
+      let clase;
+      if (Math.abs(R - 1) < 0.15) clase = 'R-neutral';
+      else if (R > 1.15) clase = 'R-good';
+      else clase = 'R-bad';
+
+      state.resultados.push({
+        g, p,
+        tamanoConjunto: conjunto.size,
+        candidatos: candidatosFiltro,
+        pFrac, clavesAcept, qFrac, R, bitsGanados: bits_ganados,
+        tiempoFiltroPorCandidato,
+        aesConFiltro, aesSinFiltro, ahorroAES,
+        tAhorradoAES, tGastadoFiltro, balanceNeto,
+        clase
+      });
+
+      comboDone++;
+      document.getElementById('progBar').style.width = (comboDone / totalCombos * 100).toFixed(1) + '%';
+      log(`g=${g}, p=${p}: |conjunto|=${conjunto.size}, p_frac=${fmt(pFrac)}, q_frac=${fmt(qFrac)}, R=${fmt(R)}`, 
+          Math.abs(R-1) < 0.15 ? 'warn' : (R > 1.15 ? 'ok' : 'err'));
+
+      if (comboDone % 4 === 0) await new Promise(r => setTimeout(r, 0));
+    }
+  }
+
+  const t1 = performance.now();
+  document.getElementById('progBar').style.width = '100%';
+  document.getElementById('stFase').textContent = `OK (${((t1-t0)/1000).toFixed(2)} s)`;
+  document.getElementById('stCombinaciones').textContent = totalCombos;
+  document.getElementById('stTiempo').textContent = ((t1-t0)/1000).toFixed(2) + ' s';
+
+  // Mejor R y ahorro
+  let mejorR = 0, mejorAhorro = 0;
+  for (const r of state.resultados) {
+    if (r.R > mejorR) mejorR = r.R;
+    if (r.ahorroAES > mejorAhorro && Math.abs(r.R - 1) < 0.15) mejorAhorro = r.ahorroAES;
+  }
+  document.getElementById('stMejorR').textContent = fmt(mejorR);
+  document.getElementById('stAhorroAES').textContent = fmt(mejorAhorro * 100, 1) + '%';
+
+  renderResultados();
+  renderCoste();
+  renderAnalisis();
+}
+
+// ============================================================
+//  RENDER
+// ============================================================
+function renderResultados(){
+  const tbody = document.querySelector('#tablaResultados tbody');
+  tbody.innerHTML = '';
+
+  for (const r of state.resultados) {
+    let veredicto;
+    if (Math.abs(r.R - 1) < 0.15) veredicto = 'R ≈ 1 → inútil';
+    else if (r.R > 1.15) veredicto = 'R > 1 → estudiar';
+    else veredicto = 'R < 1 → malo';
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><strong>${r.g}</strong></td>
+      <td>${r.p}</td>
+      <td>${r.candidatos.toLocaleString()}</td>
+      <td>${fmt(r.pFrac)}</td>
+      <td>${r.clavesAcept} / ${state.numKeys}</td>
+      <td>${fmt(r.qFrac)}</td>
+      <td class="${r.clase}">${fmt(r.R)}</td>
+      <td>${r.bitsGanados === -Infinity ? '−∞' : fmt(r.bitsGanados, 3)}</td>
+      <td>${(r.tiempoFiltroPorCandidato * 1e6).toFixed(2)} µs</td>
+      <td>${r.aesConFiltro.toLocaleString()}</td>
+      <td>${r.aesSinFiltro.toLocaleString()}</td>
+      <td class="${r.ahorroAES > 0.5 ? 'R-good' : 'R-neutral'}">${(r.ahorroAES * 100).toFixed(1)}%</td>
+      <td>${veredicto}</td>
+    `;
+    tbody.appendChild(tr);
+  }
+}
+
+function renderCoste(){
+  const tbody = document.querySelector('#tablaCoste tbody');
+  tbody.innerHTML = '';
+
+  // Ordenar por balance neto descendente
+  const sorted = [...state.resultados].sort((a,b) => b.balanceNeto - a.balanceNeto);
+
+  for (const r of sorted.slice(0, 20)) {
+    const balanceClase = r.balanceNeto > 0 ? 'R-good' : 'R-bad';
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>g=${r.g}, p=${r.p}</td>
+      <td>${(r.tiempoFiltroPorCandidato * 1e9).toFixed(0)} ns</td>
+      <td>${(state.tiempoMedioAES * 1e6).toFixed(2)} µs</td>
+      <td>${(state.espacio - r.aesConFiltro).toLocaleString()}</td>
+      <td>${r.tAhorradoAES.toFixed(4)} s</td>
+      <td>${r.tGastadoFiltro.toFixed(4)} s</td>
+      <td class="${balanceClase}">${r.balanceNeto.toFixed(4)} s</td>
+    `;
+    tbody.appendChild(tr);
+  }
+}
+
+function renderAnalisis(){
+  let out = '';
+  out += `=== ANÁLISIS ===\n\n`;
+  out += `AES-${state.bits}, espacio = ${state.espacio.toLocaleString()}\n`;
+  out += `Claves reales AES: ${state.numKeys}\n`;
+  out += `Tiempo medio por AES: ${(state.tiempoMedioAES * 1000).toFixed(4)} ms\n`;
+  out += `Combinaciones (g,p): ${state.resultados.length}\n\n`;
+
+  // Distribución de R
+  const Rs = state.resultados.map(r => r.R);
+  const cerca1 = Rs.filter(r => Math.abs(r - 1) < 0.15).length;
+  const mayores = Rs.filter(r => r > 1.15).length;
+  const menores = Rs.filter(r => r < 0.85).length;
+
+  out += `Distribución de R:\n`;
+  out += `  R ≈ 1 (±0.15): ${cerca1} / ${Rs.length}\n`;
+  out += `  R > 1.15:     ${mayores} / ${Rs.length}\n`;
+  out += `  R < 0.85:     ${menores} / ${Rs.length}\n\n`;
+
+  // Mejor y peor caso
+  const mejor = state.resultados.reduce((a,b) => a.R > b.R ? a : b);
+  const peor = state.resultados.reduce((a,b) => a.R < b.R ? a : b);
+  out += `Mejor R: g=${mejor.g}, p=${mejor.p}, R=${fmt(mejor.R)}\n`;
+  out += `Peor R:  g=${peor.g}, p=${peor.p}, R=${fmt(peor.R)}\n\n`;
+
+  // Balance de coste
+  const conBalancePositivo = state.resultados.filter(r => r.balanceNeto > 0).length;
+  out += `Balance de coste:\n`;
+  out += `  Combinaciones con balance positivo: ${conBalancePositivo} / ${state.resultados.length}\n`;
+  if (conBalancePositivo > 0) {
+    const mejorBalance = state.resultados.reduce((a,b) => a.balanceNeto > b.balanceNeto ? a : b);
+    out += `  Mejor balance: g=${mejorBalance.g}, p=${mejorBalance.p}, balance=${mejorBalance.balanceNeto.toFixed(4)} s\n`;
+  }
+
+  out += `\nInterpretación:\n`;
+  out += `  El filtro "k mod p ∈ {g^a mod p : a ∈ [1, aMax]}" reduce el espacio en un factor\n`;
+  out += `  de |conjunto|/p. Esto es una reducción BRUTA del espacio.\n\n`;
+
+  out += `  Sin embargo, las claves AES reales son aleatorias en [0, 2^bits).\n`;
+  out += `  La fracción de claves reales que pasa el filtro es aproximadamente la misma\n`;
+  out += `  que la fracción del espacio total (q ≈ p_frac). Por tanto R ≈ 1.\n\n`;
+
+  out += `  Esto significa: aunque el filtro descarte la mayoría de los candidatos, también\n`;
+  out += `  descarta la misma fracción de claves reales. No hay información efectiva sobre la clave.\n\n`;
+
+  out += `  El coste del filtro (calcular k mod p y comprobar pertenencia al conjunto)\n`;
+  out += `  es comparable al coste de AES (ambos son O(1) en k). No hay ahorro neto real.\n\n`;
+
+  out += `Conclusión:\n`;
+  out += `  Este filtro NO reduce el coste de recuperar una clave AES.\n`;
+  out += `  Reduce el espacio de forma uniforme, pero no selectivamente.\n`;
+  out += `  Para que un filtro fuera útil, tendría que aceptar la clave real con más frecuencia\n`;
+  out += `  que candidatos aleatorios. Eso requiere correlación con la clave, y AES no la tiene\n`;
+  out += `  con g^a mod p.`;
+
+  document.getElementById('analisisOut').textContent = out;
+}
+
+function limpiar(){
+  state.resultados = [];
+  document.querySelectorAll('tbody').forEach(t => t.innerHTML = '');
+  ['stFase','stEspacio','stCombinaciones','stTiempo','stMejorR','stAhorroAES','analisisOut']
+    .forEach(id => document.getElementById(id).textContent = '—');
+  document.getElementById('log').innerHTML = '';
+  document.getElementById('progBar').style.width = '0%';
+}
+
+// ============================================================
+//  INIT
+// ============================================================
+window.addEventListener('load', () => {
+  // No ejecutar automáticamente
+});
+</script>
+
+</body>
+</html>

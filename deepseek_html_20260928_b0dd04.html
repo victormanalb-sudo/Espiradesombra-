@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Deducción Geométrica desde 1.33 · Tales + AES-GCM</title>
+<style>
+  :root {
+    --bg:#0a0a15; --card:#12122a; --border:#1f1f3d; --text:#e2e8f0;
+    --muted:#94a3b8; --accent:#fbbf24; --accent2:#34d399; --accent3:#60a5fa;
+    --accent4:#f472b6; --code:#0d0d1f; --danger:#ef4444;
+  }
+  *{box-sizing:border-box}
+  body{font-family:'Segoe UI',Tahoma,sans-serif;max-width:1200px;margin:0 auto;
+    padding:20px;background:var(--bg);color:var(--text);line-height:1.55}
+  h1{font-size:1.8em;background:linear-gradient(90deg,var(--accent),var(--accent2),var(--accent3));
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:4px}
+  h2{color:var(--accent);margin-top:28px;border-bottom:1px solid var(--border);
+    padding-bottom:6px;font-size:1.15em}
+  h3{color:var(--accent2);font-size:.95em;margin-top:16px;margin-bottom:6px}
+  .sub{color:var(--muted);font-size:.9em;margin-bottom:20px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;
+    padding:18px;margin:14px 0}
+  .card.gold{border-color:var(--accent)}
+  .card.ok{border-color:var(--accent2)}
+  .card.info{border-color:var(--accent3)}
+  .card.pink{border-color:var(--accent4)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
+  .stat{background:var(--code);border:1px solid var(--border);border-radius:8px;
+    padding:10px;text-align:center}
+  .stat .v{font-size:1.1em;font-weight:bold;font-family:'Courier New',monospace;
+    word-break:break-all}
+  .stat .l{font-size:.65em;color:var(--muted);text-transform:uppercase;
+    letter-spacing:.5px;margin-top:3px}
+  label{display:block;font-weight:600;margin-bottom:4px;color:var(--muted);
+    font-size:.75em;text-transform:uppercase;letter-spacing:.5px}
+  input,textarea,select{width:100%;padding:8px 12px;background:rgba(0,0,0,.4);
+    border:1px solid var(--border);border-radius:8px;font-size:.9em;color:var(--text);
+    font-family:'Courier New',monospace}
+  textarea{min-height:80px;resize:vertical}
+  input:focus,textarea:focus{outline:none;border-color:var(--accent)}
+  button{background:linear-gradient(135deg,var(--accent),#f59e0b);color:#0a0a15;
+    border:none;padding:9px 18px;border-radius:8px;cursor:pointer;font-size:.85em;
+    font-weight:700;margin:4px 4px 4px 0;transition:all .2s}
+  button:hover{transform:translateY(-2px);opacity:.9}
+  button.ok{background:linear-gradient(135deg,var(--accent2),#22c55e);color:#fff}
+  button.info{background:linear-gradient(135deg,var(--accent3),#3b82f6);color:#fff}
+  button.pink{background:linear-gradient(135deg,var(--accent4),#ec4899);color:#fff}
+  button.ghost{background:transparent;border:1px solid var(--border);color:var(--text)}
+  pre{background:var(--code);border:1px solid var(--border);border-radius:8px;
+    padding:12px;overflow-x:auto;font-family:'Courier New',monospace;font-size:.78em;
+    color:var(--accent2);white-space:pre-wrap;word-break:break-all;max-height:400px}
+  canvas{width:100%;height:260px;background:var(--code);border-radius:8px;
+    border:1px solid var(--border);display:block}
+  table{width:100%;border-collapse:collapse;margin:10px 0;font-size:.82em}
+  th,td{border:1px solid var(--border);padding:5px 8px;text-align:left}
+  th{background:var(--code);color:var(--accent);font-size:.72em;text-transform:uppercase}
+  .tag{display:inline-block;padding:2px 10px;border-radius:10px;font-size:.65em;
+    font-weight:bold;letter-spacing:.5px;margin-right:6px}
+  .tag.ok{background:var(--accent2);color:#0a0a15}
+  .tag.gold{background:var(--accent);color:#0a0a15}
+  .tag.info{background:var(--accent3);color:#0a0a15}
+  .tag.pink{background:var(--accent4);color:#0a0a15}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+  .row>div{flex:1;min-width:130px}
+  .hint{font-size:.75em;color:var(--muted);margin-top:4px}
+  .footer{color:var(--muted);font-size:.75em;text-align:center;margin-top:30px;
+    padding-top:16px;border-top:1px solid var(--border)}
+  .step-row{display:grid;grid-template-columns:40px 60px 80px 1fr;gap:6px;
+    padding:4px 8px;border-bottom:1px solid var(--border);font-size:.78em;
+    font-family:'Courier New',monospace;align-items:center}
+  .step-row:hover{background:rgba(251,191,36,.05)}
+  .step-head{font-weight:bold;color:var(--accent);text-transform:uppercase;
+    font-size:.7em;letter-spacing:.5px;border-bottom:1px solid var(--accent)}
+</style>
+</head>
+<body>
+
+<h1>Deducción Geométrica desde 1.33</h1>
+<p class="sub">
+  <span class="tag gold">TALES POR LADOS</span>
+  <span class="tag ok">BIGINT EXACTO</span>
+  <span class="tag info">AES-GCM 256</span>
+  <span class="tag pink">DEDUCCIÓN ITERATIVA</span>
+  Cada byte se deduce del segmento inicial 1.33 restando piezas de Tales. Sin IEEE, sin drift.
+</p>
+
+<!-- ============================================================ -->
+<h2>1. Configuración de figuras y secuencia de Tales</h2>
+
+<div class="card gold">
+  <h3>Figuras inferidas por sus lados</h3>
+  <p style="font-size:.85em;color:var(--muted)">
+    Cada figura se identifica por su número de lados. Se alternan en la secuencia de Tales.
+    Por cada bit, se elige 1 o 2 trozos de la figura correspondiente y se restan del segmento.
+  </p>
+
+  <div class="row">
+    <div>
+      <label>Número de figuras en la secuencia</label>
+      <input id="numFiguras" type="number" min="1" max="8" value="4">
+    </div>
+    <div style="flex:2">
+      <label>Secuencia de Tales (lados separados por coma)</label>
+      <input id="secuenciaTales" value="3,5,4,6">
+      <div class="hint">3=triángulo, 4=cuadrado, 5=pentágono, 6=hexágono, 7=heptágono, 8=octágono</div>
+    </div>
+    <div>
+      <label>Segmento inicial</label>
+      <input id="startValue" value="1.33">
+    </div>
+  </div>
+
+  <div style="margin-top:10px">
+    <button class="gold" onclick="aplicarConfig()">Aplicar configuración</button>
+    <button class="ghost" onclick="autoSecuencia()">Auto-secuencia</button>
+  </div>
+
+  <h3>Figuras activas</h3>
+  <div id="figurasVisual" class="grid"></div>
+</div>
+
+<!-- ============================================================ -->
+<h2>2. Codificación por deducción desde 1.33</h2>
+
+<div class="card">
+  <div class="row">
+    <div style="flex:3">
+      <label>Texto a codificar</label>
+      <textarea id="plainInput">Hola geometría</textarea>
+    </div>
+  </div>
+
+  <div style="margin-top:10px">
+    <button class="ok" onclick="codificar()">Codificar por deducción</button>
+    <button class="ghost" onclick="limpiar()">Limpiar</button>
+  </div>
+
+  <div class="grid" style="margin-top:12px">
+    <div class="stat"><div class="v" id="sBytes" style="color:var(--accent3)">—</div><div class="l">Bytes</div></div>
+    <div class="stat"><div class="v" id="sBits" style="color:var(--accent)">—</div><div class="l">Bits decisión</div></div>
+    <div class="stat"><div class="v" id="sRango" style="color:var(--accent2)">—</div><div class="l">Rango final</div></div>
+    <div class="stat"><div class="v" id="sColision" style="color:var(--accent4)">—</div><div class="l">Colisiones</div></div>
+  </div>
+
+  <h3>Proceso de deducción (primer byte)</h3>
+  <div class="step-row step-head">
+    <div>Paso</div><div>Figura</div><div>Trozo</div><div>Segmento restante</div>
+  </div>
+  <div id="stepsOut"></div>
+
+  <h3>Visualización del segmento</h3>
+  <canvas id="canvasSeg"></canvas>
+
+  <h3>Valores finales (primeros 4 bytes)</h3>
+  <pre id="valoresOut">—</pre>
+</div>
+
+<!-- ============================================================ -->
+<h2>3. Cifrado AES-GCM sobre la representación</h2>
+
+<div class="card info">
+  <p style="font-size:.85em;color:var(--muted)">
+    La deducción geométrica es una biyección pública. Para cifrar de verdad,
+    se aplica <strong>AES-GCM 256</strong> con derivación PBKDF2-SHA256.
+  </p>
+
+  <div class="row">
+    <div style="flex:2">
+      <label>Mensaje</label>
+      <textarea id="aesPlain">Mensaje secreto con geometría exacta</textarea>
+    </div>
+    <div>
+      <label>Contraseña</label>
+      <input id="aesPassword" type="password" value="clave_maestra_2025">
+    </div>
+  </div>
+
+  <div style="margin-top:10px">
+    <button class="info" onclick="aesEncrypt()">🔐 Cifrar</button>
+    <button class="ok" onclick="aesDecrypt()">🔓 Descifrar</button>
+    <button class="pink" onclick="aesRoundTrip()">🔁 Prueba completa</button>
+    <button class="ghost" onclick="clearAES()">Limpiar</button>
+  </div>
+
+  <h3>Criptograma (Base64)</h3>
+  <pre id="aesOut">—</pre>
+
+  <h3>Descifrado</h3>
+  <pre id="aesDec">—</pre>
+
+  <div class="grid" style="margin-top:12px">
+    <div class="stat"><div class="v" id="sPlain" style="color:var(--accent3)">—</div><div class="l">Bytes plain</div></div>
+    <div class="stat"><div class="v" id="sCipher" style="color:var(--accent4)">—</div><div class="l">Bytes cipher</div></div>
+    <div class="stat"><div class="v" id="sOver" style="color:var(--accent)">—</div><div class="l">Overhead</div></div>
+    <div class="stat"><div class="v" id="sAuth" style="color:var(--accent2)">—</div><div class="l">Autenticado</div></div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2>4. Análisis</h2>
+
+<div class="card ok">
+  <h3>Qué es real</h3>
+  <ul style="font-size:.85em">
+    <li><strong>Biyección exacta:</strong> cada byte → un racional único. Reversible con BigInt.</li>
+    <li><strong>Sin IEEE:</strong> sin drift, sin redondeo. Apto para sistemas que exigen exactitud.</li>
+    <li><strong>Deducción desde 1.33:</strong> proceso iterativo con piezas de Tales por lados de figura.</li>
+    <li><strong>AES-GCM 256:</strong> cifrado autenticado estándar NIST. Confidencialidad + integridad.</li>
+    <li><strong>Visualización:</strong> cada paso es geométrico y auditable.</li>
+  </ul>
+
+  <h3>Qué NO es</h3>
+  <ul style="font-size:.85em;color:var(--muted)">
+    <li>No comprime: el criptograma es mayor que el plaintext.</li>
+    <li>No encripta por sí solo: la geometría es pública.</li>
+    <li>No supera a Shannon: \(|imagen| \le |dominio|\).</li>
+  </ul>
+
+  <h3>Dónde puede valer dinero</h3>
+  <table>
+    <tr><th>Aplicación</th><th>Por qué</th><th>Valor orientativo</th></tr>
+    <tr><td>CAD / geometría computacional</td><td>Coordenadas racionales exactas sin drift</td><td>30–80 k€</td></tr>
+    <tr><td>SCADA / control industrial</td><td>Trazabilidad exacta de proporciones</td><td>50–150 k€</td></tr>
+    <tr><td>Auditoría criptográfica</td><td>Representación legible + cifrado autenticado</td><td>20–60 k€</td></tr>
+    <tr><td>Educación / divulgación</td><td>Visualización de Tales + criptografía</td><td>5–20 k€</td></tr>
+  </table>
+  <p class="hint">Sin benchmarks medidos y sin cliente real, el valor es 0.</p>
+</div>
+
+<div class="footer">
+  Deducción Geométrica · v1.0 · Shannon no se inmuta: |imagen| ≤ |dominio| = 2^(bits reales)
+</div>
+
+<script>
+// ============================================================
+//  CONFIGURACIÓN
+// ============================================================
+const state = {
+  figureSeq: [3,5,4,6],
+  startNum: 133n,
+  startDen: 100n,
+  lastBytes: [],
+  lastEncoded: []
+};
+
+const FIG_NAMES = {3:'Triángulo',4:'Cuadrado',5:'Pentágono',6:'Hexágono',7:'Heptágono',8:'Octágono'};
+const FIG_COLORS = {3:'#60a5fa',4:'#34d399',5:'#fbbf24',6:'#f472b6',7:'#a78bfa',8:'#fb923c'};
+
+function aplicarConfig() {
+  const seqStr = document.getElementById('secuenciaTales').value;
+  const seq = seqStr.split(',').map(s => parseInt(s.trim())).filter(n => n >= 3 && n <= 8);
+  if (seq.length === 0) { alert('Secuencia inválida'); return; }
+  state.figureSeq = seq;
+
+  const sv = document.getElementById('startValue').value;
+  const parts = sv.split('.');
+  if (parts.length === 2) {
+    const intPart = parts[0] || '0';
+    const decPart = parts[1] || '0';
+    const den = 10n ** BigInt(decPart.length);
+    state.startNum = BigInt(intPart) * den + BigInt(decPart);
+    state.startDen = den;
+  } else {
+    state.startNum = BigInt(sv);
+    state.startDen = 1n;
+  }
+
+  renderFiguras();
+  codificar();
+}
+
+function autoSecuencia() {
+  const n = parseInt(document.getElementById('numFiguras').value) || 4;
+  const seq = [];
+  for (let i = 0; i < n; i++) seq.push(3 + (i % 6));
+  document.getElementById('secuenciaTales').value = seq.join(',');
+  aplicarConfig();
+}
+
+function renderFiguras() {
+  const cont = document.getElementById('figurasVisual');
+  cont.innerHTML = '';
+  state.figureSeq.forEach((lados, i) => {
+    const div = document.createElement('div');
+    div.className = 'stat';
+    div.innerHTML = `<div class="v" style="color:${FIG_COLORS[lados]}">${lados} lados</div>
+      <div class="l">${FIG_NAMES[lados] || 'Figura ' + lados}</div>
+      <div style="font-size:.65em;color:var(--muted);margin-top:3px">Posición ${i}</div>`;
+    cont.appendChild(div);
+  });
+}
+
+// ============================================================
+//  MATH: byteToBits, gcd
+// ============================================================
+function byteToBits(b) {
+  const bits = [];
+  for (let i = 7; i >= 0; i--) bits.push((b >> i) & 1);
+  return bits;
+}
+function bitsToByte(bits) {
+  let b = 0;
+  for (let i = 0; i < 8; i++) b = (b << 1) | bits[i];
+  return b;
+}
+function gcd(a, b) {
+  a = a < 0n ? -a : a;
+  b = b < 0n ? -b : b;
+  while (b) { [a, b] = [b, a % b]; }
+  return a;
+}
+
+// ============================================================
+//  DEDUCCIÓN GEOMÉTRICA
+//  x = start - sum_i d_i / (f_0 * ... * f_i)
+//  d_i ∈ {1,2}, f_i = lados de figura
+// ============================================================
+function encodeByte(byte) {
+  const bits = byteToBits(byte);
+  const seq8 = [];
+  for (let i = 0; i < 8; i++) seq8.push(BigInt(state.figureSeq[i % state.figureSeq.length]));
+
+  // Q[i] = seq8[i] * seq8[i+1] * ... * seq8[7]
+  const Q = new Array(9);
+  Q[8] = 1n;
+  for (let i = 7; i >= 0; i--) Q[i] = seq8[i] * Q[i+1];
+
+  // sum = sum_i d_i * Q[i+1]
+  let sum = 0n;
+  for (let i = 0; i < 8; i++) sum += BigInt(bits[i] + 1) * Q[i+1];
+
+  // num/den = (startNum * Q[0] - startDen * sum) / (startDen * Q[0])
+  const num = state.startNum * Q[0] - state.startDen * sum;
+  const den = state.startDen * Q[0];
+  const g = gcd(num, den);
+
+  return {
+    byte,
+    bits,
+    seq8: seq8.map(Number),
+    Q: Q.map(v => v.toString()),
+    sum: sum.toString(),
+    num: num / g,
+    den: den / g,
+    value: Number(num) / Number(den)
+  };
+}
+
+function decodeByte(encoded) {
+  // Reconstruye el byte a partir de los bits (que son la representación primaria)
+  return bitsToByte(encoded.bits);
+}
+
+// ============================================================
+//  UI: Codificación
+// ============================================================
+function codificar() {
+  const text = document.getElementById('plainInput').value;
+  const bytes = new TextEncoder().encode(text);
+
+  const encoded = [];
+  for (const b of bytes) encoded.push(encodeByte(b));
+
+  state.lastBytes = bytes;
+  state.lastEncoded = encoded;
+
+  // Stats
+  document.getElementById('sBytes').textContent = bytes.length;
+  document.getElementById('sBits').textContent = bytes.length * 8;
+
+  // Rango final
+  if (encoded.length > 0) {
+    const vals = encoded.map(e => e.value);
+    const min = Math.min(...vals);
+    const max = Math.max(...vals);
+    document.getElementById('sRango').textContent = `[${min.toFixed(4)}, ${max.toFixed(4)}]`;
+  } else {
+    document.getElementById('sRango').textContent = '—';
+  }
+
+  // Colisiones: comprobar si dos bytes distintos dan el mismo valor final
+  const seen = new Map();
+  let colisiones = 0;
+  for (const e of encoded) {
+    const key = e.num.toString() + '/' + e.den.toString();
+    if (seen.has(key)) colisiones++;
+    else seen.set(key, e.byte);
+  }
+  document.getElementById('sColision').textContent = colisiones;
+
+  // Proceso del primer byte
+  renderSteps(encoded[0]);
+
+  // Valores finales (primeros 4)
+  const v = encoded.slice(0, 4).map((e, i) =>
+    `[${i}] byte=${e.byte} (${e.byte.toString(2).padStart(8,'0')})  x=${e.num}/${e.den}  ≈ ${e.value.toFixed(8)}`
+  ).join('\n');
+  document.getElementById('valoresOut').textContent =
+    v + (encoded.length > 4 ? `\n… (${encoded.length - 4} más)` : '');
+
+  // Visual
+  drawSegment(encoded[0]);
+}
+
+function renderSteps(e) {
+  const cont = document.getElementById('stepsOut');
+  cont.innerHTML = '';
+  let curNum = state.startNum;
+  let curDen = state.startDen;
+  let P = 1n;
+
+  // Header
+  const head = document.createElement('div');
+  head.className = 'step-row step-head';
+  head.innerHTML = '<div>Paso</div><div>Figura</div><div>Trozo</div><div>Segmento restante</div>';
+  cont.appendChild(head);
+
+  for (let i = 0; i < 8; i++) {
+    const f = BigInt(state.figureSeq[i % state.figureSeq.length]);
+    P *= f;
+    const d = BigInt(e.bits[i] + 1);
+    // segment -= d/P
+    const newNum = curNum * P - d * curDen;
+    const newDen = curDen * P;
+    const g = gcd(newNum < 0n ? -newNum : newNum, newDen);
+    curNum = newNum / g;
+    curDen = newDen / g;
+
+    const row = document.createElement('div');
+    row.className = 'step-row';
+    const val = Number(curNum) / Number(curDen);
+    row.innerHTML = `
+      <div style="color:var(--accent)">${i}</div>
+      <div style="color:${FIG_COLORS[Number(f)]}">${f} lados</div>
+      <div>${d}/${P}</div>
+      <div>${curNum} / ${curDen} ≈ ${val.toFixed(8)}</div>
+    `;
+    cont.appendChild(row);
+  }
+}
+
+function drawSegment(e) {
+  const canvas = document.getElementById('canvasSeg');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width = canvas.clientWidth * 2;
+  const H = canvas.height = 520;
+  ctx.scale(2, 2);
+  const w = W / 2, h = H / 2;
+
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = '#0d0d1f';
+  ctx.fillRect(0, 0, w, h);
+
+  // Escala: el segmento inicial = 1.33 ocupa el ancho completo
+  const startVal = Number(state.startNum) / Number(state.startDen);
+  const margin = 30;
+  const usableW = w - 2 * margin;
+  const scale = usableW / startVal;
+
+  // Barra inicial
+  ctx.fillStyle = 'rgba(96,165,250,.25)';
+  ctx.fillRect(margin, 20, startVal * scale, 24);
+  ctx.strokeStyle = '#60a5fa';
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(margin, 20, startVal * scale, 24);
+  ctx.fillStyle = '#60a5fa';
+  ctx.font = '11px Courier New';
+  ctx.textAlign = 'left';
+  ctx.fillText(`Inicio: ${startVal.toFixed(4)}`, margin, 16);
+
+  // Reconstruir el proceso paso a paso
+  let curNum = state.startNum;
+  let curDen = state.startDen;
+  let P = 1n;
+  const barY = 60;
+  const barH = 16;
+  const gap = 4;
+
+  for (let i = 0; i < 8; i++) {
+    const f = BigInt(state.figureSeq[i % state.figureSeq.length]);
+    P *= f;
+    const d = BigInt(e.bits[i] + 1);
+
+    const beforeVal = Number(curNum) / Number(curDen);
+    const newNum = curNum * P - d * curDen;
+    const newDen = curDen * P;
+    const g = gcd(newNum < 0n ? -newNum : newNum, newDen);
+    curNum = newNum / g;
+    curDen = newDen / g;
+    const afterVal = Number(curNum) / Number(curDen);
+
+    const removed = beforeVal - afterVal;
+    const y = barY + i * (barH + gap);
+
+    // Barra antes (gris)
+    ctx.fillStyle = 'rgba(148,163,184,.15)';
+    ctx.fillRect(margin, y, beforeVal * scale, barH);
+
+    // Trozo restante (color)
+    const color = FIG_COLORS[Number(f)] || '#94a3b8';
+    ctx.fillStyle = color + '55';
+    ctx.fillRect(margin, y, afterVal * scale, barH);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(margin, y, afterVal * scale, barH);
+
+    // Trozo eliminado (rojo)
+    const removedX = margin + afterVal * scale;
+    const removedW = removed * scale;
+    ctx.fillStyle = 'rgba(239,68,68,.35)';
+    ctx.fillRect(removedX, y, removedW, barH);
+
+    // Etiqueta
+    ctx.fillStyle = color;
+    ctx.font = '10px Courier New';
+    ctx.textAlign = 'left';
+    ctx.fillText(`${i}: ${f} lados, d=${d}, resta ${removed.toFixed(6)}`, margin, y - 2);
+  }
+
+  // Barra final
+  const finalY = barY + 8 * (barH + gap) + 10;
+  const finalVal = Number(curNum) / Number(curDen);
+  ctx.fillStyle = 'rgba(52,211,153,.3)';
+  ctx.fillRect(margin, finalY, finalVal * scale, 22);
+  ctx.strokeStyle = '#34d399';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(margin, finalY, finalVal * scale, 22);
+  ctx.fillStyle = '#34d399';
+  ctx.font = 'bold 11px Courier New';
+  ctx.fillText(`Resto final: ${finalVal.toFixed(8)}`, margin, finalY + 14);
+
+  // Leyenda
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '10px Segoe UI';
+  ctx.textAlign = 'left';
+  ctx.fillText('Verde = resto · Rojo = trozo eliminado · Color = figura', margin, h - 8);
+}
+
+function limpiar() {
+  document.getElementById('stepsOut').innerHTML = '';
+  document.getElementById('valoresOut').textContent = '—';
+  ['sBytes','sBits','sRango','sColision'].forEach(id => document.getElementById(id).textContent = '—');
+  const canvas = document.getElementById('canvasSeg');
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+// ============================================================
+//  AES-GCM 256
+// ============================================================
+async function deriveKey(password, salt) {
+  const enc = new TextEncoder();
+  const km = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey(
+    { name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' },
+    km,
+    { name: 'AES-GCM', length: 256 },
+    false, ['encrypt', 'decrypt']
+  );
+}
+
+async function aesEncrypt() {
+  const plain = document.getElementById('aesPlain').value;
+  const password = document.getElementById('aesPassword').value;
+  if (!plain || !password) { alert('Falta mensaje o contraseña'); return; }
+
+  const enc = new TextEncoder();
+  const plainBytes = enc.encode(plain);
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+
+  const key = await deriveKey(password, salt);
+  const cipherBuf = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, plainBytes);
+
+  const cipherBytes = new Uint8Array(cipherBuf);
+  const packet = new Uint8Array(salt.length + iv.length + cipherBytes.length);
+  packet.set(salt, 0);
+  packet.set(iv, salt.length);
+  packet.set(cipherBytes, salt.length + iv.length);
+
+  const b64 = btoa(String.fromCharCode(...packet));
+  document.getElementById('aesOut').textContent = b64;
+
+  document.getElementById('sPlain').textContent = plainBytes.length + ' B';
+  document.getElementById('sCipher').textContent = packet.length + ' B';
+  document.getElementById('sOver').textContent = '+' + ((packet.length - plainBytes.length) / plainBytes.length * 100).toFixed(1) + '%';
+  document.getElementById('sAuth').textContent = '✓ GCM';
+}
+
+async function aesDecrypt() {
+  const b64 = document.getElementById('aesOut').textContent;
+  const password = document.getElementById('aesPassword').value;
+  if (!b64 || b64 === '—') { alert('No hay criptograma'); return; }
+
+  try {
+    const packet = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+    const salt = packet.slice(0, 16);
+    const iv = packet.slice(16, 28);
+    const cipherBytes = packet.slice(28);
+    const key = await deriveKey(password, salt);
+    const plainBuf = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, cipherBytes);
+    document.getElementById('aesDec').textContent = '✓ ' + new TextDecoder().decode(plainBuf);
+  } catch (e) {
+    document.getElementById('aesDec').textContent = '✗ Error: ' + e.message;
+  }
+}
+
+async function aesRoundTrip() {
+  await aesEncrypt();
+  await new Promise(r => setTimeout(r, 100));
+  await aesDecrypt();
+}
+
+function clearAES() {
+  document.getElementById('aesOut').textContent = '—';
+  document.getElementById('aesDec').textContent = '—';
+  ['sPlain','sCipher','sOver','sAuth'].forEach(id => document.getElementById(id).textContent = '—');
+}
+
+// ============================================================
+//  Init
+// ============================================================
+window.addEventListener('load', () => {
+  renderFiguras();
+  codificar();
+});
+
+window.addEventListener('resize', () => {
+  if (state.lastEncoded.length) drawSegment(state.lastEncoded[0]);
+});
+</script>
+
+</body>
+</html>

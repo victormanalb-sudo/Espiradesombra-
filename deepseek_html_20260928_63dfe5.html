@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Estudio experimental · Restos, potencias y secuencias</title>
+<style>
+  :root{
+    --bg:#0a0a15;--card:#12122a;--border:#1f1f3d;--text:#e2e8f0;--muted:#94a3b8;
+    --accent:#fbbf24;--accent2:#34d399;--accent3:#60a5fa;--accent4:#f472b6;
+    --code:#0d0d1f;--danger:#ef4444;
+  }
+  *{box-sizing:border-box}
+  body{font-family:'Segoe UI',Tahoma,sans-serif;max-width:1400px;margin:0 auto;
+    padding:16px;background:var(--bg);color:var(--text);line-height:1.5;font-size:14px}
+  h1{font-size:1.4em;background:linear-gradient(90deg,var(--accent3),var(--accent),var(--accent4));
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:2px}
+  h2{color:var(--accent);margin-top:18px;border-bottom:1px solid var(--border);
+    padding-bottom:4px;font-size:1em}
+  h3{color:var(--accent2);font-size:.88em;margin-top:10px;margin-bottom:4px}
+  .sub{color:var(--muted);font-size:.8em;margin-bottom:12px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:9px;
+    padding:12px;margin:9px 0}
+  .card.info{border-color:var(--accent3)}
+  .card.gold{border-color:var(--accent)}
+  .card.ok{border-color:var(--accent2)}
+  .card.pink{border-color:var(--accent4)}
+  .card.warn{border-color:var(--danger)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:6px}
+  .stat{background:var(--code);border:1px solid var(--border);border-radius:6px;
+    padding:6px;text-align:center}
+  .stat .v{font-size:.9em;font-weight:bold;font-family:'Courier New',monospace;word-break:break-all}
+  .stat .l{font-size:.58em;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+  label{display:block;font-weight:600;margin-bottom:2px;color:var(--muted);
+    font-size:.68em;text-transform:uppercase;letter-spacing:.5px}
+  input,textarea,select{width:100%;padding:6px 9px;background:rgba(0,0,0,.4);
+    border:1px solid var(--border);border-radius:6px;font-size:.82em;color:var(--text);
+    font-family:'Courier New',monospace}
+  textarea{min-height:50px;resize:vertical}
+  input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
+  button{background:linear-gradient(135deg,var(--accent3),#3b82f6);color:#fff;
+    border:none;padding:7px 13px;border-radius:6px;cursor:pointer;font-size:.76em;
+    font-weight:700;margin:2px 2px 2px 0;transition:all .15s}
+  button:hover{transform:translateY(-1px);opacity:.9}
+  button.ok{background:linear-gradient(135deg,var(--accent2),#22c55e)}
+  button.gold{background:linear-gradient(135deg,var(--accent),#f59e0b);color:#0a0a15}
+  button.pink{background:linear-gradient(135deg,var(--accent4),#ec4899)}
+  button.danger{background:linear-gradient(135deg,var(--danger),#dc2626)}
+  button.ghost{background:transparent;border:1px solid var(--border);color:var(--text)}
+  pre{background:var(--code);border:1px solid var(--border);border-radius:6px;
+    padding:8px;overflow-x:auto;font-family:'Courier New',monospace;font-size:.72em;
+    color:var(--accent2);white-space:pre-wrap;word-break:break-all;max-height:320px}
+  table{width:100%;border-collapse:collapse;margin:6px 0;font-size:.75em}
+  th,td{border:1px solid var(--border);padding:4px 6px;text-align:left}
+  th{background:var(--code);color:var(--accent);font-size:.68em;text-transform:uppercase}
+  .row{display:flex;gap:6px;flex-wrap:wrap;align-items:flex-end}
+  .row>div{flex:1;min-width:110px}
+  .hint{font-size:.7em;color:var(--muted);margin-top:2px}
+  .footer{color:var(--muted);font-size:.68em;text-align:center;margin-top:20px;
+    padding-top:10px;border-top:1px solid var(--border)}
+  .big{font-size:.8em;color:var(--accent);font-family:'Courier New',monospace;
+    word-break:break-all;text-align:center;padding:6px;background:var(--code);
+    border-radius:6px;border:1px solid var(--accent)}
+  .log{padding:4px 8px;border-left:3px solid var(--muted);background:rgba(0,0,0,.2);
+    margin:2px 0;border-radius:0 4px 4px 0;font-size:.7em;font-family:'Courier New',monospace}
+  .log.ok{border-color:var(--accent2);color:var(--accent2)}
+  .log.err{border-color:var(--danger);color:var(--danger)}
+  .log.info{border-color:var(--accent3);color:var(--accent3)}
+  .log.warn{border-color:var(--accent);color:var(--accent)}
+  .badge{display:inline-block;padding:1px 7px;border-radius:8px;font-size:.6em;
+    font-weight:bold;letter-spacing:.5px;margin-right:3px}
+  .b-blue{background:var(--accent3);color:#fff}
+  .b-green{background:var(--accent2);color:#0a0a15}
+  .b-gold{background:var(--accent);color:#0a0a15}
+  .b-pink{background:var(--accent4);color:#fff}
+  .b-red{background:var(--danger);color:#fff}
+  canvas{width:100%;height:220px;background:var(--code);border-radius:6px;
+    border:1px solid var(--border);display:block}
+</style>
+</head>
+<body>
+
+<h1>Estudio experimental · Restos, potencias y secuencias</h1>
+<p class="sub">
+  <span class="badge b-blue">N mod i</span>
+  <span class="badge b-gold">A^k mod p</span>
+  <span class="badge b-green">Secuencias de diferencia constante</span>
+  <span class="badge b-pink">Primos vs compuestos</span>
+  <span class="badge b-red">Datos, no promesas</span>
+</p>
+
+<!-- ============================================================ -->
+<h2>1. Análisis de N mod i</h2>
+<div class="card info">
+  <p class="hint">Dado un N, calcula N mod i para i = 1..N. Detecta tramos con diferencia constante (pendientes), mínimos locales (divisores), y rupturas. Compara primos vs compuestos.</p>
+
+  <div class="row">
+    <div>
+      <label>N</label>
+      <input id="N" type="number" value="60">
+    </div>
+    <div>
+      <label>Rango i</label>
+      <input id="rangoN" value="2,60">
+    </div>
+    <div>
+      <label>Tolerancia pendiente</label>
+      <input id="tolN" type="number" value="0">
+    </div>
+  </div>
+
+  <div style="margin-top:8px">
+    <button class="gold" onclick="analizarN()">🔍 Analizar N mod i</button>
+    <button class="ghost" onclick="limpiarN()">Limpiar</button>
+  </div>
+
+  <h3>Resumen</h3>
+  <div class="grid">
+    <div class="stat"><div class="v" id="nEsPrimo" style="color:var(--accent3)">—</div><div class="l">¿Primo?</div></div>
+    <div class="stat"><div class="v" id="nDivisores" style="color:var(--accent4)">—</div><div class="l">Divisores</div></div>
+    <div class="stat"><div class="v" id="nTramos" style="color:var(--accent)">—</div><div class="l">Tramos const.</div></div>
+    <div class="stat"><div class="v" id="nMinimos" style="color:var(--accent2)">—</div><div class="l">Mínimos locales</div></div>
+  </div>
+
+  <h3>Gráfica N mod i</h3>
+  <canvas id="canvasN"></canvas>
+
+  <h3>Tramos detectados</h3>
+  <pre id="tramosN">—</pre>
+
+  <h3>Datos crudos (i, N mod i, diferencia)</h3>
+  <pre id="crudoN">—</pre>
+</div>
+
+<!-- ============================================================ -->
+<h2>2. Análisis de A^k mod p</h2>
+<div class="card gold">
+  <p class="hint">Dado A y un candidato p, calcula A^k mod p para k = 1..p. Detecta el ciclo, mínimos, y tramos con diferencia constante. Compara p primo vs p compuesto.</p>
+
+  <div class="row">
+    <div>
+      <label>A</label>
+      <input id="A" type="number" value="5">
+    </div>
+    <div>
+      <label>p</label>
+      <input id="p" type="number" value="23">
+    </div>
+    <div>
+      <label>Rango k</label>
+      <input id="rangoK" value="1,30">
+    </div>
+  </div>
+
+  <div style="margin-top:8px">
+    <button class="gold" onclick="analizarAk()">🔍 Analizar A^k mod p</button>
+    <button class="ghost" onclick="limpiarAk()">Limpiar</button>
+  </div>
+
+  <h3>Resumen</h3>
+  <div class="grid">
+    <div class="stat"><div class="v" id="pEsPrimo" style="color:var(--accent3)">—</div><div class="l">¿p primo?</div></div>
+    <div class="stat"><div class="v" id="pLongCiclo" style="color:var(--accent4)">—</div><div class="l">Longitud ciclo</div></div>
+    <div class="stat"><div class="v" id="pMinimo" style="color:var(--accent)">—</div><div class="l">Mínimo (k, valor)</div></div>
+    <div class="stat"><div class="v" id="pTramos" style="color:var(--accent2)">—</div><div class="l">Tramos const.</div></div>
+  </div>
+
+  <h3>Gráfica A^k mod p</h3>
+  <canvas id="canvasAk"></canvas>
+
+  <h3>Tramos detectados</h3>
+  <pre id="tramosAk">—</pre>
+</div>
+
+<!-- ============================================================ -->
+<h2>3. Comparativa: primos vs compuestos</h2>
+<div class="card ok">
+  <p class="hint">Genera una tabla con métricas para varios N (primos y compuestos). Busca diferencias sistemáticas que puedan servir como filtro.</p>
+
+  <div class="row">
+    <div>
+      <label>Desde N</label>
+      <input id="cmpDesde" type="number" value="10">
+    </div>
+    <div>
+      <label>Hasta N</label>
+      <input id="cmpHasta" type="number" value="60">
+    </div>
+    <div>
+      <label>A para A^k mod p</label>
+      <input id="cmpA" type="number" value="5">
+    </div>
+  </div>
+
+  <div style="margin-top:8px">
+    <button class="ok" onclick="comparativa()">📊 Generar tabla</button>
+    <button class="pink" onclick="exportarCSV()">💾 Exportar CSV</button>
+    <button class="ghost" onclick="limpiarCmp()">Limpiar</button>
+  </div>
+
+  <h3>Métricas por N</h3>
+  <div style="max-height:400px;overflow:auto">
+    <table id="tablaCmp">
+      <thead>
+        <tr>
+          <th>N</th>
+          <th>¿Primo?</th>
+          <th>#Divisores</th>
+          <th>#Tramos N mod i</th>
+          <th>Long. máx. tramo</th>
+          <th>#Mínimos locales</th>
+          <th>Long. ciclo A^k</th>
+          <th>#Tramos A^k</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <h3>Resumen estadístico</h3>
+  <pre id="resumenCmp">—</pre>
+</div>
+
+<!-- ============================================================ -->
+<h2>4. Búsqueda de contraejemplos</h2>
+<div class="card warn">
+  <p class="hint">Aquí formulas una hipótesis y el programa busca contraejemplos. Ejemplo: "todo N con #tramos N mod i = k es primo".</p>
+
+  <div class="row">
+    <div style="flex:3">
+      <label>Hipótesis (JavaScript). Variables: N, esPrimo, nDiv, nTramos, longMax, nMin, longCiclo, tramosAk</label>
+      <textarea id="hipotesis" spellcheck="false">// Ejemplo: hipótesis "N es primo si tiene exactamente 2 divisores"
+return nDiv === 2;</textarea>
+    </div>
+  </div>
+
+  <div class="row" style="margin-top:6px">
+    <div>
+      <label>Desde N</label>
+      <input id="hypDesde" type="number" value="10">
+    </div>
+    <div>
+      <label>Hasta N</label>
+      <input id="hypHasta" type="number" value="200">
+    </div>
+  </div>
+
+  <div style="margin-top:8px">
+    <button class="danger" onclick="buscarContraejemplos()">🔎 Buscar contraejemplos</button>
+  </div>
+
+  <h3>Resultado</h3>
+  <pre id="contraOut">—</pre>
+</div>
+
+<div class="footer">
+  Estudio experimental · Restos, potencias y secuencias · v1.0<br>
+  Datos, no promesas. Shannon no se inmuta.
+</div>
+
+<script>
+// ============================================================
+//  UTILIDADES
+// ============================================================
+function esPrimo(n) {
+  if (n < 2) return false;
+  if (n < 4) return true;
+  if (n % 2 === 0) return false;
+  for (let i = 3; i * i <= n; i += 2) if (n % i === 0) return false;
+  return true;
+}
+
+function divisores(n) {
+  const d = [];
+  for (let i = 1; i * i <= n; i++) {
+    if (n % i === 0) {
+      d.push(i);
+      if (i !== n / i) d.push(n / i);
+    }
+  }
+  return d.sort((a,b) => a-b);
+}
+
+function rango(str) {
+  const [a, b] = str.split(',').map(s => parseInt(s.trim()));
+  return { a, b };
+}
+
+// ============================================================
+//  ANÁLISIS DE SECUENCIAS DE DIFERENCIA CONSTANTE
+//  Dada una lista de valores, devuelve los tramos donde
+//  v[i+1] - v[i] == c constante.
+// ============================================================
+function detectarTramos(valores, tolerancia = 0) {
+  const tramos = [];
+  if (valores.length < 2) return tramos;
+
+  let inicio = 0;
+  let dif = valores[1] - valores[0];
+
+  for (let i = 1; i < valores.length - 1; i++) {
+    const d = valores[i+1] - valores[i];
+    if (Math.abs(d - dif) > tolerancia) {
+      // Cerrar tramo
+      tramos.push({
+        inicio: inicio,
+        fin: i,
+        longitud: i - inicio + 1,
+        diferencia: dif
+      });
+      inicio = i;
+      dif = d;
+    }
+  }
+  // Último tramo
+  tramos.push({
+    inicio: inicio,
+    fin: valores.length - 1,
+    longitud: valores.length - inicio,
+    diferencia: dif
+  });
+
+  return tramos;
+}
+
+function minimosLocales(valores) {
+  const mins = [];
+  for (let i = 1; i < valores.length - 1; i++) {
+    if (valores[i] < valores[i-1] && valores[i] < valores[i+1]) {
+      mins.push({ indice: i, valor: valores[i] });
+    }
+  }
+  return mins;
+}
+
+// ============================================================
+//  ANÁLISIS DE N mod i
+// ============================================================
+function analizarN() {
+  const N = parseInt(document.getElementById('N').value);
+  const { a, b } = rango(document.getElementById('rangoN').value);
+  const tol = parseInt(document.getElementById('tolN').value);
+
+  if (!N || a < 1 || b < a) { alert('Parámetros inválidos'); return; }
+
+  const iVals = [];
+  const rVals = [];
+  const difs = [];
+
+  for (let i = a; i <= b; i++) {
+    iVals.push(i);
+    rVals.push(N % i);
+  }
+  for (let i = 1; i < rVals.length; i++) {
+    difs.push(rVals[i] - rVals[i-1]);
+  }
+
+  // Métricas
+  const divs = divisores(N);
+  const tramos = detectarTramos(rVals, tol);
+  const mins = minimosLocales(rVals);
+
+  document.getElementById('nEsPrimo').textContent = esPrimo(N) ? 'SÍ' : 'NO';
+  document.getElementById('nEsPrimo').style.color = esPrimo(N) ? 'var(--accent2)' : 'var(--danger)';
+  document.getElementById('nDivisores').textContent = divs.length;
+  document.getElementById('nTramos').textContent = tramos.length;
+  document.getElementById('nMinimos').textContent = mins.length;
+
+  // Tramos
+  let tramosStr = tramos.map((t, idx) =>
+    `[${idx}] i=${iVals[t.inicio]}..${iVals[t.fin]}  long=${t.longitud}  dif=${t.diferencia}`
+  ).join('\n');
+  document.getElementById('tramosN').textContent = tramosStr || '—';
+
+  // Datos crudos (limitado a 200)
+  let crudoStr = 'i\tN mod i\tdif\n';
+  const limit = Math.min(rVals.length, 200);
+  for (let k = 0; k < limit; k++) {
+    const d = k > 0 ? rVals[k] - rVals[k-1] : '—';
+    crudoStr += `${iVals[k]}\t${rVals[k]}\t${d}\n`;
+  }
+  if (rVals.length > limit) crudoStr += `… (${rVals.length - limit} más)\n`;
+  document.getElementById('crudoN').textContent = crudoStr;
+
+  // Gráfica
+  dibujar(canvasN, iVals, rVals, 'N mod i');
+}
+
+function limpiarN() {
+  document.getElementById('tramosN').textContent = '—';
+  document.getElementById('crudoN').textContent = '—';
+  ['nEsPrimo','nDivisores','nTramos','nMinimos'].forEach(id =>
+    document.getElementById(id).textContent = '—');
+  const c = document.getElementById('canvasN');
+  const ctx = c.getContext('2d');
+  ctx.clearRect(0, 0, c.width, c.height);
+}
+
+// ============================================================
+//  ANÁLISIS DE A^k mod p
+// ============================================================
+function analizarAk() {
+  const A = parseInt(document.getElementById('A').value);
+  const p = parseInt(document.getElementById('p').value);
+  const { a, b } = rango(document.getElementById('rangoK').value);
+
+  if (!A || !p || a < 1 || b < a) { alert('Parámetros inválidos'); return; }
+
+  const kVals = [];
+  const rVals = [];
+
+  let cur = A % p;
+  for (let k = 1; k <= b; k++) {
+    if (k >= a) {
+      kVals.push(k);
+      rVals.push(cur);
+    }
+    cur = (cur * A) % p;
+  }
+
+  // Longitud del ciclo
+  const { longitud } = cicloAk(A, p);
+
+  // Tramos
+  const tramos = detectarTramos(rVals, 0);
+
+  // Mínimo
+  let minK = kVals[0], minV = rVals[0];
+  for (let i = 1; i < rVals.length; i++) {
+    if (rVals[i] < minV) { minV = rVals[i]; minK = kVals[i]; }
+  }
+
+  document.getElementById('pEsPrimo').textContent = esPrimo(p) ? 'SÍ' : 'NO';
+  document.getElementById('pEsPrimo').style.color = esPrimo(p) ? 'var(--accent2)' : 'var(--danger)';
+  document.getElementById('pLongCiclo').textContent = longitud;
+  document.getElementById('pMinimo').textContent = `k=${minK} (${minV})`;
+  document.getElementById('pTramos').textContent = tramos.length;
+
+  let tramosStr = tramos.map((t, idx) =>
+    `[${idx}] k=${kVals[t.inicio]}..${kVals[t.fin]}  long=${t.longitud}  dif=${t.diferencia}`
+  ).join('\n');
+  document.getElementById('tramosAk').textContent = tramosStr || '—';
+
+  dibujar(canvasAk, kVals, rVals, 'A^k mod p');
+}
+
+function cicloAk(A, p) {
+  const vistos = new Map();
+  let cur = A % p;
+  let k = 1;
+  while (!vistos.has(cur)) {
+    vistos.set(cur, k);
+    cur = (cur * A) % p;
+    k++;
+    if (k > p * 2) break;
+  }
+  return { longitud: k - vistos.get(cur), preperiodo: vistos.get(cur) - 1 };
+}
+
+function limpiarAk() {
+  document.getElementById('tramosAk').textContent = '—';
+  ['pEsPrimo','pLongCiclo','pMinimo','pTramos'].forEach(id =>
+    document.getElementById(id).textContent = '—');
+  const c = document.getElementById('canvasAk');
+  const ctx = c.getContext('2d');
+  ctx.clearRect(0, 0, c.width, c.height);
+}
+
+// ============================================================
+//  DIBUJAR
+// ============================================================
+function dibujar(canvas, xs, ys, titulo) {
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width = canvas.clientWidth * 2;
+  const H = canvas.height = 440;
+  ctx.scale(2, 2);
+  const w = W/2, h = H/2;
+
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = '#0d0d1f';
+  ctx.fillRect(0, 0, w, h);
+
+  const margin = 35;
+  const xmin = Math.min(...xs), xmax = Math.max(...xs);
+  const ymin = Math.min(...ys), ymax = Math.max(...ys);
+
+  const escalaX = x => margin + ((x - xmin) / (xmax - xmin || 1)) * (w - 2*margin);
+  const escalaY = y => h - margin - ((y - ymin) / (ymax - ymin || 1)) * (h - 2*margin);
+
+  // Ejes
+  ctx.strokeStyle = '#1f1f3d';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(margin, margin);
+  ctx.lineTo(margin, h - margin);
+  ctx.lineTo(w - margin, h - margin);
+  ctx.stroke();
+
+  // Puntos y líneas
+  ctx.strokeStyle = '#60a5fa';
+  ctx.fillStyle = '#60a5fa';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  for (let i = 0; i < xs.length; i++) {
+    const x = escalaX(xs[i]);
+    const y = escalaY(ys[i]);
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+
+  for (let i = 0; i < xs.length; i++) {
+    const x = escalaX(xs[i]);
+    const y = escalaY(ys[i]);
+    ctx.beginPath();
+    ctx.arc(x, y, 2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Etiquetas
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '10px Segoe UI';
+  ctx.fillText(titulo, margin, 15);
+  ctx.fillText(`x: ${xmin}..${xmax}`, margin, h - 10);
+  ctx.fillText(`y: ${ymin}..${ymax}`, w - 100, h - 10);
+}
+
+// ============================================================
+//  COMPARATIVA
+// ============================================================
+let cmpData = [];
+
+function comparativa() {
+  const desde = parseInt(document.getElementById('cmpDesde').value);
+  const hasta = parseInt(document.getElementById('cmpHasta').value);
+  const A = parseInt(document.getElementById('cmpA').value);
+
+  const tbody = document.querySelector('#tablaCmp tbody');
+  tbody.innerHTML = '';
+  cmpData = [];
+
+  for (let N = desde; N <= hasta; N++) {
+    const prim = esPrimo(N);
+    const divs = divisores(N);
+    const rVals = [];
+    for (let i = 1; i <= N; i++) rVals.push(N % i);
+    const tramos = detectarTramos(rVals, 0);
+    const longMax = Math.max(...tramos.map(t => t.longitud));
+    const mins = minimosLocales(rVals);
+
+    const { longitud: longCiclo } = cicloAk(A, N);
+    const akVals = [];
+    let cur = A % N;
+    for (let k = 1; k <= N; k++) { akVals.push(cur); cur = (cur * A) % N; }
+    const tramosAk = detectarTramos(akVals, 0);
+
+    const row = {
+      N, prim, divs: divs.length, nTramos: tramos.length,
+      longMax, nMin: mins.length, longCiclo, tramosAk: tramosAk.length
+    };
+    cmpData.push(row);
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${N}</td>
+      <td style="color:${prim ? 'var(--accent2)' : 'var(--danger)'}">${prim ? 'SÍ' : 'NO'}</td>
+      <td>${divs.length}</td>
+      <td>${tramos.length}</td>
+      <td>${longMax}</td>
+      <td>${mins.length}</td>
+      <td>${longCiclo}</td>
+      <td>${tramosAk.length}</td>
+    `;
+    tbody.appendChild(tr);
+  }
+
+  // Resumen estadístico
+  const primos = cmpData.filter(r => r.prim);
+  const comps = cmpData.filter(r => !r.prim);
+
+  const prom = (arr, key) => arr.length ? (arr.reduce((a,b) => a + b[key], 0) / arr.length).toFixed(2) : '—';
+
+  document.getElementById('resumenCmp').textContent =
+    `Primos (${primos.length}):\n` +
+    `  Media #divisores: ${prom(primos, 'divs')}\n` +
+    `  Media #tramos: ${prom(primos, 'nTramos')}\n` +
+    `  Media long. máx.: ${prom(primos, 'longMax')}\n` +
+    `  Media #mínimos: ${prom(primos, 'nMin')}\n` +
+    `  Media long. ciclo: ${prom(primos, 'longCiclo')}\n` +
+    `  Media #tramos A^k: ${prom(primos, 'tramosAk')}\n\n` +
+    `Compuestos (${comps.length}):\n` +
+    `  Media #divisores: ${prom(comps, 'divs')}\n` +
+    `  Media #tramos: ${prom(comps, 'nTramos')}\n` +
+    `  Media long. máx.: ${prom(comps, 'longMax')}\n` +
+    `  Media #mínimos: ${prom(comps, 'nMin')}\n` +
+    `  Media long. ciclo: ${prom(comps, 'longCiclo')}\n` +
+    `  Media #tramos A^k: ${prom(comps, 'tramosAk')}`;
+}
+
+function exportarCSV() {
+  if (!cmpData.length) { alert('Genera la tabla primero'); return; }
+  let csv = 'N,EsPrimo,NumDivisores,NumTramosN,LongMaxTramo,NumMinimos,LongCicloAk,TramosAk\n';
+  for (const r of cmpData) {
+    csv += `${r.N},${r.prim},${r.divs},${r.nTramos},${r.longMax},${r.nMin},${r.longCiclo},${r.tramosAk}\n`;
+  }
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'comparativa.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function limpiarCmp() {
+  document.querySelector('#tablaCmp tbody').innerHTML = '';
+  document.getElementById('resumenCmp').textContent = '—';
+  cmpData = [];
+}
+
+// ============================================================
+//  BÚSQUEDA DE CONTRAEJEMPLOS
+// ============================================================
+function buscarContraejemplos() {
+  const desde = parseInt(document.getElementById('hypDesde').value);
+  const hasta = parseInt(document.getElementById('hypHasta').value);
+  const code = document.getElementById('hipotesis').value;
+
+  let fn;
+  try {
+    fn = new Function('N', 'esPrimo', 'nDiv', 'nTramos', 'longMax', 'nMin', 'longCiclo', 'tramosAk', code);
+  } catch (e) {
+    document.getElementById('contraOut').textContent = '✗ Error en la hipótesis: ' + e.message;
+    return;
+  }
+
+  const contra = [];
+  const cumplen = [];
+
+  for (let N = desde; N <= hasta; N++) {
+    const prim = esPrimo(N);
+    const divs = divisores(N);
+    const rVals = [];
+    for (let i = 1; i <= N; i++) rVals.push(N % i);
+    const tramos = detectarTramos(rVals, 0);
+    const longMax = Math.max(...tramos.map(t => t.longitud));
+    const mins = minimosLocales(rVals);
+
+    const A = 5;
+    const { longitud: longCiclo } = cicloAk(A, N);
+    const akVals = [];
+    let cur = A % N;
+    for (let k = 1; k <= N; k++) { akVals.push(cur); cur = (cur * A) % N; }
+    const tramosAk = detectarTramos(akVals, 0).length;
+
+    let resultado;
+    try {
+      resultado = fn(N, prim, divs.length, tramos.length, longMax, mins.length, longCiclo, tramosAk);
+    } catch (e) {
+      resultado = false;
+    }
+
+    if (resultado && !prim) contra.push(N);
+    if (resultado && prim) cumplen.push(N);
+  }
+
+  let out = `Hipótesis evaluada en N = ${desde}..${hasta}\n\n`;
+  out += `Cumplen la hipótesis y son primos: ${cumplen.length}\n`;
+  out += `Cumplen la hipótesis y NO son primos (contraejemplos): ${contra.length}\n\n`;
+
+  if (contra.length) {
+    out += `Contraejemplos (primeros 30):\n${contra.slice(0, 30).join(', ')}\n`;
+    if (contra.length > 30) out += `… (${contra.length - 30} más)\n`;
+  } else {
+    out += `No se encontraron contraejemplos en el rango probado.\n`;
+    out += `Esto NO demuestra la hipótesis. Solo indica que no falla en este rango.\n`;
+  }
+
+  document.getElementById('contraOut').textContent = out;
+}
+
+// ============================================================
+//  INIT
+// ============================================================
+window.addEventListener('load', () => {
+  analizarN();
+  analizarAk();
+  comparativa();
+});
+</script>
+
+</body>
+</html>

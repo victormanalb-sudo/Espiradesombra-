@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pipeline 59^a → A^b → 59^(ab) mod k · Medición</title>
+<style>
+  :root{
+    --bg:#0a0a15;--card:#12122a;--border:#1f1f3d;--text:#e2e8f0;--muted:#94a3b8;
+    --accent:#fbbf24;--accent2:#34d399;--accent3:#60a5fa;--accent4:#f472b6;
+    --code:#0d0d1f;--danger:#ef4444;
+  }
+  *{box-sizing:border-box}
+  body{font-family:'Segoe UI',Tahoma,sans-serif;max-width:1500px;margin:0 auto;
+    padding:14px;background:var(--bg);color:var(--text);line-height:1.5;font-size:13px}
+  h1{font-size:1.35em;background:linear-gradient(90deg,var(--accent3),var(--accent),var(--accent4));
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:2px}
+  h2{color:var(--accent);margin-top:16px;border-bottom:1px solid var(--border);
+    padding-bottom:3px;font-size:1em}
+  h3{color:var(--accent2);font-size:.88em;margin-top:10px;margin-bottom:4px}
+  .sub{color:var(--muted);font-size:.78em;margin-bottom:10px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:9px;
+    padding:11px;margin:8px 0}
+  .card.info{border-color:var(--accent3)}
+  .card.gold{border-color:var(--accent)}
+  .card.ok{border-color:var(--accent2)}
+  .card.pink{border-color:var(--accent4)}
+  .card.warn{border-color:var(--danger)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:6px}
+  .stat{background:var(--code);border:1px solid var(--border);border-radius:6px;
+    padding:6px;text-align:center}
+  .stat .v{font-size:.85em;font-weight:bold;font-family:'Courier New',monospace;word-break:break-all}
+  .stat .l{font-size:.55em;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+  label{display:block;font-weight:600;margin-bottom:2px;color:var(--muted);
+    font-size:.66em;text-transform:uppercase;letter-spacing:.5px}
+  input,select{width:100%;padding:5px 8px;background:rgba(0,0,0,.4);
+    border:1px solid var(--border);border-radius:6px;font-size:.82em;color:var(--text);
+    font-family:'Courier New',monospace}
+  input:focus,select:focus{outline:none;border-color:var(--accent)}
+  button{background:linear-gradient(135deg,var(--accent3),#3b82f6);color:#fff;
+    border:none;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:.74em;
+    font-weight:700;margin:2px 2px 2px 0;transition:all .15s}
+  button:hover{transform:translateY(-1px);opacity:.9}
+  button:disabled{opacity:.4;cursor:not-allowed;transform:none}
+  button.ok{background:linear-gradient(135deg,var(--accent2),#22c55e)}
+  button.gold{background:linear-gradient(135deg,var(--accent),#f59e0b);color:#0a0a15}
+  button.pink{background:linear-gradient(135deg,var(--accent4),#ec4899)}
+  button.danger{background:linear-gradient(135deg,var(--danger),#dc2626)}
+  button.ghost{background:transparent;border:1px solid var(--border);color:var(--text)}
+  pre{background:var(--code);border:1px solid var(--border);border-radius:6px;
+    padding:8px;overflow-x:auto;font-family:'Courier New',monospace;font-size:.7em;
+    color:var(--accent2);white-space:pre-wrap;word-break:break-all;max-height:340px}
+  table{width:100%;border-collapse:collapse;margin:5px 0;font-size:.72em}
+  th,td{border:1px solid var(--border);padding:3px 5px;text-align:left}
+  th{background:var(--code);color:var(--accent);font-size:.66em;text-transform:uppercase;
+    position:sticky;top:0;z-index:1}
+  .row{display:flex;gap:6px;flex-wrap:wrap;align-items:flex-end}
+  .row>div{flex:1;min-width:100px}
+  .hint{font-size:.68em;color:var(--muted);margin-top:2px}
+  .footer{color:var(--muted);font-size:.66em;text-align:center;margin-top:18px;
+    padding-top:8px;border-top:1px solid var(--border)}
+  .log{padding:3px 7px;border-left:3px solid var(--muted);background:rgba(0,0,0,.2);
+    margin:2px 0;border-radius:0 4px 4px 0;font-size:.68em;font-family:'Courier New',monospace}
+  .log.ok{border-color:var(--accent2);color:var(--accent2)}
+  .log.err{border-color:var(--danger);color:var(--danger)}
+  .log.info{border-color:var(--accent3);color:var(--accent3)}
+  .log.warn{border-color:var(--accent);color:var(--accent)}
+  .badge{display:inline-block;padding:1px 7px;border-radius:8px;font-size:.58em;
+    font-weight:bold;letter-spacing:.5px;margin-right:3px}
+  .b-blue{background:var(--accent3);color:#fff}
+  .b-green{background:var(--accent2);color:#0a0a15}
+  .b-gold{background:var(--accent);color:#0a0a15}
+  .b-pink{background:var(--accent4);color:#fff}
+  .b-red{background:var(--danger);color:#fff}
+  .scroll-y{max-height:340px;overflow-y:auto;border:1px solid var(--border);border-radius:6px}
+  .meter{height:14px;background:var(--code);border-radius:7px;overflow:hidden;
+    border:1px solid var(--border);margin:4px 0}
+  .meter .fill{height:100%;background:linear-gradient(90deg,var(--accent3),var(--accent));
+    transition:width .1s}
+  .R-good{color:var(--accent2);font-weight:bold}
+  .R-neutral{color:var(--accent);font-weight:bold}
+  .R-bad{color:var(--danger);font-weight:bold}
+  .pipe{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:8px;
+    background:var(--code);border-radius:6px;border:1px solid var(--border);
+    font-family:'Courier New',monospace;font-size:.75em;margin:6px 0}
+  .pipe .box{padding:5px 9px;border-radius:5px;background:rgba(96,165,250,.15);
+    border:1px solid var(--accent3);color:var(--accent3)}
+  .pipe .box.arrow{background:transparent;border:none;color:var(--muted);padding:0}
+  .pipe .box.hit{border-color:var(--accent2);color:var(--accent2);background:rgba(52,211,153,.15)}
+  .pipe .box.miss{border-color:var(--danger);color:var(--danger);background:rgba(239,68,68,.15)}
+</style>
+</head>
+<body>
+
+<h1>Pipeline 59<sup>a</sup> → A<sup>b</sup> → 59<sup>ab</sup> mod k · Medición honesta</h1>
+<p class="sub">
+  <span class="badge b-blue">TABLA T (potencias 59^j)</span>
+  <span class="badge b-gold">TABLA M (múltiplos j·A)</span>
+  <span class="badge b-green">PIPELINE POR CANDIDATO</span>
+  <span class="badge b-pink">MEDIR p, q, R</span>
+  <span class="badge b-red">SIN ASUMIR NADA</span>
+  Mide cada etapa: candidato → A → N → test mod k → supervivientes.
+</p>
+
+<!-- ============================================================ -->
+<h2>1. Configuración</h2>
+<div class="card">
+  <div class="row">
+    <div>
+      <label>Bits del espacio AES reducido</label>
+      <select id="bits">
+        <option value="16" selected>16 bits (65.536)</option>
+        <option value="18">18 bits (262.144)</option>
+        <option value="20">20 bits (1.048.576)</option>
+      </select>
+    </div>
+    <div>
+      <label>a máximo (potencias 59^a)</label>
+      <input id="aMax" type="number" value="20">
+      <div class="hint">59^20 ≈ 2^117</div>
+    </div>
+    <div>
+      <label>b (exponente de A^b)</label>
+      <input id="bVal" type="number" value="3">
+    </div>
+    <div>
+      <label>Múltiplos j·A (J max)</label>
+      <input id="jMax" type="number" value="5000">
+    </div>
+    <div>
+      <label>Claves reales (muestras)</label>
+      <input id="numKeys" type="number" value="200">
+    </div>
+  </div>
+
+  <div style="margin-top:8px">
+    <button class="gold" onclick="precomputarTablas()">▶️ FASE 1: Precomputar tablas T y M</button>
+    <button class="pink" onclick="ejecutarPipeline()">▶️ FASE 2: Ejecutar pipeline por filtro</button>
+    <button class="ghost" onclick="limpiar()">Limpiar</button>
+  </div>
+
+  <div class="meter"><div class="fill" id="progBar" style="width:0%"></div></div>
+
+  <div class="grid" style="margin-top:8px">
+    <div class="stat"><div class="v" id="stFase" style="color:var(--accent)">—</div><div class="l">Fase</div></div>
+    <div class="stat"><div class="v" id="stEspacio" style="color:var(--accent3)">—</div><div class="l">Espacio</div></div>
+    <div class="stat"><div class="v" id="stTablaT" style="color:var(--accent4)">—</div><div class="l">Tabla T</div></div>
+    <div class="stat"><div class="v" id="stTablaM" style="color:var(--accent2)">—</div><div class="l">Tabla M</div></div>
+    <div class="stat"><div class="v" id="stTiempo" style="color:var(--accent)">—</div><div class="l">T. precompute</div></div>
+    <div class="stat"><div class="v" id="stFiltros" style="color:var(--accent3)">—</div><div class="l">Filtros probados</div></div>
+  </div>
+
+  <div id="log" style="margin-top:8px"></div>
+</div>
+
+<!-- ============================================================ -->
+<h2>2. Tablas precomputadas</h2>
+<div class="card info">
+  <h3>Tabla T · Potencias de 59</h3>
+  <p class="hint">T = {59^1, 59^2, ..., 59^a_max}. Se usa para comprobar si un valor A es una potencia de 59.</p>
+  <div class="scroll-y" style="max-height:180px">
+    <table id="tablaT">
+      <thead><tr><th>a</th><th>59^a</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <h3 style="margin-top:14px">Tabla M · Múltiplos j·A con A = 59</h3>
+  <p class="hint">M = {1·59, 2·59, ..., J·59}. Se usa para comprobar si un valor es múltiplo de 59.</p>
+  <div class="scroll-y" style="max-height:180px">
+    <table id="tablaM">
+      <thead><tr><th>j</th><th>j·59</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2>3. Pipeline por filtro</h2>
+<div class="card pink">
+  <p class="hint">
+    Para cada filtro se aplica el pipeline completo por candidato: A = f(k) → buscar en T → N = A^b → buscar en M → test 59^(ab) mod k.
+    Se mide cuántos candidatos sobreviven en cada etapa.
+  </p>
+
+  <h3>Filtros / mappings probados</h3>
+  <table>
+    <thead><tr><th>ID</th><th>Nombre</th><th>Definición</th></tr></thead>
+    <tbody>
+      <tr><td>P0</td><td>Control</td><td>pasa con prob 1/2 (control estadístico)</td></tr>
+      <tr><td>P1</td><td>k ∈ T</td><td>k es exactamente una potencia de 59</td></tr>
+      <tr><td>P2</td><td>k ∈ M</td><td>k es múltiplo de 59</td></tr>
+      <tr><td>P3</td><td>k mod 59^a máx &gt; 1</td><td>mayor a tal que 59^a | k, con a ≥ 2</td></tr>
+      <tr><td>P4</td><td>59^k mod k ∈ T</td><td>59^k mod k es potencia de 59</td></tr>
+      <tr><td>P5</td><td>59^k mod k ∈ M</td><td>59^k mod k es múltiplo de 59</td></tr>
+      <tr><td>P6</td><td>Pipeline completo P4 + 59^(a·b) mod k == 0</td><td>59^k mod k = 59^a, luego 59^(a·b) mod k == 0</td></tr>
+    </tbody>
+  </table>
+
+  <h3 style="margin-top:14px">Resultado por filtro</h3>
+  <div class="scroll-y">
+    <table id="tablaPipeline">
+      <thead>
+        <tr>
+          <th>Filtro</th>
+          <th>k inicial</th>
+          <th>tras A</th>
+          <th>tras T</th>
+          <th>tras N</th>
+          <th>tras M</th>
+          <th>tras mod k</th>
+          <th>p</th>
+          <th>q</th>
+          <th>R</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2>4. Detalle del pipeline para un filtro</h2>
+<div class="card gold">
+  <div class="row">
+    <div>
+      <label>Filtro a visualizar</label>
+      <select id="selFiltro">
+        <option value="P0">P0 · Control</option>
+        <option value="P1">P1 · k ∈ T</option>
+        <option value="P2">P2 · k ∈ M</option>
+        <option value="P3">P3 · 59^a | k, a≥2</option>
+        <option value="P4">P4 · 59^k mod k ∈ T</option>
+        <option value="P5">P5 · 59^k mod k ∈ M</option>
+        <option value="P6">P6 · Pipeline completo</option>
+      </select>
+    </div>
+  </div>
+
+  <h3>Pipeline</h3>
+  <div id="pipeView" class="pipe">Selecciona un filtro y pulsa "FASE 2".</div>
+
+  <h3>Primeros 20 candidatos que pasan</h3>
+  <div class="scroll-y" style="max-height:200px">
+    <table id="tablaPasan">
+      <thead><tr><th>k</th><th>A = f(k)</th><th>a</th><th>N = A^b (mod 2^64)</th><th>test</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2>5. Análisis</h2>
+<div class="card warn">
+  <pre id="analisisOut">Ejecuta las dos fases para ver el análisis.</pre>
+</div>
+
+<div class="footer">
+  Pipeline 59^a → A^b → 59^ab mod k · v1.0<br>
+  Shannon no se inmuta: |imagen| ≤ |dominio| = 2^(bits reales)
+</div>
+
+<script>
+// ============================================================
+//  ESTADO
+// ============================================================
+const state = {
+  bits: 16, espacio: 65536,
+  aMax: 20, b: 3, jMax: 5000,
+  numKeys: 200,
+  tablaT: [],              // [{a, valor}]
+  tablaTSet: new Set(),    // set de valores para búsqueda O(1)
+  tablaM: [],              // [{j, valor}]
+  tablaMSet: new Set(),
+  clavesReales: [],
+  resultados: {}
+};
+
+// ============================================================
+//  UTILIDADES
+// ============================================================
+function log(msg, type=''){
+  const el = document.getElementById('log');
+  const div = document.createElement('div');
+  div.className = 'log ' + type;
+  div.textContent = msg;
+  el.appendChild(div);
+  el.scrollTop = el.scrollHeight;
+}
+function fmtNum(n){
+  if (n < 1000) return n.toString();
+  if (n < 1e6) return (n/1e3).toFixed(1) + ' K';
+  if (n < 1e9) return (n/1e6).toFixed(2) + ' M';
+  return n.toExponential(3);
+}
+function fmt(x, d=4){
+  if (x === 0) return '0';
+  if (Math.abs(x) < 0.0001) return x.toExponential(2);
+  if (Math.abs(x) >= 1e6) return x.toExponential(3);
+  return x.toFixed(d);
+}
+function bigintPow(base, exp){
+  let r = 1n, b = BigInt(base), e = BigInt(exp);
+  while (e > 0n) {
+    if (e & 1n) r *= b;
+    b *= b;
+    e >>= 1n;
+  }
+  return r;
+}
+function powModBig(base, exp, mod){
+  let r = 1n, b = BigInt(base) % mod, e = BigInt(exp);
+  while (e > 0n) {
+    if (e & 1n) r = (r * b) % mod;
+    b = (b * b) % mod;
+    e >>= 1n;
+  }
+  return r;
+}
+
+// ============================================================
+//  FASE 1 · PRECOMPUTAR TABLAS
+// ============================================================
+function precomputarTablas(){
+  const bits = parseInt(document.getElementById('bits').value);
+  const aMax = parseInt(document.getElementById('aMax').value);
+  const b = parseInt(document.getElementById('bVal').value);
+  const jMax = parseInt(document.getElementById('jMax').value);
+  const numKeys = parseInt(document.getElementById('numKeys').value);
+
+  state.bits = bits;
+  state.espacio = Math.pow(2, bits);
+  state.aMax = aMax;
+  state.b = b;
+  state.jMax = jMax;
+  state.numKeys = numKeys;
+
+  document.getElementById('log').innerHTML = '';
+  document.getElementById('stFase').textContent = 'Precomputando tablas...';
+  document.getElementById('progBar').style.width = '0%';
+
+  const t0 = performance.now();
+
+  // Tabla T: potencias 59^1..59^aMax
+  state.tablaT = [];
+  state.tablaTSet = new Set();
+  for (let a = 1; a <= aMax; a++) {
+    const v = bigintPow(59, a);
+    state.tablaT.push({ a, valor: v });
+    state.tablaTSet.add(v.toString());
+  }
+  log(`Tabla T: ${aMax} potencias (59^1 hasta 59^${aMax})`, 'ok');
+
+  // Tabla M: múltiplos j·59 para j=1..jMax
+  state.tablaM = [];
+  state.tablaMSet = new Set();
+  for (let j = 1; j <= jMax; j++) {
+    const v = BigInt(j) * 59n;
+    state.tablaM.push({ j, valor: v });
+    state.tablaMSet.add(v.toString());
+  }
+  log(`Tabla M: ${jMax} múltiplos (1·59 hasta ${jMax}·59)`, 'ok');
+
+  const t1 = performance.now();
+  document.getElementById('progBar').style.width = '100%';
+  document.getElementById('stFase').textContent = 'Tablas OK';
+  document.getElementById('stEspacio').textContent = state.espacio.toLocaleString();
+  document.getElementById('stTablaT').textContent = state.tablaT.length;
+  document.getElementById('stTablaM').textContent = state.tablaM.length;
+  document.getElementById('stTiempo').textContent = ((t1-t0)/1000).toFixed(3) + ' s';
+  log(`✓ Tablas precomputadas en ${((t1-t0)/1000).toFixed(3)} s`, 'ok');
+
+  // Claves reales
+  state.clavesReales = [];
+  for (let i = 0; i < numKeys; i++) {
+    state.clavesReales.push(Math.floor(Math.random() * state.espacio));
+  }
+  log(`Claves reales generadas: ${numKeys}`, 'info');
+
+  renderTablaT();
+  renderTablaM();
+}
+
+function renderTablaT(){
+  const tbody = document.querySelector('#tablaT tbody');
+  tbody.innerHTML = '';
+  for (const { a, valor } of state.tablaT) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${a}</td><td style="font-family:monospace;font-size:.85em">${valor.toString()}</td>`;
+    tbody.appendChild(tr);
+  }
+}
+
+function renderTablaM(){
+  const tbody = document.querySelector('#tablaM tbody');
+  tbody.innerHTML = '';
+  const limit = Math.min(50, state.tablaM.length);
+  for (let i = 0; i < limit; i++) {
+    const { j, valor } = state.tablaM[i];
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${j}</td><td style="font-family:monospace;font-size:.85em">${valor.toString()}</td>`;
+    tbody.appendChild(tr);
+  }
+  if (state.tablaM.length > limit) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td colspan="2" style="text-align:center;color:var(--muted)">… (${state.tablaM.length - limit} más)</td>`;
+    tbody.appendChild(tr);
+  }
+}
+
+// ============================================================
+//  FASE 2 · PIPELINE POR FILTRO
+// ============================================================
+async function ejecutarPipeline(){
+  if (state.tablaT.length === 0) { alert('Ejecuta FASE 1 primero'); return; }
+
+  document.getElementById('stFase').textContent = 'Ejecutando pipeline...';
+  document.getElementById('progBar').style.width = '0%';
+
+  const filtros = [
+    {
+      id: 'P0', nombre: 'Control aleatorio',
+      fn: (k) => Math.random() < 0.5
+    },
+    {
+      id: 'P1', nombre: 'k ∈ T (potencia de 59)',
+      fn: (k) => state.tablaTSet.has(BigInt(k).toString())
+    },
+    {
+      id: 'P2', nombre: 'k ∈ M (múltiplo de 59)',
+      fn: (k) => state.tablaMSet.has((BigInt(k) * 1n).toString()) || (k % 59 === 0 && k > 0)
+    },
+    {
+      id: 'P3', nombre: 'k divisible por 59^a, a≥2',
+      fn: (k) => {
+        if (k % 59 !== 0) return false;
+        return (k % (59*59) === 0);
+      }
+    },
+    {
+      id: 'P4', nombre: '59^k mod k ∈ T',
+      fn: (k) => {
+        if (k < 2) return false;
+        const v = powModBig(59, k, BigInt(k));
+        return state.tablaTSet.has(v.toString());
+      }
+    },
+    {
+      id: 'P5', nombre: '59^k mod k ∈ M',
+      fn: (k) => {
+        if (k < 2) return false;
+        const v = powModBig(59, k, BigInt(k));
+        if (v === 0n) return false;
+        return (v % 59n === 0n);
+      }
+    },
+    {
+      id: 'P6', nombre: 'Pipeline completo P4 + mod',
+      fn: (k) => {
+        if (k < 2) return false;
+        const v = powModBig(59, k, BigInt(k));
+        if (!state.tablaTSet.has(v.toString())) return false;
+        // v = 59^a, luego comprobar 59^(a·b) mod k == 0
+        // Encontrar a
+        let a = -1;
+        for (const t of state.tablaT) {
+          if (t.valor === v) { a = t.a; break; }
+        }
+        if (a < 0) return false;
+        const N = bigintPow(59, a * state.b);
+        return (N % BigInt(k)) === 0n;
+      }
+    }
+  ];
+
+  state.resultados = {};
+  state.filtrosList = filtros;
+
+  const totalOps = filtros.length * state.espacio;
+  let opsDone = 0;
+  const t0 = performance.now();
+
+  for (const f of filtros) {
+    let aceptados = 0;
+    const primeros = [];
+
+    const batch = Math.max(1, Math.floor(state.espacio / 30));
+    for (let k = 2; k < state.espacio; k++) {
+      if (f.fn(k)) {
+        aceptados++;
+        if (primeros.length < 20) primeros.push(k);
+      }
+      if (k % batch === 0) {
+        opsDone++;
+        const pct = (opsDone / totalOps) * 100;
+        document.getElementById('progBar').style.width = Math.min(100, pct).toFixed(1) + '%';
+        if (k % (batch * 3) === 0) await new Promise(r => setTimeout(r, 0));
+      }
+    }
+
+    // Claves reales
+    let clavesAcept = 0;
+    for (const k of state.clavesReales) {
+      if (f.fn(k)) clavesAcept++;
+    }
+
+    const pFrac = aceptados / state.espacio;
+    const qFrac = clavesAcept / state.clavesReales.length;
+    const R = pFrac > 0 ? qFrac / pFrac : 0;
+
+    state.resultados[f.id] = {
+      id: f.id, nombre: f.nombre,
+      aceptados, pFrac, clavesAcept, qFrac, R,
+      primeros
+    };
+  }
+
+  const t1 = performance.now();
+  document.getElementById('progBar').style.width = '100%';
+  document.getElementById('stFase').textContent = `Pipeline OK (${((t1-t0)/1000).toFixed(2)} s)`;
+  document.getElementById('stFiltros').textContent = filtros.length;
+
+  renderResultadosPipeline();
+  renderDetalle(parseInt(document.getElementById('selFiltro').value));
+  renderAnalisis();
+}
+
+// ============================================================
+//  RENDER
+// ============================================================
+function renderResultadosPipeline(){
+  const tbody = document.querySelector('#tablaPipeline tbody');
+  tbody.innerHTML = '';
+
+  for (const id of ['P0','P1','P2','P3','P4','P5','P6']) {
+    const r = state.resultados[id];
+    if (!r) continue;
+
+    let clase;
+    if (Math.abs(r.R - 1) < 0.2) clase = 'R-neutral';
+    else if (r.R > 1.2) clase = 'R-good';
+    else clase = 'R-bad';
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><strong>${r.id}</strong> ${r.nombre}</td>
+      <td>${state.espacio.toLocaleString()}</td>
+      <td>—</td>
+      <td>—</td>
+      <td>—</td>
+      <td>—</td>
+      <td>${r.aceptados.toLocaleString()}</td>
+      <td>${fmt(r.pFrac)}</td>
+      <td>${r.clavesAcept} / ${state.clavesReales.length}</td>
+      <td class="${clase}">${fmt(r.R)}</td>
+    `;
+    tbody.appendChild(tr);
+  }
+}
+
+function renderDetalle(filtroId){
+  const r = state.resultados[filtroId];
+  if (!r) return;
+
+  // Pipeline visual
+  const totalK = state.espacio;
+  const aceptados = r.aceptados;
+
+  const pipe = document.getElementById('pipeView');
+  pipe.innerHTML = `
+    <span class="box">k inicial: ${totalK.toLocaleString()}</span>
+    <span class="box arrow">→</span>
+    <span class="box hit">tras filtro: ${aceptados.toLocaleString()}</span>
+    <span class="box arrow">→</span>
+    <span class="box">p = ${fmt(r.pFrac)}</span>
+    <span class="box arrow">→</span>
+    <span class="box">q = ${fmt(r.qFrac)}</span>
+    <span class="box arrow">→</span>
+    <span class="box ${r.R > 1.2 ? 'hit' : (r.R < 0.8 ? 'miss' : '')}">R = ${fmt(r.R)}</span>
+  `;
+
+  // Tabla de primeros
+  const tbody = document.querySelector('#tablaPasan tbody');
+  tbody.innerHTML = '';
+  for (const k of r.primeros) {
+    let A = '—', a = '—', N = '—', test = '—';
+    if (filtroId === 'P4' || filtroId === 'P6') {
+      const v = powModBig(59, k, BigInt(k));
+      A = v.toString();
+      for (const t of state.tablaT) {
+        if (t.valor === v) { a = t.a; break; }
+      }
+      if (a !== '—') {
+        const Nval = bigintPow(59, a * state.b);
+        N = Nval.toString().slice(0, 20) + '…';
+        test = (Nval % BigInt(k)) === 0n ? '✓' : '✗';
+      }
+    } else if (filtroId === 'P1') {
+      A = k;
+      for (const t of state.tablaT) {
+        if (t.valor === BigInt(k)) { a = t.a; break; }
+      }
+      test = 'en T';
+    } else if (filtroId === 'P2' || filtroId === 'P3') {
+      A = k;
+      test = k % 59 === 0 ? 'múltiplo 59' : '—';
+    }
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${k}</td>
+      <td style="font-family:monospace;font-size:.85em">${A}</td>
+      <td>${a}</td>
+      <td style="font-family:monospace;font-size:.85em">${N}</td>
+      <td>${test}</td>
+    `;
+    tbody.appendChild(tr);
+  }
+
+  if (r.primeros.length === 0) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = '<td colspan="5" style="text-align:center;color:var(--muted)">Ningún candidato pasa este filtro</td>';
+    tbody.appendChild(tr);
+  }
+}
+
+function renderAnalisis(){
+  let out = '';
+  out += `=== ANÁLISIS ===\n\n`;
+  out += `Espacio: ${state.espacio.toLocaleString()} (2^${state.bits})\n`;
+  out += `Tabla T: ${state.tablaT.length} potencias de 59\n`;
+  out += `Tabla M: ${state.tablaM.length} múltiplos de 59\n`;
+  out += `b = ${state.b}, claves reales = ${state.clavesReales.length}\n\n`;
+
+  out += `Resultados por filtro:\n`;
+  for (const id of ['P0','P1','P2','P3','P4','P5','P6']) {
+    const r = state.resultados[id];
+    if (!r) continue;
+    out += `  ${r.id}: p=${fmt(r.pFrac)}, q=${fmt(r.qFrac)}, R=${fmt(r.R)}\n`;
+  }
+
+  out += `\nInterpretación:\n`;
+  out += `  P1 (k ∈ T): el filtro solo acepta potencias exactas de 59.\n`;
+  out += `    Hay ${state.tablaT.length} potencias en T. p ≈ ${state.tablaT.length}/${state.espacio} = ${fmt(state.tablaT.length/state.espacio)}.\n`;
+  out += `    Si la clave real no es una potencia de 59, q=0 → R=0.\n\n`;
+
+  out += `  P4 (59^k mod k ∈ T): p es la fracción de k tal que 59^k mod k cae en T.\n`;
+  out += `    Tiene ~aMax valores. p ≈ aMax/k en promedio. R ≈ 1 si las claves son aleatorias.\n\n`;
+
+  out += `  P6 (pipeline completo): añade la condición 59^(a·b) mod k == 0.\n`;
+  out += `    Es una condición muy fuerte. Si p es pequeño y las claves reales no la cumplen, R=0.\n\n`;
+
+  out += `Conclusión honesta:\n`;
+  out += `  Un filtro solo da R > 1 si la clave real lo pasa con más frecuencia que el azar.\n`;
+  out += `  Si las claves reales son aleatorias en [2, 2^bits), y el filtro NO depende de la clave real,\n`;
+  out += `  entonces q = p y R = 1.\n\n`;
+  out += `  Si R = 0, el filtro elimina la clave real. Es peor que inútil.\n`;
+  out += `  Si R = 1, el filtro no aporta información.\n`;
+  out += `  Si R > 1 de forma reproducible, hay correlación con la clave real. Eso sería interesante.\n`;
+
+  document.getElementById('analisisOut').textContent = out;
+}
+
+function limpiar(){
+  state.tablaT = []; state.tablaTSet = new Set();
+  state.tablaM = []; state.tablaMSet = new Set();
+  state.clavesReales = [];
+  state.resultados = {};
+  document.querySelectorAll('tbody').forEach(t => t.innerHTML = '');
+  ['stFase','stEspacio','stTablaT','stTablaM','stTiempo','stFiltros','analisisOut']
+    .forEach(id => document.getElementById(id).textContent = '—');
+  document.getElementById('log').innerHTML = '';
+  document.getElementById('progBar').style.width = '0%';
+  document.getElementById('pipeView').innerHTML = 'Selecciona un filtro y pulsa "FASE 2".';
+}
+
+// ============================================================
+//  EVENTOS
+// ============================================================
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('selFiltro').addEventListener('change', e => {
+    if (Object.keys(state.resultados).length > 0) {
+      renderDetalle(e.target.value);
+    }
+  });
+});
+</script>
+
+</body>
+</html>

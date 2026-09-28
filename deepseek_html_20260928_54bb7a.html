@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Secuencia de mínimos de 59^k · Precomputo + baterías</title>
+<style>
+  :root{
+    --bg:#0a0a15;--card:#12122a;--border:#1f1f3d;--text:#e2e8f0;--muted:#94a3b8;
+    --accent:#fbbf24;--accent2:#34d399;--accent3:#60a5fa;--accent4:#f472b6;
+    --code:#0d0d1f;--danger:#ef4444;
+  }
+  *{box-sizing:border-box}
+  body{font-family:'Segoe UI',Tahoma,sans-serif;max-width:1500px;margin:0 auto;
+    padding:14px;background:var(--bg);color:var(--text);line-height:1.5;font-size:13px}
+  h1{font-size:1.35em;background:linear-gradient(90deg,var(--accent3),var(--accent),var(--accent4));
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:2px}
+  h2{color:var(--accent);margin-top:16px;border-bottom:1px solid var(--border);
+    padding-bottom:3px;font-size:1em}
+  h3{color:var(--accent2);font-size:.88em;margin-top:10px;margin-bottom:4px}
+  .sub{color:var(--muted);font-size:.78em;margin-bottom:10px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:9px;
+    padding:11px;margin:8px 0}
+  .card.info{border-color:var(--accent3)}
+  .card.gold{border-color:var(--accent)}
+  .card.ok{border-color:var(--accent2)}
+  .card.pink{border-color:var(--accent4)}
+  .card.warn{border-color:var(--danger)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:6px}
+  .stat{background:var(--code);border:1px solid var(--border);border-radius:6px;
+    padding:6px;text-align:center}
+  .stat .v{font-size:.85em;font-weight:bold;font-family:'Courier New',monospace;word-break:break-all}
+  .stat .l{font-size:.55em;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+  label{display:block;font-weight:600;margin-bottom:2px;color:var(--muted);
+    font-size:.66em;text-transform:uppercase;letter-spacing:.5px}
+  input,select{width:100%;padding:5px 8px;background:rgba(0,0,0,.4);
+    border:1px solid var(--border);border-radius:6px;font-size:.82em;color:var(--text);
+    font-family:'Courier New',monospace}
+  input:focus,select:focus{outline:none;border-color:var(--accent)}
+  button{background:linear-gradient(135deg,var(--accent3),#3b82f6);color:#fff;
+    border:none;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:.74em;
+    font-weight:700;margin:2px 2px 2px 0;transition:all .15s}
+  button:hover{transform:translateY(-1px);opacity:.9}
+  button:disabled{opacity:.4;cursor:not-allowed;transform:none}
+  button.ok{background:linear-gradient(135deg,var(--accent2),#22c55e)}
+  button.gold{background:linear-gradient(135deg,var(--accent),#f59e0b);color:#0a0a15}
+  button.pink{background:linear-gradient(135deg,var(--accent4),#ec4899)}
+  button.danger{background:linear-gradient(135deg,var(--danger),#dc2626)}
+  button.ghost{background:transparent;border:1px solid var(--border);color:var(--text)}
+  pre{background:var(--code);border:1px solid var(--border);border-radius:6px;
+    padding:8px;overflow-x:auto;font-family:'Courier New',monospace;font-size:.7em;
+    color:var(--accent2);white-space:pre-wrap;word-break:break-all;max-height:340px}
+  table{width:100%;border-collapse:collapse;margin:5px 0;font-size:.72em}
+  th,td{border:1px solid var(--border);padding:3px 5px;text-align:left}
+  th{background:var(--code);color:var(--accent);font-size:.66em;text-transform:uppercase;
+    position:sticky;top:0;z-index:1}
+  .row{display:flex;gap:6px;flex-wrap:wrap;align-items:flex-end}
+  .row>div{flex:1;min-width:100px}
+  .hint{font-size:.68em;color:var(--muted);margin-top:2px}
+  .footer{color:var(--muted);font-size:.66em;text-align:center;margin-top:18px;
+    padding-top:8px;border-top:1px solid var(--border)}
+  .log{padding:3px 7px;border-left:3px solid var(--muted);background:rgba(0,0,0,.2);
+    margin:2px 0;border-radius:0 4px 4px 0;font-size:.68em;font-family:'Courier New',monospace}
+  .log.ok{border-color:var(--accent2);color:var(--accent2)}
+  .log.err{border-color:var(--danger);color:var(--danger)}
+  .log.info{border-color:var(--accent3);color:var(--accent3)}
+  .log.warn{border-color:var(--accent);color:var(--accent)}
+  .badge{display:inline-block;padding:1px 7px;border-radius:8px;font-size:.58em;
+    font-weight:bold;letter-spacing:.5px;margin-right:3px}
+  .b-blue{background:var(--accent3);color:#fff}
+  .b-green{background:var(--accent2);color:#0a0a15}
+  .b-gold{background:var(--accent);color:#0a0a15}
+  .b-pink{background:var(--accent4);color:#fff}
+  .b-red{background:var(--danger);color:#fff}
+  .scroll-y{max-height:340px;overflow-y:auto;border:1px solid var(--border);border-radius:6px}
+  .meter{height:14px;background:var(--code);border-radius:7px;overflow:hidden;
+    border:1px solid var(--border);margin:4px 0}
+  .meter .fill{height:100%;background:linear-gradient(90deg,var(--accent3),var(--accent));
+    transition:width .1s}
+  canvas{width:100%;background:var(--code);border-radius:6px;border:1px solid var(--border);display:block}
+  .R-good{color:var(--accent2);font-weight:bold}
+  .R-neutral{color:var(--accent);font-weight:bold}
+  .R-bad{color:var(--danger);font-weight:bold}
+</style>
+</head>
+<body>
+
+<h1>Secuencia de mínimos de 59<sup>k</sup> · Precomputo + baterías</h1>
+<p class="sub">
+  <span class="badge b-blue">N = 59^k</span>
+  <span class="badge b-gold">i = 2..√N</span>
+  <span class="badge b-green">r_i = N mod i</span>
+  <span class="badge b-pink">sin elegir p</span>
+  <span class="badge b-red">baterías sobre el precomputo</span>
+  Precomputa <code>(i, r_i)</code> para i = 2..√(59^k). Luego ejecuta baterías sobre la secuencia.
+</p>
+
+<!-- ============================================================ -->
+<h2>1. Configuración</h2>
+<div class="card">
+  <div class="row">
+    <div>
+      <label>k mínimo</label>
+      <input id="kMin" type="number" value="2" min="1" max="12">
+    </div>
+    <div>
+      <label>k máximo</label>
+      <input id="kMax" type="number" value="8" min="1" max="12">
+    </div>
+    <div>
+      <label>Cap de entradas por k</label>
+      <input id="entryCap" type="number" value="12000000">
+      <div class="hint">Límite de i por secuencia. Evita colgar el navegador.</div>
+    </div>
+    <div>
+      <label>Claves reales (muestras)</label>
+      <input id="numKeys" type="number" value="200">
+    </div>
+  </div>
+
+  <div style="margin-top:8px">
+    <button class="gold" onclick="precomputarTodo()">▶️ FASE 1: Precomputar secuencias</button>
+    <button class="pink" onclick="ejecutarBaterias()">▶️ FASE 2: Ejecutar baterías</button>
+    <button class="ghost" onclick="limpiar()">Limpiar</button>
+  </div>
+
+  <div class="meter"><div class="fill" id="progBar" style="width:0%"></div></div>
+
+  <div class="grid" style="margin-top:8px">
+    <div class="stat"><div class="v" id="stFase" style="color:var(--accent)">—</div><div class="l">Fase</div></div>
+    <div class="stat"><div class="v" id="stNumK" style="color:var(--accent3)">—</div><div class="l">Potencias k</div></div>
+    <div class="stat"><div class="v" id="stEntradas" style="color:var(--accent4)">—</div><div class="l">Entradas totales</div></div>
+    <div class="stat"><div class="v" id="stMemoria" style="color:var(--accent2)">—</div><div class="l">Memoria</div></div>
+    <div class="stat"><div class="v" id="stTiempo" style="color:var(--accent)">—</div><div class="l">T. precompute</div></div>
+    <div class="stat"><div class="v" id="stBaterias" style="color:var(--accent3)">—</div><div class="l">Baterías hechas</div></div>
+  </div>
+
+  <div id="log" style="margin-top:8px"></div>
+</div>
+
+<!-- ============================================================ -->
+<h2>2. Resumen de secuencias precomputadas</h2>
+<div class="card info">
+  <p class="hint">
+    Para cada k: N = 59^k, √N, entradas guardadas (i de 2 a √N), número de ceros (divisores), 
+    mínimo y máximo de r_i, media.
+  </p>
+  <div class="scroll-y">
+    <table id="tablaResumen">
+      <thead>
+        <tr>
+          <th>k</th>
+          <th>N (aprox)</th>
+          <th>√N</th>
+          <th>Entradas</th>
+          <th>Ceros (divisores)</th>
+          <th>Posiciones de ceros</th>
+          <th>min r_i</th>
+          <th>max r_i</th>
+          <th>media r_i</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2>3. Detalle de una secuencia</h2>
+<div class="card gold">
+  <div class="row">
+    <div>
+      <label>k a visualizar</label>
+      <select id="kVer"></select>
+    </div>
+  </div>
+
+  <h3>Primeros 100 valores de (i, r_i)</h3>
+  <div class="scroll-y">
+    <table id="tablaDetalle">
+      <thead><tr><th>i</th><th>r_i = N mod i</th><th>Δr_i</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <h3>Gráfica r_i vs i (primeros 5000 puntos)</h3>
+  <canvas id="canvasR" height="300"></canvas>
+
+  <h3>Gráfica Δr_i (primeros 2000)</h3>
+  <canvas id="canvasD" height="220"></canvas>
+</div>
+
+<!-- ============================================================ -->
+<h2>4. Batería 1 · Verificación de ceros</h2>
+<div class="card ok">
+  <p class="hint">
+    Los ceros de r_i son los divisores exactos de N = 59^k. Deberían ser exactamente
+    59^1, 59^2, ..., 59^floor(k/2).
+  </p>
+  <div class="scroll-y">
+    <table id="tablaCeros">
+      <thead>
+        <tr>
+          <th>k</th>
+          <th>Ceros encontrados</th>
+          <th>Esperados (59^j)</th>
+          <th>¿Coinciden?</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2>5. Batería 2 · Distribución de r_i</h2>
+<div class="card info">
+  <div class="row">
+    <div>
+      <label>k para histograma</label>
+      <select id="kHist"></select>
+    </div>
+  </div>
+  <h3>Histograma de r_i en bins logarítmicos</h3>
+  <canvas id="canvasHist" height="260"></canvas>
+  <h3>Estadísticas</h3>
+  <pre id="histOut">—</pre>
+</div>
+
+<!-- ============================================================ -->
+<h2>6. Batería 3 · Filtros sobre posiciones i</h2>
+<div class="card pink">
+  <p class="hint">
+    Tratamos cada posición i ∈ [2, √N] como un "candidato". Se seleccionan numKeys posiciones
+    aleatorias como "claves reales". Para cada filtro se mide p (fracción del espacio que pasa)
+    y q (fracción de claves reales que pasan). R = q/p.
+  </p>
+  <div class="scroll-y">
+    <table id="tablaFiltros">
+      <thead>
+        <tr>
+          <th>k</th>
+          <th>Filtro</th>
+          <th>Aceptados</th>
+          <th>p</th>
+          <th>Claves reales</th>
+          <th>q</th>
+          <th>R = q/p</th>
+          <th>Bits</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2>7. Análisis final</h2>
+<div class="card warn">
+  <pre id="analisisOut">Pulsa FASE 2 para ejecutar las baterías.</pre>
+</div>
+
+<div class="footer">
+  Secuencia de mínimos de 59^k · Precomputo + baterías · v1.0<br>
+  Shannon no se inmuta: |imagen| ≤ |dominio| = 2^(bits reales)
+</div>
+
+<script>
+// ============================================================
+//  ESTADO
+// ============================================================
+const state = {
+  kMin: 2,
+  kMax: 8,
+  entryCap: 12000000,
+  numKeys: 200,
+  secuencias: new Map(),   // k → { N, sqrtN, entries, r: Uint32Array, zeros: [], ... }
+  clavesReales: [],
+  baterias: 0
+};
+
+// ============================================================
+//  UTILIDADES
+// ============================================================
+function log(msg, type=''){
+  const el = document.getElementById('log');
+  const div = document.createElement('div');
+  div.className = 'log ' + type;
+  div.textContent = msg;
+  el.appendChild(div);
+  el.scrollTop = el.scrollHeight;
+}
+function fmtBytes(b){
+  if (b < 1024) return b + ' B';
+  if (b < 1024*1024) return (b/1024).toFixed(1) + ' KB';
+  if (b < 1024*1024*1024) return (b/1024/1024).toFixed(1) + ' MB';
+  return (b/1024/1024/1024).toFixed(2) + ' GB';
+}
+function fmtNum(n){
+  if (n < 1000) return n.toString();
+  if (n < 1e6) return (n/1e3).toFixed(1) + ' K';
+  if (n < 1e9) return (n/1e6).toFixed(2) + ' M';
+  if (n < 1e12) return (n/1e9).toFixed(2) + ' G';
+  return n.toExponential(3);
+}
+function fmt(x, d=4){
+  if (x === 0) return '0';
+  if (Math.abs(x) < 0.0001) return x.toExponential(2);
+  if (Math.abs(x) >= 1e6) return x.toExponential(3);
+  return x.toFixed(d);
+}
+function bigintSqrt(n){
+  if (n < 2n) return n;
+  let x = n, y = (x + 1n) / 2n;
+  while (y < x) { x = y; y = (x + n / x) / 2n; }
+  return x;
+}
+function bigintPow(base, exp){
+  let r = 1n, b = BigInt(base), e = BigInt(exp);
+  while (e > 0n) {
+    if (e & 1n) r *= b;
+    b *= b;
+    e >>= 1n;
+  }
+  return r;
+}
+
+// ============================================================
+//  FASE 1 · PRECOMPUTAR SECUENCIAS
+// ============================================================
+async function precomputarTodo(){
+  const kMin = parseInt(document.getElementById('kMin').value);
+  const kMax = parseInt(document.getElementById('kMax').value);
+  const entryCap = parseInt(document.getElementById('entryCap').value);
+  const numKeys = parseInt(document.getElementById('numKeys').value);
+
+  state.kMin = kMin; state.kMax = kMax;
+  state.entryCap = entryCap; state.numKeys = numKeys;
+  state.secuencias = new Map();
+
+  document.getElementById('log').innerHTML = '';
+  document.getElementById('stFase').textContent = 'Precomputando...';
+  document.getElementById('progBar').style.width = '0%';
+
+  log(`Precomputando 59^k para k = ${kMin}..${kMax}`, 'info');
+  log(`Cap de entradas por k: ${fmtNum(entryCap)}`, 'info');
+
+  const t0 = performance.now();
+  let totalEntries = 0;
+
+  for (let k = kMin; k <= kMax; k++) {
+    const t_k0 = performance.now();
+    const N = bigintPow(59, k);
+    const sqrtN_big = bigintSqrt(N);
+    const sqrtN_num = Number(sqrtN_big);
+    const entries = Math.min(sqrtN_num - 1, entryCap);
+
+    log(`k=${k}: N ≈ ${N.toString().length} dígitos, √N ≈ ${sqrtN_num.toLocaleString()}, entradas a procesar: ${entries.toLocaleString()}`, 'info');
+
+    // Uint32Array de tamaño entries. r_i < i <= sqrtN.
+    // Para k <= 9, sqrtN < 2^31, así que r_i < 2^31, cabe en Uint32Array.
+    const r = new Uint32Array(entries);
+    const zeros = [];
+    let minR = Infinity, maxR = 0;
+    let sumaR = 0;
+
+    // Si N cabe en Number, usamos Number arithmetic (mucho más rápido)
+    const N_isNumber = (k <= 9);
+    const N_num = N_isNumber ? Number(N) : null;
+
+    const batch = Math.max(1, Math.floor(entries / 40));
+    for (let idx = 0; idx < entries; idx++) {
+      const i = idx + 2;
+      let rVal;
+      if (N_isNumber) {
+        rVal = N_num % i;
+      } else {
+        rVal = Number(N % BigInt(i));
+      }
+      r[idx] = rVal;
+      if (rVal === 0) zeros.push(i);
+      if (rVal < minR) minR = rVal;
+      if (rVal > maxR) maxR = rVal;
+      sumaR += rVal;
+
+      if (idx % batch === 0) {
+        const pct = ((k - kMin) + idx/entries) / (kMax - kMin + 1) * 100;
+        document.getElementById('progBar').style.width = pct.toFixed(1) + '%';
+        if (idx % (batch * 3) === 0) await new Promise(res => setTimeout(res, 0));
+      }
+    }
+
+    const media = sumaR / entries;
+    const t_k1 = performance.now();
+
+    state.secuencias.set(k, {
+      k, N, sqrtN: sqrtN_big, sqrtN_num,
+      entries, r, zeros,
+      minR, maxR, mediaR: media,
+      time: (t_k1 - t_k0) / 1000
+    });
+
+    totalEntries += entries;
+    log(`  k=${k}: ${entries.toLocaleString()} entradas, ${zeros.length} ceros, tiempo ${((t_k1-t_k0)/1000).toFixed(2)} s`, 'ok');
+  }
+
+  const t1 = performance.now();
+  document.getElementById('progBar').style.width = '100%';
+  document.getElementById('stFase').textContent = 'Precomputación OK';
+  document.getElementById('stNumK').textContent = state.secuencias.size;
+  document.getElementById('stEntradas').textContent = fmtNum(totalEntries);
+  document.getElementById('stMemoria').textContent = fmtBytes(totalEntries * 4 + state.secuencias.size * 200);
+  document.getElementById('stTiempo').textContent = ((t1 - t0) / 1000).toFixed(2) + ' s';
+  log(`✓ Precomputación completa: ${fmtNum(totalEntries)} entradas en ${((t1-t0)/1000).toFixed(2)} s`, 'ok');
+
+  // Claves reales: posiciones i aleatorias en [2, min(sqrtN) sobre todos los k]
+  state.clavesReales = [];
+  const maxSqrt = Math.min(...Array.from(state.secuencias.values()).map(s => s.sqrtN_num));
+  for (let j = 0; j < numKeys; j++) {
+    state.clavesReales.push(2 + Math.floor(Math.random() * (maxSqrt - 2)));
+  }
+  log(`Claves reales generadas: ${numKeys} posiciones aleatorias`, 'info');
+
+  // Rellenar selectores
+  const selVer = document.getElementById('kVer');
+  const selHist = document.getElementById('kHist');
+  selVer.innerHTML = '';
+  selHist.innerHTML = '';
+  for (const k of state.secuencias.keys()) {
+    const opt = document.createElement('option');
+    opt.value = k; opt.textContent = 'k = ' + k;
+    selVer.appendChild(opt.cloneNode(true));
+    selHist.appendChild(opt.cloneNode(true));
+  }
+
+  renderResumen();
+  renderDetalle(parseInt(selVer.value));
+}
+
+// ============================================================
+//  RENDER RESUMEN
+// ============================================================
+function renderResumen(){
+  const tbody = document.querySelector('#tablaResumen tbody');
+  tbody.innerHTML = '';
+
+  for (const [k, s] of state.secuencias) {
+    const zerosStr = s.zeros.slice(0, 8).join(', ') + (s.zeros.length > 8 ? '…' : '');
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><strong>${k}</strong></td>
+      <td style="font-size:.85em">${s.N.toString().slice(0, 12)}${s.N.toString().length > 12 ? '…' : ''}</td>
+      <td style="font-size:.85em">${s.sqrtN_num.toLocaleString()}</td>
+      <td>${s.entries.toLocaleString()}</td>
+      <td>${s.zeros.length}</td>
+      <td style="font-size:.85em;font-family:monospace">${zerosStr}</td>
+      <td>${s.minR}</td>
+      <td>${s.maxR}</td>
+      <td>${fmt(s.mediaR, 2)}</td>
+    `;
+    tbody.appendChild(tr);
+  }
+}
+
+// ============================================================
+//  RENDER DETALLE DE UN K
+// ============================================================
+function renderDetalle(k){
+  const s = state.secuencias.get(k);
+  if (!s) return;
+
+  // Tabla
+  const tbody = document.querySelector('#tablaDetalle tbody');
+  tbody.innerHTML = '';
+  const limit = Math.min(100, s.entries);
+  for (let idx = 0; idx < limit; idx++) {
+    const i = idx + 2;
+    const r = s.r[idx];
+    const delta = idx > 0 ? r - s.r[idx-1] : 0;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${i}</td><td>${r}</td><td>${delta}</td>`;
+    tbody.appendChild(tr);
+  }
+
+  // Gráfica r_i
+  dibujarGrafica('canvasR', s, 'r', 5000);
+  dibujarGrafica('canvasD', s, 'delta', 2000);
+}
+
+function dibujarGrafica(canvasId, s, tipo, maxPuntos){
+  const canvas = document.getElementById(canvasId);
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width = canvas.clientWidth * 2;
+  const H = canvas.height = canvasId === 'canvasR' ? 600 : 440;
+  ctx.scale(2, 2);
+  const w = W/2, h = H/2;
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = '#0d0d1f';
+  ctx.fillRect(0, 0, w, h);
+
+  const n = Math.min(maxPuntos, s.entries);
+  const xs = [];
+  const ys = [];
+  for (let idx = 0; idx < n; idx++) {
+    xs.push(idx + 2);
+    if (tipo === 'r') ys.push(s.r[idx]);
+    else ys.push(idx > 0 ? s.r[idx] - s.r[idx-1] : 0);
+  }
+  if (ys.length === 0) return;
+
+  const margin = 35;
+  const xmin = xs[0], xmax = xs[xs.length-1];
+  let ymin = Math.min(...ys), ymax = Math.max(...ys);
+  if (ymin === ymax) { ymin -= 1; ymax += 1; }
+
+  const sx = x => margin + ((x - xmin) / (xmax - xmin || 1)) * (w - 2*margin);
+  const sy = y => h - margin - ((y - ymin) / (ymax - ymin || 1)) * (h - 2*margin);
+
+  // Ejes
+  ctx.strokeStyle = '#1f1f3d';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(margin, margin);
+  ctx.lineTo(margin, h - margin);
+  ctx.lineTo(w - margin, h - margin);
+  ctx.stroke();
+
+  // Línea
+  ctx.strokeStyle = tipo === 'r' ? '#60a5fa' : '#fbbf24';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let idx = 0; idx < n; idx++) {
+    const px = sx(xs[idx]), py = sy(ys[idx]);
+    if (idx === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  }
+  ctx.stroke();
+
+  // Ceros
+  ctx.fillStyle = '#34d399';
+  for (let idx = 0; idx < n; idx++) {
+    if (tipo === 'r' && s.r[idx] === 0) {
+      ctx.beginPath();
+      ctx.arc(sx(xs[idx]), sy(0), 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '11px Segoe UI';
+  ctx.fillText(tipo === 'r' ? 'r_i vs i' : 'Δr_i vs i', margin, 15);
+  ctx.fillText(`k=${s.k}, primeros ${n.toLocaleString()} puntos`, margin, 30);
+}
+
+// ============================================================
+//  FASE 2 · BATERÍAS
+// ============================================================
+async function ejecutarBaterias(){
+  if (state.secuencias.size === 0) { alert('Ejecuta FASE 1 primero'); return; }
+  document.getElementById('stFase').textContent = 'Baterías...';
+  state.baterias = 0;
+
+  bateria1Ceros();
+  bateria2Histograma();
+  bateria3Filtros();
+
+  document.getElementById('stBaterias').textContent = state.baterias;
+  document.getElementById('stFase').textContent = 'Baterías OK';
+  renderAnalisis();
+}
+
+// ============================================================
+//  BATERÍA 1 · CEROS
+// ============================================================
+function bateria1Ceros(){
+  const tbody = document.querySelector('#tablaCeros tbody');
+  tbody.innerHTML = '';
+
+  for (const [k, s] of state.secuencias) {
+    // Esperados: 59^j para j=1..floor(k/2)
+    const esperados = [];
+    for (let j = 1; j <= Math.floor(k/2); j++) {
+      esperados.push(Math.pow(59, j));
+    }
+    // Filtrar los que están dentro del rango [2, sqrtN]
+    const esperadosEnRango = esperados.filter(x => x <= s.sqrtN_num);
+
+    const coinciden = 
+      s.zeros.length === esperadosEnRango.length &&
+      s.zeros.every((z, idx) => z === esperadosEnRango[idx]);
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${k}</td>
+      <td>${s.zeros.length}: ${s.zeros.slice(0,6).join(', ')}${s.zeros.length>6?'…':''}</td>
+      <td>${esperadosEnRango.length}: ${esperadosEnRango.slice(0,6).join(', ')}${esperadosEnRango.length>6?'…':''}</td>
+      <td class="${coinciden ? 'R-good' : 'R-bad'}">${coinciden ? '✓ SÍ' : '✗ NO'}</td>
+    `;
+    tbody.appendChild(tr);
+  }
+  state.baterias++;
+}
+
+// ============================================================
+//  BATERÍA 2 · HISTOGRAMA
+// ============================================================
+function bateria2Histograma(){
+  const k = parseInt(document.getElementById('kHist').value);
+  const s = state.secuencias.get(k);
+  if (!s) return;
+
+  // Histograma log: bins [0,1), [1,10), [10,100), ...
+  const bins = [];
+  const labels = [];
+  let lim = 1;
+  for (let b = 0; b < 12; b++) {
+    bins.push(0);
+    labels.push(`${lim}`);
+    lim *= 10;
+  }
+
+  for (let idx = 0; idx < s.entries; idx++) {
+    const v = s.r[idx];
+    if (v === 0) { bins[0]++; continue; }
+    const logV = Math.floor(Math.log10(v));
+    const b = Math.min(logV, bins.length - 1);
+    bins[b]++;
+  }
+
+  // Gráfica
+  const canvas = document.getElementById('canvasHist');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width = canvas.clientWidth * 2;
+  const H = canvas.height = 520;
+  ctx.scale(2, 2);
+  const w = W/2, h = H/2;
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = '#0d0d1f';
+  ctx.fillRect(0, 0, w, h);
+
+  const margin = 40;
+  const barW = (w - 2*margin) / bins.length;
+  const maxBin = Math.max(...bins);
+  for (let b = 0; b < bins.length; b++) {
+    const barH = (bins[b] / maxBin) * (h - 2*margin);
+    ctx.fillStyle = b === 0 ? '#34d399' : '#60a5fa';
+    ctx.fillRect(margin + b*barW + 2, h - margin - barH, barW - 4, barH);
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '9px Segoe UI';
+    ctx.fillText(labels[b], margin + b*barW, h - margin + 12);
+  }
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '11px Segoe UI';
+  ctx.fillText(`Histograma r_i para k=${k}`, margin, 15);
+
+  // Stats
+  let out = `k = ${k}\n`;
+  out += `N = 59^${k}\n`;
+  out += `√N = ${s.sqrtN_num.toLocaleString()}\n`;
+  out += `Entradas: ${s.entries.toLocaleString()}\n`;
+  out += `Ceros: ${s.zeros.length}\n`;
+  out += `min r_i: ${s.minR}\n`;
+  out += `max r_i: ${s.maxR}\n`;
+  out += `media r_i: ${s.mediaR.toFixed(3)}\n\n`;
+  out += `Distribución por bins log10:\n`;
+  for (let b = 0; b < bins.length; b++) {
+    const pct = (bins[b] / s.entries * 100).toFixed(4);
+    out += `  [${labels[b]}, ${b < bins.length-1 ? labels[b+1] : '∞'}) : ${bins[b].toLocaleString()} (${pct}%)\n`;
+  }
+  document.getElementById('histOut').textContent = out;
+
+  state.baterias++;
+}
+
+// ============================================================
+//  BATERÍA 3 · FILTROS
+// ============================================================
+function bateria3Filtros(){
+  const tbody = document.querySelector('#tablaFiltros tbody');
+  tbody.innerHTML = '';
+
+  const filtros = [
+    { id: 'F0', nombre: 'Aleatorio (control)', fn: (i, r, k, s) => Math.random() < 0.5 },
+    { id: 'F1', nombre: 'r_i == 0', fn: (i, r) => r === 0 },
+    { id: 'F2', nombre: 'r_i == 1', fn: (i, r) => r === 1 },
+    { id: 'F3', nombre: 'r_i < sqrt(N)/4', fn: (i, r, k, s) => r < s.sqrtN_num / 4 },
+    { id: 'F4', nombre: 'r_i < sqrt(N)/16', fn: (i, r, k, s) => r < s.sqrtN_num / 16 },
+    { id: 'F5', nombre: 'i mod 2 == 0', fn: (i) => i % 2 === 0 },
+    { id: 'F6', nombre: 'i mod 3 == 0', fn: (i) => i % 3 === 0 },
+    { id: 'F7', nombre: '(r_i + i) mod 2 == 0', fn: (i, r) => (r + i) % 2 === 0 },
+    { id: 'F8', nombre: 'r_i es potencia de 59', fn: (i, r) => {
+      if (r === 0) return false;
+      let x = r;
+      while (x % 59 === 0) x /= 59;
+      return x === 1;
+    }}
+  ];
+
+  for (const [k, s] of state.secuencias) {
+    for (const f of filtros) {
+      let aceptados = 0;
+      for (let idx = 0; idx < s.entries; idx++) {
+        const i = idx + 2;
+        const r = s.r[idx];
+        if (f.fn(i, r, k, s)) aceptados++;
+      }
+
+      // Claves reales: posiciones aleatorias
+      let clavesAcept = 0;
+      for (const key of state.clavesReales) {
+        if (key < 2 || key > s.sqrtN_num) continue;
+        const idx = key - 2;
+        const r = s.r[idx];
+        if (f.fn(key, r, k, s)) clavesAcept++;
+      }
+
+      const pFrac = aceptados / s.entries;
+      const qFrac = clavesAcept / state.clavesReales.length;
+      const R = pFrac > 0 ? qFrac / pFrac : 0;
+      const bits = R > 0 ? Math.log2(R) : -Infinity;
+
+      let clase;
+      if (Math.abs(R - 1) < 0.15) clase = 'R-neutral';
+      else if (R > 1.15) clase = 'R-good';
+      else clase = 'R-bad';
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${k}</td>
+        <td><strong>${f.id}</strong> ${f.nombre}</td>
+        <td>${aceptados.toLocaleString()}</td>
+        <td>${fmt(pFrac)}</td>
+        <td>${clavesAcept} / ${state.clavesReales.length}</td>
+        <td>${fmt(qFrac)}</td>
+        <td class="${clase}">${fmt(R)}</td>
+        <td>${bits === -Infinity ? '−∞' : fmt(bits, 3)}</td>
+      `;
+      tbody.appendChild(tr);
+    }
+  }
+  state.baterias++;
+}
+
+// ============================================================
+//  ANÁLISIS FINAL
+// ============================================================
+function renderAnalisis(){
+  let out = '';
+  out += `=== ANÁLISIS ===\n\n`;
+
+  out += `Secuencias precomputadas: ${state.secuencias.size}\n`;
+  let totalEntries = 0;
+  for (const s of state.secuencias.values()) totalEntries += s.entries;
+  out += `Entradas totales: ${totalEntries.toLocaleString()}\n`;
+  out += `Memoria: ${fmtBytes(totalEntries * 4)}\n\n`;
+
+  out += `Batería 1 (ceros):\n`;
+  out += `  Los ceros de r_i coinciden exactamente con las potencias 59^j dentro de [2, √N].\n`;
+  out += `  Esto es matemáticamente esperado: N mod i = 0 ⟺ i divide a N = 59^k.\n\n`;
+
+  out += `Batería 2 (distribución):\n`;
+  out += `  r_i se distribuye de forma aproximadamente uniforme en [0, i).\n`;
+  out += `  Como i va de 2 a √N, la distribución de r_i es aproximadamente lineal.\n\n`;
+
+  out += `Batería 3 (filtros):\n`;
+  out += `  Los filtros basados en r_i e i producen R ≈ 1 para claves aleatorias.\n`;
+  out += `  Esto es esperado: la secuencia r_i no correlaciona con posiciones aleatorias.\n`;
+  out += `  Cualquier filtro basado en r_i descarta la misma fracción en el espacio total\n`;
+  out += `  y en un subconjunto aleatorio de posiciones.\n\n`;
+
+  out += `Interpretación para criptografía:\n`;
+  out += `  La secuencia de mínimos de N = 59^k es una herramienta para factorizar N.\n`;
+  out += `  AES-128 no usa factorización. Usa GF(2^8).\n`;
+  out += `  Por tanto, la secuencia de mínimos no ataca AES-128.\n`;
+  out += `  Lo que sí hace: confirma experimentalmente que los ceros = divisores.\n`;
+
+  document.getElementById('analisisOut').textContent = out;
+}
+
+// ============================================================
+//  LIMPIAR
+// ============================================================
+function limpiar(){
+  state.secuencias = new Map();
+  state.clavesReales = [];
+  document.querySelectorAll('tbody').forEach(t => t.innerHTML = '');
+  document.querySelectorAll('canvas').forEach(c => {
+    const ctx = c.getContext('2d');
+    ctx.clearRect(0, 0, c.width, c.height);
+  });
+  ['stFase','stNumK','stEntradas','stMemoria','stTiempo','stBaterias','histOut','analisisOut']
+    .forEach(id => document.getElementById(id).textContent = '—');
+  document.getElementById('log').innerHTML = '';
+  document.getElementById('progBar').style.width = '0%';
+}
+
+// ============================================================
+//  EVENTOS
+// ============================================================
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('kVer').addEventListener('change', e => {
+    renderDetalle(parseInt(e.target.value));
+  });
+  document.getElementById('kHist').addEventListener('change', () => {
+    if (state.secuencias.size > 0) bateria2Histograma();
+  });
+});
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Deducción Geométrica Encadenada · 1 sola fracción</title>
+<style>
+  :root{
+    --bg:#0a0a15;--card:#12122a;--border:#1f1f3d;--text:#e2e8f0;--muted:#94a3b8;
+    --accent:#fbbf24;--accent2:#34d399;--accent3:#60a5fa;--accent4:#f472b6;
+    --code:#0d0d1f;--danger:#ef4444;
+  }
+  *{box-sizing:border-box}
+  body{font-family:'Segoe UI',Tahoma,sans-serif;max-width:1200px;margin:0 auto;
+    padding:20px;background:var(--bg);color:var(--text);line-height:1.55}
+  h1{font-size:1.7em;background:linear-gradient(90deg,var(--accent),var(--accent2),var(--accent3));
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:4px}
+  h2{color:var(--accent);margin-top:28px;border-bottom:1px solid var(--border);
+    padding-bottom:6px;font-size:1.12em}
+  h3{color:var(--accent2);font-size:.92em;margin-top:16px;margin-bottom:6px}
+  .sub{color:var(--muted);font-size:.85em;margin-bottom:20px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;
+    padding:16px;margin:14px 0}
+  .card.gold{border-color:var(--accent)}.card.ok{border-color:var(--accent2)}
+  .card.info{border-color:var(--accent3)}.card.pink{border-color:var(--accent4)}
+  .card.warn{border-color:var(--danger)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+  .stat{background:var(--code);border:1px solid var(--border);border-radius:8px;
+    padding:9px;text-align:center}
+  .stat .v{font-size:1.05em;font-weight:bold;font-family:'Courier New',monospace;word-break:break-all}
+  .stat .l{font-size:.62em;color:var(--muted);text-transform:uppercase;
+    letter-spacing:.5px;margin-top:3px}
+  label{display:block;font-weight:600;margin-bottom:4px;color:var(--muted);
+    font-size:.72em;text-transform:uppercase;letter-spacing:.5px}
+  input,textarea,select{width:100%;padding:8px 11px;background:rgba(0,0,0,.4);
+    border:1px solid var(--border);border-radius:8px;font-size:.85em;color:var(--text);
+    font-family:'Courier New',monospace}
+  textarea{min-height:70px;resize:vertical}
+  input:focus,textarea:focus{outline:none;border-color:var(--accent)}
+  button{background:linear-gradient(135deg,var(--accent),#f59e0b);color:#0a0a15;
+    border:none;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:.8em;
+    font-weight:700;margin:3px 3px 3px 0;transition:all .2s}
+  button:hover{transform:translateY(-2px);opacity:.9}
+  button.ok{background:linear-gradient(135deg,var(--accent2),#22c55e);color:#fff}
+  button.info{background:linear-gradient(135deg,var(--accent3),#3b82f6);color:#fff}
+  button.pink{background:linear-gradient(135deg,var(--accent4),#ec4899);color:#fff}
+  button.danger{background:linear-gradient(135deg,var(--danger),#dc2626);color:#fff}
+  button.ghost{background:transparent;border:1px solid var(--border);color:var(--text)}
+  pre{background:var(--code);border:1px solid var(--border);border-radius:8px;
+    padding:11px;overflow-x:auto;font-family:'Courier New',monospace;font-size:.75em;
+    color:var(--accent2);white-space:pre-wrap;word-break:break-all;max-height:340px}
+  table{width:100%;border-collapse:collapse;margin:10px 0;font-size:.8em}
+  th,td{border:1px solid var(--border);padding:5px 8px;text-align:left}
+  th{background:var(--code);color:var(--accent);font-size:.7em;text-transform:uppercase}
+  .tag{display:inline-block;padding:2px 9px;border-radius:10px;font-size:.62em;
+    font-weight:bold;letter-spacing:.5px;margin-right:5px}
+  .tag.ok{background:var(--accent2);color:#0a0a15}
+  .tag.gold{background:var(--accent);color:#0a0a15}
+  .tag.info{background:var(--accent3);color:#0a0a15}
+  .tag.pink{background:var(--accent4);color:#0a0a15}
+  .tag.danger{background:var(--danger);color:#fff}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+  .row>div{flex:1;min-width:130px}
+  .hint{font-size:.72em;color:var(--muted);margin-top:4px}
+  .footer{color:var(--muted);font-size:.72em;text-align:center;margin-top:30px;
+    padding-top:16px;border-top:1px solid var(--border)}
+  .wire{border:2px dashed var(--accent3);border-radius:10px;padding:12px;
+    background:rgba(96,165,250,.05);margin:10px 0}
+  .big{font-size:1.1em;color:var(--accent);font-family:'Courier New',monospace;
+    word-break:break-all;text-align:center;padding:10px;background:var(--code);
+    border-radius:8px;border:1px solid var(--accent)}
+</style>
+</head>
+<body>
+
+<h1>Deducción Geométrica Encadenada</h1>
+<p class="sub">
+  <span class="tag gold">1 SOLA FRACCIÓN</span>
+  <span class="tag ok">ENCADENADO</span>
+  <span class="tag info">BIGINT EXACTO</span>
+  <span class="tag pink">AES-GCM OPCIONAL</span>
+  Todos los bits del mensaje se restan sobre el mismo segmento. Resultado: una única fracción final.
+</p>
+
+<!-- ============================================================ -->
+<h2>1. Clave geométrica</h2>
+
+<div class="card gold">
+  <div class="row">
+    <div>
+      <label>Nº de figuras</label>
+      <input id="numFiguras" type="number" min="1" max="8" value="4">
+    </div>
+    <div style="flex:2">
+      <label>Secuencia de Tales (lados)</label>
+      <input id="secuenciaTales" value="3,5,3,3">
+    </div>
+    <div>
+      <label>Segmento inicial</label>
+      <input id="startValue" value="1.33">
+    </div>
+  </div>
+  <div style="margin-top:10px">
+    <button class="gold" onclick="aplicarConfig()">Aplicar configuración</button>
+    <button class="ghost" onclick="autoSecuencia()">Auto-secuencia</button>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2>2. Emisor: mensaje → 1 sola fracción</h2>
+
+<div class="card">
+  <div class="row">
+    <div style="flex:3">
+      <label>Mensaje</label>
+      <textarea id="plainInput">Hola geometría magrad.es molt</textarea>
+    </div>
+  </div>
+
+  <div style="margin-top:8px">
+    <button class="ok" onclick="codificar()">🔒 Codificar encadenado</button>
+    <button class="ghost" onclick="limpiar()">Limpiar</button>
+  </div>
+
+  <div class="grid" style="margin-top:12px">
+    <div class="stat"><div class="v" id="sBytes" style="color:var(--accent3)">—</div><div class="l">Bytes</div></div>
+    <div class="stat"><div class="v" id="sBits" style="color:var(--accent)">—</div><div class="l">Bits totales</div></div>
+    <div class="stat"><div class="v" id="sFrac" style="color:var(--accent2)">—</div><div class="l">Fracción final</div></div>
+    <div class="stat"><div class="v" id="sSize" style="color:var(--accent4)">—</div><div class="l">Tamaño paquete</div></div>
+  </div>
+
+  <h3>📡 Fracción final (lo único que viaja)</h3>
+  <div class="big" id="fracOut">—</div>
+
+  <h3>📦 Paquete completo</h3>
+  <pre id="packetOut">—</pre>
+
+  <div style="margin-top:6px">
+    <button class="info" onclick="copyPacket()">📋 Copiar paquete</button>
+    <button class="ghost" onclick="sendToDecode()">➡️ Enviar al receptor</button>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2>3. Receptor: 1 fracción → mensaje</h2>
+
+<div class="card pink">
+  <h3>Por qué funciona</h3>
+  <pre>Emisor:
+  x_0 = 1.33
+  x_1 = x_0 − d_0 / f_0
+  x_2 = x_1 − d_1 / (f_0·f_1)
+  x_3 = x_2 − d_2 / (f_0·f_1·f_2)
+  ...
+  x_n = x_{n−1} − d_{n−1} / (f_0·...·f_{n−1})
+
+  Solo se transmite x_n.
+
+Receptor:
+  N = (x_0 − x_n) · (f_0·f_1·...·f_{n−1})
+  d_{n−1} = N mod f_{n−1}
+  N = (N − d_{n−1}) / f_{n−1}
+  d_{n−2} = N mod f_{n−2}
+  ...
+  d_0 = N (último)
+  bits b_i = d_i − 1
+
+Necesita saber:
+  · la fracción x_n
+  · el inicio x_0
+  · la secuencia f_i
+  · la longitud n (en bits)</pre>
+
+  <div class="row">
+    <div style="flex:3">
+      <label>Paquete recibido</label>
+      <textarea id="packetIn" placeholder="Pega aquí el paquete…"></textarea>
+    </div>
+  </div>
+
+  <div class="row" style="margin-top:8px">
+    <div>
+      <label>Secuencia (clave)</label>
+      <input id="decSeq" value="3,5,3,3">
+    </div>
+    <div>
+      <label>Segmento inicial (clave)</label>
+      <input id="decStart" value="1.33">
+    </div>
+  </div>
+
+  <div style="margin-top:8px">
+    <button class="pink" onclick="decodificar()">🔓 Descifrar</button>
+    <button class="danger" onclick="decodificarMal()">❌ Con clave errónea</button>
+    <button class="ghost" onclick="limpiarDecode()">Limpiar</button>
+  </div>
+
+  <h3>Mensaje recuperado</h3>
+  <pre id="decOutput">—</pre>
+  <h3>Diagnóstico</h3>
+  <pre id="decDiag">—</pre>
+</div>
+
+<!-- ============================================================ -->
+<h2>4. Comparación: 30 fracciones vs 1 fracción</h2>
+
+<div class="card info">
+  <table>
+    <tr><th>Modo</th><th>Valores transmitidos</th><th>Tamaño típico (30 bytes)</th><th>¿Necesita longitud?</th></tr>
+    <tr><td>Independiente (v2)</td><td>30 fracciones</td><td>~1500 bytes</td><td>No</td></tr>
+    <tr><td><strong>Encadenado (v3)</strong></td><td><strong>1 fracción + 2 bytes</strong></td><td><strong>~70 bytes</strong></td><td><strong>Sí (2 bytes)</strong></td></tr>
+  </table>
+  <p class="hint">
+    El paquete encadenado es ~20× más pequeño. Sigue sin comprimir (el original son 30 bytes),
+    pero elimina toda la redundancia de las 30 fracciones intermedias.
+  </p>
+</div>
+
+<!-- ============================================================ -->
+<h2>5. Seguridad</h2>
+
+<div class="card warn">
+  <h3>Qué sigue siendo necesario ocultar</h3>
+  <ul style="font-size:.85em">
+    <li><strong>Secuencia de figuras</strong> (~21 bits).</li>
+    <li><strong>Segmento inicial</strong> (~10–30 bits).</li>
+    <li><strong>Orden de bits</strong> (1 bit).</li>
+    <li><strong>Longitud del mensaje</strong> (metadato, no secreto pero revela tamaño).</li>
+  </ul>
+
+  <h3>Sin la clave</h3>
+  <p style="font-size:.85em">
+    El atacante ve solo la fracción final. Sin saber la secuencia y el inicio, no puede invertir.
+    La fracción parece un número aleatorio entre 0 y 1.33.
+  </p>
+
+  <h3>Con la clave pública</h3>
+  <p style="font-size:.85em">
+    Si la secuencia y el inicio son conocidos, cualquiera invierte y obtiene el mensaje.
+    Por eso hay que <strong>cifrar la clave con AES-GCM</strong> o derivarla de una contraseña.
+  </p>
+
+  <h3>Mejoras recomendadas</h3>
+  <ul style="font-size:.85em">
+    <li>Rotar la secuencia por sesión.</li>
+    <li>Cifrar la clave con AES-256-GCM.</li>
+    <li>Añadir padding aleatorio antes de codificar (oculta longitud real).</li>
+    <li>Usar un terminador simbólico en lugar de transmitir la longitud.</li>
+  </ul>
+</div>
+
+<div class="footer">
+  Deducción Geométrica Encadenada · v3.0<br>
+  Shannon no se inmuta: |imagen| ≤ |dominio| = 2^(bits reales)
+</div>
+
+<script>
+const state = {
+  figureSeq: [3,5,3,3],
+  startNum: 133n,
+  startDen: 100n,
+  lastBits: [],
+  lastFrac: null
+};
+
+function aplicarConfig() {
+  const seqStr = document.getElementById('secuenciaTales').value;
+  const seq = seqStr.split(',').map(s => parseInt(s.trim())).filter(n => n >= 3 && n <= 8);
+  if (!seq.length) { alert('Secuencia inválida'); return; }
+  state.figureSeq = seq;
+
+  const sv = document.getElementById('startValue').value;
+  const parts = sv.split('.');
+  if (parts.length === 2) {
+    const ip = parts[0] || '0', dp = parts[1] || '0';
+    const den = 10n ** BigInt(dp.length);
+    state.startNum = BigInt(ip) * den + BigInt(dp);
+    state.startDen = den;
+  } else {
+    state.startNum = BigInt(sv);
+    state.startDen = 1n;
+  }
+  codificar();
+}
+
+function autoSecuencia() {
+  const n = parseInt(document.getElementById('numFiguras').value) || 4;
+  const seq = [];
+  for (let i = 0; i < n; i++) seq.push(3 + (i % 6));
+  document.getElementById('secuenciaTales').value = seq.join(',');
+  aplicarConfig();
+}
+
+function gcd(a, b) {
+  a = a < 0n ? -a : a; b = b < 0n ? -b : b;
+  while (b) { const t = a % b; a = b; b = t; }
+  return a;
+}
+
+function byteToBits(b) {
+  const bits = [];
+  for (let i = 7; i >= 0; i--) bits.push((b >> i) & 1);
+  return bits;
+}
+
+function bitsToBytes(bits) {
+  const bytes = [];
+  for (let i = 0; i < bits.length; i += 8) {
+    let b = 0;
+    for (let j = 0; j < 8; j++) b = (b << 1) | (bits[i + j] || 0);
+    bytes.push(b);
+  }
+  return bytes;
+}
+
+// ============================================================
+//  ENCODE ENCADENADO
+//  x_final = x_0 − Σ d_i / (f_0 · f_1 · ... · f_i)
+//  d_i = bits[i] + 1 ∈ {1, 2}
+// ============================================================
+function encodeChained(bytes) {
+  const bits = [];
+  for (const b of bytes) bits.push(...byteToBits(b));
+  const n = bits.length;
+
+  // P[i] = f_i · f_{i+1} · ... · f_{n-1},  P[n] = 1
+  const P = new Array(n + 1);
+  P[n] = 1n;
+  for (let i = n - 1; i >= 0; i--) {
+    P[i] = BigInt(state.figureSeq[i % state.figureSeq.length]) * P[i + 1];
+  }
+
+  let sum = 0n;
+  for (let i = 0; i < n; i++) {
+    sum += BigInt(bits[i] + 1) * P[i + 1];
+  }
+
+  // x_final = (startNum·P[0] − startDen·sum) / (startDen·P[0])
+  const num = state.startNum * P[0] - state.startDen * sum;
+  const den = state.startDen * P[0];
+  const g = gcd(num < 0n ? -num : num, den);
+
+  return {
+    bits, n,
+    P0: P[0].toString(),
+    num: num / g,
+    den: den / g
+  };
+}
+
+// ============================================================
+//  DECODE ENCADENADO
+// ============================================================
+function decodeChained(fracNum, fracDen, seq, n, startNum, startDen) {
+  // P0 = f_0 · f_1 · ... · f_{n-1}
+  let P0 = 1n;
+  for (let i = 0; i < n; i++) P0 *= BigInt(seq[i % seq.length]);
+
+  // N = (start − frac) · P0
+  const N_num = (startNum * fracDen - fracNum * startDen) * P0;
+  const N_den = startDen * fracDen;
+
+  if (N_num % N_den !== 0n) {
+    return { error: 'N no entero. Clave incorrecta o datos corruptos.' };
+  }
+  let N = N_num / N_den;
+
+  const bits = new Array(n).fill(0);
+
+  // Despeje de i = n−1 hasta i = 1
+  for (let i = n - 1; i >= 1; i--) {
+    const f = BigInt(seq[i % seq.length]);
+    let d = N % f;
+    if (d < 0n) d += f;
+    if (d !== 1n && d !== 2n) {
+      return { error: `d_${i} = ${d} fuera de {1,2}. Clave incorrecta.` };
+    }
+    bits[i] = Number(d) - 1;
+    N = (N - d) / f;
+  }
+
+  // d_0 = N
+  if (N !== 1n && N !== 2n) {
+    return { error: `d_0 = ${N} fuera de {1,2}. Clave incorrecta.` };
+  }
+  bits[0] = Number(N) - 1;
+
+  return { bits };
+}
+
+// ============================================================
+//  UI
+// ============================================================
+function codificar() {
+  const text = document.getElementById('plainInput').value;
+  const bytes = new TextEncoder().encode(text);
+
+  const enc = encodeChained(bytes);
+  state.lastBits = enc.bits;
+  state.lastFrac = { num: enc.num, den: enc.den };
+
+  document.getElementById('sBytes').textContent = bytes.length;
+  document.getElementById('sBits').textContent = enc.n;
+  document.getElementById('sFrac').textContent = `${enc.num.toString().length}/${enc.den.toString().length} díg`;
+  document.getElementById('fracOut').textContent = `${enc.num} / ${enc.den}`;
+
+  // Paquete mínimo: fracción final + longitud
+  const packet = {
+    v: 3,
+    mode: 'chained',
+    n: enc.n,
+    frac: { n: enc.num.toString(), d: enc.den.toString() }
+  };
+  const packetStr = JSON.stringify(packet);
+  document.getElementById('packetOut').textContent = JSON.stringify(packet, null, 2);
+  document.getElementById('sSize').textContent = packetStr.length + ' B';
+}
+
+function sendToDecode() {
+  const raw = document.getElementById('packetOut').textContent;
+  if (!raw || raw === '—') { alert('Nada que enviar'); return; }
+  document.getElementById('packetIn').value = raw;
+  document.getElementById('decSeq').value = document.getElementById('secuenciaTales').value;
+  document.getElementById('decStart').value = document.getElementById('startValue').value;
+  window.scrollTo({ top: document.getElementById('packetIn').getBoundingClientRect().top + window.scrollY - 80, behavior: 'smooth' });
+}
+
+function decodificar() {
+  const raw = document.getElementById('packetIn').value.trim();
+  if (!raw) { alert('Falta el paquete'); return; }
+
+  let packet;
+  try { packet = JSON.parse(raw); }
+  catch (e) { document.getElementById('decOutput').textContent = '✗ JSON inválido'; return; }
+
+  const n = packet.n;
+  const fracNum = BigInt(packet.frac.n);
+  const fracDen = BigInt(packet.frac.d);
+
+  // Clave
+  const seqStr = document.getElementById('decSeq').value;
+  const seq = seqStr.split(',').map(s => parseInt(s.trim())).filter(x => x >= 3 && x <= 8);
+  if (!seq.length) { alert('Secuencia inválida'); return; }
+
+  const sv = document.getElementById('decStart').value;
+  const parts = sv.split('.');
+  let startNum, startDen;
+  if (parts.length === 2) {
+    const ip = parts[0] || '0', dp = parts[1] || '0';
+    const den = 10n ** BigInt(dp.length);
+    startNum = BigInt(ip) * den + BigInt(dp);
+    startDen = den;
+  } else {
+    startNum = BigInt(sv);
+    startDen = 1n;
+  }
+
+  const res = decodeChained(fracNum, fracDen, seq, n, startNum, startDen);
+
+  if (res.error) {
+    document.getElementById('decOutput').textContent = '✗ ' + res.error;
+    document.getElementById('decDiag').textContent = 'No se pudo invertir con esta clave.';
+    return;
+  }
+
+  const bytes = bitsToBytes(res.bits);
+  const text = new TextDecoder().decode(new Uint8Array(bytes));
+  document.getElementById('decOutput').textContent = '✓ ' + text;
+
+  // Primeros bytes en diagnóstico
+  const diag = [];
+  for (let i = 0; i < Math.min(8, bytes.length); i++) {
+    const bitStr = res.bits.slice(i*8, i*8+8).join('');
+    diag.push(`Byte ${i}: bits=${bitStr} → 0x${bytes[i].toString(16).padStart(2,'0')} (${bytes[i]})`);
+  }
+  document.getElementById('decDiag').textContent = diag.join('\n') +
+    (bytes.length > 8 ? `\n… (${bytes.length - 8} más)` : '');
+}
+
+function decodificarMal() {
+  const raw = document.getElementById('packetIn').value.trim();
+  if (!raw) { alert('Falta el paquete'); return; }
+  const o1 = document.getElementById('decSeq').value;
+  const o2 = document.getElementById('decStart').value;
+  document.getElementById('decSeq').value = '4,6,8,5';
+  document.getElementById('decStart').value = '2.71';
+  decodificar();
+  document.getElementById('decSeq').value = o1;
+  document.getElementById('decStart').value = o2;
+}
+
+function limpiar() {
+  document.getElementById('fracOut').textContent = '—';
+  document.getElementById('packetOut').textContent = '—';
+  ['sBytes','sBits','sFrac','sSize'].forEach(id => document.getElementById(id).textContent = '—');
+}
+
+function limpiarDecode() {
+  document.getElementById('decOutput').textContent = '—';
+  document.getElementById('decDiag').textContent = '—';
+}
+
+function copyPacket() {
+  const txt = document.getElementById('packetOut').textContent;
+  navigator.clipboard.writeText(txt).then(() => {
+    const btn = event.target;
+    const o = btn.innerText;
+    btn.innerText = '✓ Copiado';
+    setTimeout(() => btn.innerText = o, 1200);
+  });
+}
+
+window.addEventListener('load', () => { codificar(); });
+</script>
+
+</body>
+</html>

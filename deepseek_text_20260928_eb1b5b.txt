@@ -1,0 +1,9 @@
+S_0 = 133/100
+For i = 0..7:
+  f_i = figureSeq[i]
+  d_i = 1 + bit_i  ∈ {1,2}
+  P_i = f_0 * f_1 * ... * f_i   (product of bases up to i)
+  piece_i = d_i / P_i
+  S_{i+1} = S_i - piece_i
+
+Final: S_8 = 133/100 - sum_i d_i / P_i

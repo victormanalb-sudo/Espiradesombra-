@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Cascada de pretablas sobre AES-16 · Medición real</title>
+<style>
+  :root{--bg:#0a0a15;--card:#12122a;--border:#1f1f3d;--text:#e2e8f0;--muted:#94a3b8;
+    --accent:#fbbf24;--accent2:#34d399;--accent3:#60a5fa;--accent4:#f472b6;--code:#0d0d1f;--danger:#ef4444;}
+  *{box-sizing:border-box}
+  body{font-family:'Segoe UI',Tahoma,sans-serif;max-width:1400px;margin:0 auto;padding:14px;
+    background:var(--bg);color:var(--text);line-height:1.5;font-size:13px}
+  h1{font-size:1.3em;background:linear-gradient(90deg,var(--accent3),var(--accent),var(--accent4));
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:2px}
+  h2{color:var(--accent);margin-top:14px;border-bottom:1px solid var(--border);padding-bottom:3px;font-size:1em}
+  h3{color:var(--accent2);font-size:.88em;margin-top:8px;margin-bottom:4px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:9px;padding:11px;margin:8px 0}
+  .card.info{border-color:var(--accent3)}.card.ok{border-color:var(--accent2)}
+  .card.warn{border-color:var(--danger)}.card.gold{border-color:var(--accent)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:6px}
+  .stat{background:var(--code);border:1px solid var(--border);border-radius:6px;padding:6px;text-align:center}
+  .stat .v{font-size:.85em;font-weight:bold;font-family:'Courier New',monospace;word-break:break-all}
+  .stat .l{font-size:.55em;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+  label{display:block;font-weight:600;margin-bottom:2px;color:var(--muted);font-size:.66em;
+    text-transform:uppercase;letter-spacing:.5px}
+  input,select{width:100%;padding:5px 8px;background:rgba(0,0,0,.4);border:1px solid var(--border);
+    border-radius:6px;font-size:.82em;color:var(--text);font-family:'Courier New',monospace}
+  input:focus,select:focus{outline:none;border-color:var(--accent)}
+  button{background:linear-gradient(135deg,var(--accent3),#3b82f6);color:#fff;border:none;
+    padding:6px 12px;border-radius:6px;cursor:pointer;font-size:.74em;font-weight:700;margin:2px 2px 2px 0}
+  button:hover{transform:translateY(-1px);opacity:.9}
+  button.ok{background:linear-gradient(135deg,var(--accent2),#22c55e)}
+  button.gold{background:linear-gradient(135deg,var(--accent),#f59e0b);color:#0a0a15}
+  button.pink{background:linear-gradient(135deg,var(--accent4),#ec4899)}
+  button.ghost{background:transparent;border:1px solid var(--border);color:var(--text)}
+  pre{background:var(--code);border:1px solid var(--border);border-radius:6px;padding:8px;
+    overflow-x:auto;font-family:'Courier New',monospace;font-size:.7em;color:var(--accent2);
+    white-space:pre-wrap;word-break:break-all;max-height:340px}
+  table{width:100%;border-collapse:collapse;margin:5px 0;font-size:.72em}
+  th,td{border:1px solid var(--border);padding:3px 5px;text-align:left}
+  th{background:var(--code);color:var(--accent);font-size:.66em;text-transform:uppercase}
+  .row{display:flex;gap:6px;flex-wrap:wrap;align-items:flex-end}
+  .row>div{flex:1;min-width:100px}
+  .hint{font-size:.68em;color:var(--muted);margin-top:2px}
+  .log{padding:3px 7px;border-left:3px solid var(--muted);background:rgba(0,0,0,.2);
+    margin:2px 0;font-size:.68em;font-family:'Courier New',monospace}
+  .log.ok{border-color:var(--accent2);color:var(--accent2)}
+  .log.err{border-color:var(--danger);color:var(--danger)}
+  .log.info{border-color:var(--accent3);color:var(--accent3)}
+  .log.warn{border-color:var(--accent);color:var(--accent)}
+  .scroll-y{max-height:340px;overflow-y:auto;border:1px solid var(--border);border-radius:6px}
+  .R-good{color:var(--accent2);font-weight:bold}
+  .R-neutral{color:var(--accent);font-weight:bold}
+  .R-bad{color:var(--danger);font-weight:bold}
+</style>
+</head>
+<body>
+
+<h1>Cascada de pretablas sobre AES-16 · Medición real</h1>
+<p style="font-size:.8em;color:var(--muted);margin-bottom:8px">
+  Cada pretabla es Im(g,p) = {g^a mod p}. Cada filtro: k mod p ∈ Im(g,p). Cascada: aplicar varios filtros.
+</p>
+
+<div class="card">
+  <div class="row">
+    <div><label>Bits AES</label>
+      <select id="bits"><option value="16" selected>16 (65.536)</option><option value="18">18 (262.144)</option></select>
+    </div>
+    <div><label>Nº claves reales</label><input id="numKeys" type="number" value="500"></div>
+    <div><label>a_max por pretabla</label><input id="aMax" type="number" value="50"></div>
+    <div><label>Nº pretablas en cascada</label><input id="numTablas" type="number" value="5"></div>
+  </div>
+  <div style="margin-top:8px">
+    <button class="gold" onclick="ejecutar()">▶️ Ejecutar</button>
+    <button class="ghost" onclick="limpiar()">Limpiar</button>
+  </div>
+  <div class="grid" style="margin-top:8px">
+    <div class="stat"><div class="v" id="stFase" style="color:var(--accent)">—</div><div class="l">Fase</div></div>
+    <div class="stat"><div class="v" id="stEspacio" style="color:var(--accent3)">—</div><div class="l">Espacio</div></div>
+    <div class="stat"><div class="v" id="stCandidatos" style="color:var(--accent4)">—</div><div class="l">Candidatos final</div></div>
+    <div class="stat"><div class="v" id="stReduccion" style="color:var(--accent2)">—</div><div class="l">Reducción</div></div>
+    <div class="stat"><div class="v" id="stClavesReal" style="color:var(--accent)">—</div><div class="l">Claves reales superv.</div></div>
+    <div class="stat"><div class="v" id="stR" style="color:var(--accent3)">—</div><div class="l">R = q/p</div></div>
+  </div>
+  <div id="log" style="margin-top:8px"></div>
+</div>
+
+<div class="card info">
+  <h3>Pretablas usadas</h3>
+  <div class="scroll-y" style="max-height:200px">
+    <table id="tablaPret"><thead><tr><th>#</th><th>g</th><th>p</th><th>|Im(g,p)|</th><th>Fracción p_i</th></tr></thead><tbody></tbody></table>
+  </div>
+</div>
+
+<div class="card ok">
+  <h3>Resultado por etapa de cascada</h3>
+  <div class="scroll-y">
+    <table id="tablaCascada">
+      <thead><tr><th>Etapa</th><th>Candidatos</th><th>Fracción</th><th>Claves reales superv.</th><th>q</th><th>R</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card warn">
+  <h3>Análisis</h3>
+  <pre id="analisisOut">—</pre>
+</div>
+
+<script>
+const state = {bits:16, espacio:65536, aMax:50, numTablas:5, numKeys:500, claves:[], pretablas:[], etapas:[]};
+
+function log(msg, type=''){
+  const el=document.getElementById('log'); const d=document.createElement('div');
+  d.className='log '+(type||''); d.textContent=msg; el.appendChild(d); el.scrollTop=el.scrollHeight;
+}
+function fmt(x,d=4){if(x===0)return'0';if(Math.abs(x)<0.0001)return x.toExponential(2);
+  if(Math.abs(x)>=1e6)return x.toExponential(3);return x.toFixed(d);}
+function esPrimo(n){if(n<2)return false;if(n<4)return true;if(n%2===0)return false;
+  for(let i=3;i*i<=n;i+=2)if(n%i===0)return false;return true;}
+function potenciaMod(g,p,aMax){
+  const s=new Set(); let cur=1;
+  for(let a=1;a<=aMax;a++){cur=(cur*(g%p))%p; s.add(cur);}
+  return s;
+}
+
+async function ejecutar(){
+  const bits=parseInt(document.getElementById('bits').value);
+  const numKeys=parseInt(document.getElementById('numKeys').value);
+  const aMax=parseInt(document.getElementById('aMax').value);
+  const numTablas=parseInt(document.getElementById('numTablas').value);
+  state.bits=bits; state.espacio=Math.pow(2,bits);
+  state.aMax=aMax; state.numTablas=numTablas; state.numKeys=numKeys;
+
+  document.getElementById('log').innerHTML='';
+  document.getElementById('stFase').textContent='Iniciando...';
+  document.getElementById('stEspacio').textContent=state.espacio.toLocaleString();
+
+  // Generar pretablas: parejas (g,p) con g pequeño, p primo
+  const primos=[3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97];
+  const gs=[2,3,5,7,11,13];
+  state.pretablas=[];
+  for(let i=0;i<numTablas;i++){
+    const g=gs[i%gs.length];
+    const p=primos[(i*3+2)%primos.length];
+    const im=potenciaMod(g,p,aMax);
+    state.pretablas.push({g,p,im,frac:im.size/p});
+  }
+
+  // Render pretablas
+  const tbody=document.querySelector('#tablaPret tbody'); tbody.innerHTML='';
+  state.pretablas.forEach((t,i)=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${i+1}</td><td>${t.g}</td><td>${t.p}</td><td>${t.im.size}</td><td>${fmt(t.frac)}</td>`;
+    tbody.appendChild(tr);
+  });
+
+  // Generar claves reales
+  state.claves=[];
+  for(let i=0;i<numKeys;i++) state.claves.push(Math.floor(Math.random()*state.espacio));
+  log(`Claves reales: ${numKeys}`, 'info');
+
+  // Aplicar cascada etapa por etapa
+  state.etapas=[];
+  let candidatos=[];
+  for(let k=0;k<state.espacio;k++) candidatos.push(k);
+  let clavesVivas=[...state.claves];
+
+  state.etapas.push({etapa:0, candidatos:candidatos.length, claves:clavesVivas.length});
+
+  for(let i=0;i<state.pretablas.length;i++){
+    const {g,p,im}=state.pretablas[i];
+    candidatos=candidatos.filter(k=>im.has(k%p));
+    clavesVivas=clavesVivas.filter(k=>im.has(k%p));
+    state.etapas.push({etapa:i+1, candidatos:candidatos.length, claves:clavesVivas.length});
+    log(`Etapa ${i+1} (g=${g}, p=${p}): candidatos=${candidatos.length}, claves=${clavesVivas.length}`, 
+        clavesVivas.length>0?'ok':'warn');
+  }
+
+  // Render cascada
+  const tbody2=document.querySelector('#tablaCascada tbody'); tbody2.innerHTML='';
+  for(const e of state.etapas){
+    const pFrac=e.candidatos/state.espacio;
+    const qFrac=e.claves/state.numKeys;
+    const R=pFrac>0?qFrac/pFrac:0;
+    let clase=Math.abs(R-1)<0.15?'R-neutral':(R>1.15?'R-good':'R-bad');
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${e.etapa===0?'Inicio':e.etapa}</td>
+      <td>${e.candidatos.toLocaleString()}</td>
+      <td>${fmt(pFrac)}</td>
+      <td>${e.claves} / ${state.numKeys}</td>
+      <td>${fmt(qFrac)}</td>
+      <td class="${clase}">${fmt(R)}</td>`;
+    tbody2.appendChild(tr);
+  }
+
+  // Resumen
+  const ultimo=state.etapas[state.etapas.length-1];
+  document.getElementById('stCandidatos').textContent=ultimo.candidatos.toLocaleString();
+  document.getElementById('stReduccion').textContent=fmt(state.espacio/Math.max(ultimo.candidatos,1),2)+'×';
+  document.getElementById('stClavesReal').textContent=ultimo.claves+' / '+state.numKeys;
+  const pFracF=ultimo.candidatos/state.espacio;
+  const qFracF=ultimo.claves/state.numKeys;
+  const R=pFracF>0?qFracF/pFracF:0;
+  document.getElementById('stR').textContent=fmt(R);
+
+  // Análisis
+  let out='';
+  out+=`Espacio: ${state.espacio.toLocaleString()}\n`;
+  out+=`Candidatos finales tras ${state.pretablas.length} filtros: ${ultimo.candidatos.toLocaleString()}\n`;
+  out+=`Reducción bruta: ${fmt(state.espacio/Math.max(ultimo.candidatos,1),2)}×\n\n`;
+  out+=`Claves reales iniciales: ${state.numKeys}\n`;
+  out+=`Claves reales supervivientes: ${ultimo.claves}\n`;
+  out+=`Fracción de claves supervivientes: ${fmt(ultimo.claves/state.numKeys)}\n`;
+  out+=`Fracción de candidatos supervivientes: ${fmt(pFracF)}\n\n`;
+  out+=`R = ${fmt(R)}\n\n`;
+  if(Math.abs(R-1)<0.15){
+    out+=`CONCLUSIÓN: R ≈ 1. Las claves reales caen en el conjunto filtrado\n`;
+    out+=`con la misma fracción que candidatos aleatorios. El filtro reduce espacio\n`;
+    out+=`pero no aporta información sobre la clave real.\n`;
+  } else if(R>1.15){
+    out+=`CONCLUSIÓN: R > 1. Hay correlación entre las claves reales y el filtro.\n`;
+    out+=`Estudiar por qué. Puede ser ruido estadístico si numKeys es pequeño.\n`;
+  } else {
+    out+=`CONCLUSIÓN: R < 1. El filtro descarta la clave real más que el azar.\n`;
+    out+=`Es contraproducente.\n`;
+  }
+  out+=`\nCoste de AES si la clave sobrevive: ${ultimo.candidatos} descifrados en el peor caso.\n`;
+  out+=`Coste de AES si la clave NO sobrevive: hay que repetir con otro conjunto de filtros.\n`;
+  out+=`Esperanza matemática de AES calls para encontrar la clave: ${fmt(state.espacio/2,0)} (sin cambio).\n`;
+  document.getElementById('analisisOut').textContent=out;
+  document.getElementById('stFase').textContent='OK';
+}
+
+function limpiar(){
+  document.querySelectorAll('tbody').forEach(t=>t.innerHTML='');
+  ['stFase','stEspacio','stCandidatos','stReduccion','stClavesReal','stR','analisisOut']
+    .forEach(id=>document.getElementById(id).textContent='—');
+  document.getElementById('log').innerHTML='';
+}
+
+window.addEventListener('load', ()=>{});
+</script>
+
+</body>
+</html>

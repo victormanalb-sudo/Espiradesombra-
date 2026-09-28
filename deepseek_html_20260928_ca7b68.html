@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Triple Capa · Geométrica + e + Hash Espejo</title>
+<style>
+  :root{
+    --bg:#0a0a15;--card:#12122a;--border:#1f1f3d;--text:#e2e8f0;--muted:#94a3b8;
+    --accent:#fbbf24;--accent2:#34d399;--accent3:#60a5fa;--accent4:#f472b6;
+    --code:#0d0d1f;--danger:#ef4444;
+  }
+  *{box-sizing:border-box}
+  body{font-family:'Segoe UI',Tahoma,sans-serif;max-width:1300px;margin:0 auto;
+    padding:20px;background:var(--bg);color:var(--text);line-height:1.55}
+  h1{font-size:1.65em;background:linear-gradient(90deg,var(--accent),var(--accent2),var(--accent3));
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:4px}
+  h2{color:var(--accent);margin-top:24px;border-bottom:1px solid var(--border);
+    padding-bottom:5px;font-size:1.05em}
+  h3{color:var(--accent2);font-size:.88em;margin-top:12px;margin-bottom:5px}
+  .sub{color:var(--muted);font-size:.82em;margin-bottom:16px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;
+    padding:14px;margin:10px 0}
+  .card.gold{border-color:var(--accent)}.card.ok{border-color:var(--accent2)}
+  .card.info{border-color:var(--accent3)}.card.pink{border-color:var(--accent4)}
+  .card.warn{border-color:var(--danger)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:7px}
+  .stat{background:var(--code);border:1px solid var(--border);border-radius:7px;
+    padding:7px;text-align:center}
+  .stat .v{font-size:.92em;font-weight:bold;font-family:'Courier New',monospace;word-break:break-all}
+  .stat .l{font-size:.58em;color:var(--muted);text-transform:uppercase;
+    letter-spacing:.5px;margin-top:2px}
+  label{display:block;font-weight:600;margin-bottom:3px;color:var(--muted);
+    font-size:.68em;text-transform:uppercase;letter-spacing:.5px}
+  input,textarea,select{width:100%;padding:6px 9px;background:rgba(0,0,0,.4);
+    border:1px solid var(--border);border-radius:6px;font-size:.8em;color:var(--text);
+    font-family:'Courier New',monospace}
+  textarea{min-height:60px;resize:vertical}
+  input:focus,textarea:focus{outline:none;border-color:var(--accent)}
+  button{background:linear-gradient(135deg,var(--accent),#f59e0b);color:#0a0a15;
+    border:none;padding:7px 13px;border-radius:6px;cursor:pointer;font-size:.76em;
+    font-weight:700;margin:3px 3px 3px 0;transition:all .2s}
+  button:hover{transform:translateY(-1px);opacity:.9}
+  button.ok{background:linear-gradient(135deg,var(--accent2),#22c55e);color:#fff}
+  button.info{background:linear-gradient(135deg,var(--accent3),#3b82f6);color:#fff}
+  button.pink{background:linear-gradient(135deg,var(--accent4),#ec4899);color:#fff}
+  button.danger{background:linear-gradient(135deg,var(--danger),#dc2626);color:#fff}
+  button.ghost{background:transparent;border:1px solid var(--border);color:var(--text)}
+  pre{background:var(--code);border:1px solid var(--border);border-radius:6px;
+    padding:9px;overflow-x:auto;font-family:'Courier New',monospace;font-size:.7em;
+    color:var(--accent2);white-space:pre-wrap;word-break:break-all;max-height:280px}
+  table{width:100%;border-collapse:collapse;margin:6px 0;font-size:.76em}
+  th,td{border:1px solid var(--border);padding:4px 6px;text-align:left}
+  th{background:var(--code);color:var(--accent);font-size:.66em;text-transform:uppercase}
+  .tag{display:inline-block;padding:2px 8px;border-radius:9px;font-size:.58em;
+    font-weight:bold;letter-spacing:.5px;margin-right:4px}
+  .tag.ok{background:var(--accent2);color:#0a0a15}
+  .tag.gold{background:var(--accent);color:#0a0a15}
+  .tag.info{background:var(--accent3);color:#0a0a15}
+  .tag.pink{background:var(--accent4);color:#0a0a15}
+  .tag.danger{background:var(--danger);color:#fff}
+  .row{display:flex;gap:7px;flex-wrap:wrap;align-items:flex-end}
+  .row>div{flex:1;min-width:110px}
+  .hint{font-size:.68em;color:var(--muted);margin-top:3px}
+  .footer{color:var(--muted);font-size:.68em;text-align:center;margin-top:24px;
+    padding-top:12px;border-top:1px solid var(--border)}
+  .big{font-size:.9em;color:var(--accent);font-family:'Courier New',monospace;
+    word-break:break-all;text-align:center;padding:8px;background:var(--code);
+    border-radius:6px;border:1px solid var(--accent)}
+  .big.pink{border-color:var(--accent4);color:var(--accent4)}
+  .big.ok{border-color:var(--accent2);color:var(--accent2)}
+  .flow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;
+    padding:8px;background:var(--code);border-radius:6px;border:1px solid var(--border);
+    font-family:'Courier New',monospace;font-size:.72em;margin:6px 0}
+  .flow .box{padding:5px 9px;border-radius:5px;background:rgba(96,165,250,.12);
+    border:1px solid var(--accent3);color:var(--accent3)}
+  .flow .box.a{border-color:var(--accent);color:var(--accent);background:rgba(251,191,36,.12)}
+  .flow .box.b{border-color:var(--accent4);color:var(--accent4);background:rgba(244,114,182,.12)}
+  .flow .box.c{border-color:var(--accent2);color:var(--accent2);background:rgba(52,211,153,.12)}
+  .flow .arrow{color:var(--muted)}
+  .bar{height:12px;border-radius:3px;background:var(--code);overflow:hidden;
+    border:1px solid var(--border);margin-top:3px}
+  .bar .fill{height:100%;transition:width .3s}
+</style>
+</head>
+<body>
+
+<h1>Triple Capa · Geométrica + e + Hash Espejo</h1>
+<p class="sub">
+  <span class="tag gold">CAPA 1: GEOMÉTRICA</span>
+  <span class="tag pink">CAPA 2: RECURRENCIA e</span>
+  <span class="tag info">CAPA 3: HASH ESPEJO</span>
+  <span class="tag danger">LA ENTROPÍA VIENE DE LOS SECRETOS</span>
+</p>
+
+<div class="card warn">
+  <h3>⚠️ Advertencia primero</h3>
+  <p style="font-size:.82em">
+    Añadir capas <strong>no aumenta la entropía</strong>. Solo la aumentan los
+    <strong>secretos independientes</strong>. Aquí usamos 3 contraseñas:
+  </p>
+  <ul style="font-size:.8em">
+    <li><strong>Contraseña A</strong> → capa geométrica del mensaje</li>
+    <li><strong>Contraseña B</strong> → recurrencia e</li>
+    <li><strong>Contraseña C</strong> → parámetros del hash espejo</li>
+  </ul>
+  <p style="font-size:.8em">
+    Con 3 contraseñas de ~30 bits cada una: ~90 bits. Con 3 de 100 bits: ~300 bits.
+    <strong>La seguridad la da la longitud de las contraseñas, no el número de capas.</strong>
+  </p>
+</div>
+
+<!-- ============================================================ -->
+<h2>1. Flujo de triple capa</h2>
+
+<div class="card info">
+  <div class="flow">
+    <span class="box a">Mensaje</span>
+    <span class="arrow">→</span>
+    <span class="box a">Geométrica F₁</span>
+    <span class="arrow">→</span>
+    <span class="box b">× M<sub>e</sub></span>
+    <span class="arrow">→</span>
+    <span class="box c">× M<sub>hash</sub></span>
+    <span class="arrow">→</span>
+    <span class="box" style="border-color:var(--accent);color:var(--accent);background:rgba(251,191,36,.15)">Paquete final</span>
+  </div>
+  <p style="font-size:.78em;color:var(--muted);margin-top:6px">
+    Cada capa multiplica la fracción por un factor derivado de una contraseña distinta.
+    El receptor divide por los mismos factores en orden inverso.
+  </p>
+</div>
+
+<!-- ============================================================ -->
+<h2>2. Configuración de las 3 capas</h2>
+
+<div class="card gold">
+  <h3>Contraseña A — Capa geométrica del mensaje</h3>
+  <div class="row">
+    <div style="flex:2">
+      <label>Contraseña A</label>
+      <input id="passA" type="password" value="clave_A_geometrica_2025">
+    </div>
+    <div>
+      <label>Segmento mensaje</label>
+      <input id="startMsg" value="1.33">
+    </div>
+    <div>
+      <label>Secuencia mensaje</label>
+      <input id="seqMsg" value="0,1,0,0">
+    </div>
+  </div>
+</div>
+
+<div class="card pink">
+  <h3>Contraseña B — Capa recurrencia e</h3>
+  <div class="row">
+    <div style="flex:2">
+      <label>Contraseña B</label>
+      <input id="passB" type="password" value="clave_B_recurrencia_e_2025">
+    </div>
+    <div>
+      <label>Segmento contraseña B</label>
+      <input id="startB" value="2.71">
+    </div>
+    <div>
+      <label>Secuencia B</label>
+      <input id="seqB" value="1,2,0,1">
+    </div>
+  </div>
+</div>
+
+<div class="card info">
+  <h3>Contraseña C — Capa hash espejo</h3>
+  <div class="row">
+    <div style="flex:2">
+      <label>Contraseña C</label>
+      <input id="passC" type="password" value="clave_C_hash_espejo_2025">
+    </div>
+    <div>
+      <label>Segmento contraseña C</label>
+      <input id="startC" value="0.95">
+    </div>
+    <div>
+      <label>Secuencia C</label>
+      <input id="seqC" value="0,2,1,0">
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2>3. Estimación de entropía</h2>
+
+<div class="card ok">
+  <div class="row">
+    <div>
+      <label>Bits por carácter</label>
+      <select id="bitsPerChar">
+        <option value="4">4 (solo letras minúsculas)</option>
+        <option value="5">5 (letras)</option>
+        <option value="6" selected>6 (letras + números)</option>
+        <option value="7">7 (letras + números + símbolos)</option>
+      </select>
+    </div>
+  </div>
+
+  <div id="entropyCalc" style="margin-top:10px"></div>
+</div>
+
+<!-- ============================================================ -->
+<h2>4. Codificar (triple capa)</h2>
+
+<div class="card">
+  <div class="row">
+    <div style="flex:3">
+      <label>Mensaje</label>
+      <textarea id="plainInput">Hola geometría magrad.es molt</textarea>
+    </div>
+  </div>
+  <div style="margin-top:6px">
+    <button class="ok" onclick="codificarTriple()">🔒 Codificar (3 capas)</button>
+    <button class="ghost" onclick="limpiar()">Limpiar</button>
+  </div>
+
+  <div class="grid" style="margin-top:10px">
+    <div class="stat"><div class="v" id="sBytes" style="color:var(--accent3)">—</div><div class="l">Bytes</div></div>
+    <div class="stat"><div class="v" id="sBits" style="color:var(--accent)">—</div><div class="l">Bits</div></div>
+    <div class="stat"><div class="v" id="sF1" style="color:var(--accent2)">—</div><div class="l">F₁ (geométrica)</div></div>
+    <div class="stat"><div class="v" id="sM2" style="color:var(--accent4)">—</div><div class="l">M₂ (e)</div></div>
+    <div class="stat"><div class="v" id="sM3" style="color:var(--accent3)">—</div><div class="l">M₃ (hash)</div></div>
+    <div class="stat"><div class="v" id="sFinal" style="color:var(--accent)">—</div><div class="l">Final</div></div>
+  </div>
+
+  <h3>Paquete final</h3>
+  <div class="big" id="packetMixOut">—</div>
+
+  <h3>Paquete JSON</h3>
+  <pre id="packetOut">—</pre>
+
+  <div style="margin-top:6px">
+    <button class="info" onclick="copyPacket()">📋 Copiar</button>
+    <button class="ghost" onclick="sendToDecode()">➡️ Enviar al receptor</button>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2>5. Descifrar (invertir 3 capas)</h2>
+
+<div class="card pink">
+  <div class="row">
+    <div style="flex:3">
+      <label>Paquete recibido</label>
+      <textarea id="packetIn" placeholder="Pega aquí el paquete…"></textarea>
+    </div>
+  </div>
+
+  <div class="row" style="margin-top:6px">
+    <div><label>Contraseña A</label><input id="decPassA" type="password" value="clave_A_geometrica_2025"></div>
+    <div><label>Contraseña B</label><input id="decPassB" type="password" value="clave_B_recurrencia_e_2025"></div>
+    <div><label>Contraseña C</label><input id="decPassC" type="password" value="clave_C_hash_espejo_2025"></div>
+  </div>
+  <div class="row" style="margin-top:6px">
+    <div><label>Segmento mensaje</label><input id="decStartMsg" value="1.33"></div>
+    <div><label>Segmento B</label><input id="decStartB" value="2.71"></div>
+    <div><label>Segmento C</label><input id="decStartC" value="0.95"></div>
+  </div>
+  <div class="row" style="margin-top:6px">
+    <div><label>Seq mensaje</label><input id="decSeqMsg" value="0,1,0,0"></div>
+    <div><label>Seq B</label><input id="decSeqB" value="1,2,0,1"></div>
+    <div><label>Seq C</label><input id="decSeqC" value="0,2,1,0"></div>
+  </div>
+
+  <div style="margin-top:6px">
+    <button class="pink" onclick="decodificarTriple()">🔓 Descifrar</button>
+    <button class="danger" onclick="decodificarMal()">❌ Con contraseñas erróneas</button>
+    <button class="ghost" onclick="limpiarDecode()">Limpiar</button>
+  </div>
+
+  <h3>Mensaje recuperado</h3>
+  <pre id="decOutput">—</pre>
+  <h3>Diagnóstico</h3>
+  <pre id="decDiag">—</pre>
+</div>
+
+<!-- ============================================================ -->
+<h2>6. Análisis honesto</h2>
+
+<div class="card warn">
+  <h3>¿Sube de 100 bits?</h3>
+  <p style="font-size:.82em">
+    <strong>Solo si las contraseñas son independientes y largas.</strong>
+  </p>
+  <table>
+    <tr><th>Configuración</th><th>Entropía real</th><th>¿Mejora?</th></tr>
+    <tr><td>1 contraseña de 40 bits</td><td>~40 bits</td><td>Base</td></tr>
+    <tr><td>1 contraseña de 40 bits + 2 capas derivadas de ella</td><td>~40 bits</td><td>No</td></tr>
+    <tr><td>3 contraseñas de 40 bits independientes</td><td>~120 bits</td><td>Sí</td></tr>
+    <tr><td>3 contraseñas de 100 bits independientes</td><td>~300 bits</td><td>Sí, mucho</td></tr>
+    <tr><td>3 contraseñas de 200 bits independientes</td><td>~600 bits</td><td>Sí, pero innecesario</td></tr>
+  </table>
+
+  <h3>Por qué no sustituye a AES</h3>
+  <ul style="font-size:.8em">
+    <li>No hay autenticación (no detecta manipulación).</li>
+    <li>No hay difusión fuerte: cada byte del mensaje afecta solo a su fracción.</li>
+    <li>No hay análisis público: nadie ha probado ataques diferenciales/lineales.</li>
+    <li>Añadir capas no oculta la falta de difusión.</li>
+  </ul>
+
+  <h3>Uso recomendado</h3>
+  <ol style="font-size:.8em">
+    <li><strong>Cifra con AES-256-GCM</strong> usando una clave de 256 bits.</li>
+    <li><strong>Aplica la triple capa geométrica</strong> al criptograma como ofuscación adicional.</li>
+    <li><strong>Envía</strong> el resultado.</li>
+    <li><strong>El receptor</strong> invierte geometría → descifra AES.</li>
+  </ol>
+  <p style="font-size:.8em">
+    La seguridad la da AES (256 bits). La geometría decora y añade dificultad al DPI.
+    No sustituye a AES.
+  </p>
+</div>
+
+<div class="footer">
+  Triple Capa · Geométrica + e + Hash Espejo · v6.0<br>
+  Shannon no se inmuta: |imagen| ≤ |dominio| = 2^(bits reales)
+</div>
+
+<script>
+// ============================================================
+//  FIGURAS POR DEFECTO
+// ============================================================
+const FIG = [
+  { nombre:'Triángulo', W:3, a:1, b:2 },
+  { nombre:'Pentágono', W:5, a:2, b:3 },
+  { nombre:'Cuadrado',  W:4, a:1, b:3 },
+  { nombre:'Hexágono',  W:6, a:1, b:5 }
+];
+
+// ============================================================
+//  UTILIDADES
+// ============================================================
+function gcd(a, b) {
+  a = a < 0n ? -a : a; b = b < 0n ? -b : b;
+  while (b) { const t = a % b; a = b; b = t; }
+  return a;
+}
+function byteToBits(b) {
+  const bits = [];
+  for (let i = 7; i >= 0; i--) bits.push((b >> i) & 1);
+  return bits;
+}
+function bitsToBytes(bits) {
+  const bytes = [];
+  for (let i = 0; i < bits.length; i += 8) {
+    let b = 0;
+    for (let j = 0; j < 8; j++) b = (b << 1) | (bits[i+j] || 0);
+    bytes.push(b);
+  }
+  return bytes;
+}
+function strToBytes(s) { return new TextEncoder().encode(s); }
+function bytesToStr(b) { return new TextDecoder().decode(new Uint8Array(b)); }
+function parseStart(sv) {
+  const parts = sv.split('.');
+  if (parts.length === 2) {
+    const ip = parts[0] || '0', dp = parts[1] || '0';
+    const den = 10n ** BigInt(dp.length);
+    return { num: BigInt(ip) * den + BigInt(dp), den };
+  }
+  return { num: BigInt(sv), den: 1n };
+}
+
+// ============================================================
+//  ENCODE / DECODE GEOMÉTRICO ENCADENADO
+// ============================================================
+function encodeChained(bytes, figuras, seq, startNum, startDen) {
+  const bits = [];
+  for (const b of bytes) bits.push(...byteToBits(b));
+  const n = bits.length;
+  const getFig = i => figuras[seq[i % seq.length]];
+  if (!getFig(0)) return { error: 'Secuencia vacía' };
+
+  const P = new Array(n + 1);
+  P[n] = 1n;
+  for (let i = n - 1; i >= 0; i--) P[i] = BigInt(getFig(i).W) * P[i + 1];
+
+  let sum = 0n;
+  for (let i = 0; i < n; i++) {
+    const f = getFig(i);
+    const d = bits[i] === 0 ? BigInt(f.a) : BigInt(f.b);
+    sum += d * P[i + 1];
+  }
+  const num = startNum * P[0] - startDen * sum;
+  const den = startDen * P[0];
+  const g = gcd(num < 0n ? -num : num, den);
+  return { bits, n, num: num/g, den: den/g };
+}
+
+function decodeChained(fracNum, fracDen, figuras, seq, n, startNum, startDen) {
+  const getFig = i => figuras[seq[i % seq.length]];
+  if (!getFig(0)) return { error: 'Secuencia vacía' };
+
+  let P0 = 1n;
+  for (let i = 0; i < n; i++) P0 *= BigInt(getFig(i).W);
+
+  const N_num = (startNum * fracDen - fracNum * startDen) * P0;
+  const N_den = startDen * fracDen;
+  if (N_num % N_den !== 0n) return { error: 'N no entero. Clave incorrecta.' };
+
+  let N = N_num / N_den;
+  const bits = new Array(n).fill(0);
+  for (let i = n - 1; i >= 0; i--) {
+    const f = getFig(i);
+    let d = N % BigInt(f.W);
+    if (d < 0n) d += BigInt(f.W);
+    const dNum = Number(d);
+    if (dNum === f.a) bits[i] = 0;
+    else if (dNum === f.b) bits[i] = 1;
+    else return { error: `d_${i}=${dNum} fuera de {${f.a},${f.b}}. Clave incorrecta.` };
+    N = (N - d) / BigInt(f.W);
+  }
+  if (N !== 0n) return { error: 'Sobra información. Clave incorrecta.' };
+  return { bits };
+}
+
+// ============================================================
+//  FRACCIÓN CONTINUA
+// ============================================================
+function continuedFraction(num, den) {
+  const cf = [];
+  let n = num, d = den;
+  while (d !== 0n && cf.length < 128) {
+    const q = n / d;
+    cf.push(Number(q));
+    const r = n % d;
+    n = d; d = r;
+  }
+  return cf;
+}
+
+// ============================================================
+//  RECURRENCIA e:  acc = acc · (1 + 1/d_i)
+// ============================================================
+function recurrenciaE(digits) {
+  let accNum = 1n, accDen = 1n;
+  for (const d of digits) {
+    if (d < 1) continue;
+    accNum = accNum * BigInt(d + 1);
+    accDen = accDen * BigInt(d);
+    const g = gcd(accNum, accDen);
+    accNum /= g; accDen /= g;
+  }
+  return { num: accNum, den: accDen };
+}
+
+// ============================================================
+//  HASH ESPEJO (deriva multiplicador desde contraseña C)
+//  Modelo: R(t) = R0 · e^(−k·I·t·cos θ), luego fracción continua
+//  y recurrencia tipo hash.
+// ============================================================
+function mirrorMultiplier(bytes, startNum, startDen, seq) {
+  // Codificación geométrica encadenada con las figuras
+  const geo = encodeChained(bytes, FIG, seq, startNum, startDen);
+  if (geo.error) return geo;
+
+  // Fracción continua
+  const cf = continuedFraction(geo.num, geo.den);
+
+  // Recurrencia tipo hash: acc = acc · (1 + 1/d_i)
+  const rec = recurrenciaE(cf);
+  return { geo, cf, rec };
+}
+
+// ============================================================
+//  DERIVAR CLAVES
+// ============================================================
+function derivarM2() {
+  const pass = document.getElementById('passB').value;
+  if (!pass) return null;
+  const bytes = strToBytes(pass);
+  const start = parseStart(document.getElementById('startB').value);
+  const seq = document.getElementById('seqB').value.split(',').map(s => parseInt(s.trim())).filter(x => !isNaN(x));
+  if (!seq.length) return null;
+  const geo = encodeChained(bytes, FIG, seq, start.num, start.den);
+  if (geo.error) return null;
+  const cf = continuedFraction(geo.num, geo.den);
+  return recurrenciaE(cf);
+}
+
+function derivarM3() {
+  const pass = document.getElementById('passC').value;
+  if (!pass) return null;
+  const bytes = strToBytes(pass);
+  const start = parseStart(document.getElementById('startC').value);
+  const seq = document.getElementById('seqC').value.split(',').map(s => parseInt(s.trim())).filter(x => !isNaN(x));
+  if (!seq.length) return null;
+  const m = mirrorMultiplier(bytes, start.num, start.den, seq);
+  if (m.error) return null;
+  return m.rec;
+}
+
+// ============================================================
+//  ESTIMAR ENTROPÍA
+// ============================================================
+function estimarEntropia() {
+  const bpchar = parseInt(document.getElementById('bitsPerChar').value);
+  const pa = document.getElementById('passA').value;
+  const pb = document.getElementById('passB').value;
+  const pc = document.getElementById('passC').value;
+
+  const bitsA = pa.length * bpchar;
+  const bitsB = pb.length * bpchar;
+  const bitsC = pc.length * bpchar;
+  const total = bitsA + bitsB + bitsC;
+
+  const maxRef = 1024;
+  const pctA = Math.min(100, bitsA / maxRef * 100);
+  const pctB = Math.min(100, bitsB / maxRef * 100);
+  const pctC = Math.min(100, bitsC / maxRef * 100);
+
+  let veredicto, color;
+  if (total < 60) { veredicto = 'Muy débil'; color = 'var(--danger)'; }
+  else if (total < 100) { veredicto = 'Débil'; color = 'var(--danger)'; }
+  else if (total < 128) { veredicto = 'Marginal'; color = 'var(--accent)'; }
+  else if (total < 192) { veredicto = 'Aceptable'; color = 'var(--accent2)'; }
+  else if (total < 256) { veredicto = 'Bueno'; color = 'var(--accent2)'; }
+  else { veredicto = 'Excelente (≥ AES-256)'; color = 'var(--accent2)'; }
+
+  document.getElementById('entropyCalc').innerHTML = `
+    <table>
+      <tr><th>Capa</th><th>Contraseña</th><th>Longitud</th><th>Bits estimados</th></tr>
+      <tr><td>A (geométrica)</td><td>${pa.slice(0,8)}…</td><td>${pa.length}</td><td>${bitsA}</td></tr>
+      <tr><td>B (recurrencia e)</td><td>${pb.slice(0,8)}…</td><td>${pb.length}</td><td>${bitsB}</td></tr>
+      <tr><td>C (hash espejo)</td><td>${pc.slice(0,8)}…</td><td>${pc.length}</td><td>${bitsC}</td></tr>
+      <tr><td colspan="3"><strong>Total</strong></td><td><strong>${total} bits</strong></td></tr>
+    </table>
+    <div style="margin-top:8px">
+      <div class="bar"><div class="fill" style="width:${pctA}%;background:var(--accent)"></div></div>
+      <div class="bar"><div class="fill" style="width:${pctB}%;background:var(--accent4)"></div></div>
+      <div class="bar"><div class="fill" style="width:${pctC}%;background:var(--accent3)"></div></div>
+    </div>
+    <p style="font-size:.82em;color:${color};margin-top:8px;font-weight:bold">
+      Veredicto: ${veredicto} (${total} bits)
+    </p>
+    <p style="font-size:.75em;color:var(--muted)">
+      Comparación: AES-128 = 128 bits · AES-256 = 256 bits · Tu esquema = ${total} bits.
+      ${total >= 256 ? 'Igualas o superas a AES-256 en entropía. Pero AES sigue siendo más seguro por difusión y análisis.' : 'AES-256 tiene más entropía. Tu esquema es más débil en bits.'}
+    </p>
+  `;
+}
+
+// ============================================================
+//  CODIFICAR TRIPLE
+// ============================================================
+function codificarTriple() {
+  const text = document.getElementById('plainInput').value;
+  const msgBytes = strToBytes(text);
+
+  // Clave A: geometría del mensaje
+  const passA = document.getElementById('passA').value;
+  const startMsg = parseStart(document.getElementById('startMsg').value);
+  const seqMsg = document.getElementById('seqMsg').value.split(',').map(s => parseInt(s.trim())).filter(x => !isNaN(x));
+  if (!seqMsg.length) { alert('Secuencia mensaje inválida'); return; }
+
+  const geo = encodeChained(msgBytes, FIG, seqMsg, startMsg.num, startMsg.den);
+  if (geo.error) { alert(geo.error); return; }
+
+  // Clave B: recurrencia e
+  const M2 = derivarM2();
+  if (!M2) { alert('Contraseña B inválida'); return; }
+
+  // Clave C: hash espejo
+  const M3 = derivarM3();
+  if (!M3) { alert('Contraseña C inválida'); return; }
+
+  // Aplicar capas
+  // F1 = geo.num / geo.den
+  // F2 = F1 × M2
+  // F3 = F2 × M3
+  let num = geo.num * M2.num * M3.num;
+  let den = geo.den * M2.den * M3.den;
+  const g = gcd(num, den);
+  num /= g; den /= g;
+
+  document.getElementById('sBytes').textContent = msgBytes.length;
+  document.getElementById('sBits').textContent = geo.n;
+  document.getElementById('sF1').textContent = `${geo.num.toString().length}/${geo.den.toString().length}`;
+  document.getElementById('sM2').textContent = `${M2.num.toString().length}/${M2.den.toString().length}`;
+  document.getElementById('sM3').textContent = `${M3.num.toString().length}/${M3.den.toString().length}`;
+  document.getElementById('sFinal').textContent = `${num.toString().length}/${den.toString().length}`;
+
+  document.getElementById('packetMixOut').textContent = `${num} / ${den}`;
+
+  const packet = {
+    v: 6,
+    n: geo.n,
+    mix: { n: num.toString(), d: den.toString() }
+  };
+  document.getElementById('packetOut').textContent = JSON.stringify(packet, null, 2);
+  window._lastPacket = packet;
+}
+
+// ============================================================
+//  DESCIFRAR TRIPLE
+// ============================================================
+function decodificarTriple() {
+  const raw = document.getElementById('packetIn').value.trim();
+  if (!raw) { alert('Falta el paquete'); return; }
+
+  let packet;
+  try { packet = JSON.parse(raw); }
+  catch (e) { document.getElementById('decOutput').textContent = '✗ JSON inválido'; return; }
+
+  // Reconstruir M2 desde contraseña B
+  const passB = document.getElementById('decPassB').value;
+  const startB = parseStart(document.getElementById('decStartB').value);
+  const seqB = document.getElementById('decSeqB').value.split(',').map(s => parseInt(s.trim())).filter(x => !isNaN(x));
+  const geoB = encodeChained(strToBytes(passB), FIG, seqB, startB.num, startB.den);
+  if (geoB.error) { document.getElementById('decOutput').textContent = '✗ ' + geoB.error; return; }
+  const M2 = recurrenciaE(continuedFraction(geoB.num, geoB.den));
+
+  // Reconstruir M3 desde contraseña C
+  const passC = document.getElementById('decPassC').value;
+  const startC = parseStart(document.getElementById('decStartC').value);
+  const seqC = document.getElementById('decSeqC').value.split(',').map(s => parseInt(s.trim())).filter(x => !isNaN(x));
+  const geoC = encodeChained(strToBytes(passC), FIG, seqC, startC.num, startC.den);
+  if (geoC.error) { document.getElementById('decOutput').textContent = '✗ ' + geoC.error; return; }
+  const M3 = recurrenciaE(continuedFraction(geoC.num, geoC.den));
+
+  // Deshacer: F1 = mix / (M2 · M3)
+  const mixNum = BigInt(packet.mix.n);
+  const mixDen = BigInt(packet.mix.d);
+  const fNum = mixNum * M2.den * M3.den;
+  const fDen = mixDen * M2.num * M3.num;
+  const g = gcd(fNum, fDen);
+  const F1n = fNum / g;
+  const F1d = fDen / g;
+
+  // Invertir geometría mensaje
+  const startMsg = parseStart(document.getElementById('decStartMsg').value);
+  const seqMsg = document.getElementById('decSeqMsg').value.split(',').map(s => parseInt(s.trim())).filter(x => !isNaN(x));
+
+  const res = decodeChained(F1n, F1d, FIG, seqMsg, packet.n, startMsg.num, startMsg.den);
+  if (res.error) {
+    document.getElementById('decOutput').textContent = '✗ ' + res.error;
+    document.getElementById('decDiag').textContent = 'Contraseñas o claves incorrectas.';
+    return;
+  }
+
+  const bytes = bitsToBytes(res.bits);
+  const text = bytesToStr(bytes);
+  document.getElementById('decOutput').textContent = '✓ ' + text;
+
+  const diag = [];
+  for (let i = 0; i < Math.min(8, bytes.length); i++) {
+    const bs = res.bits.slice(i*8, i*8+8).join('');
+    diag.push(`Byte ${i}: bits=${bs} → 0x${bytes[i].toString(16).padStart(2,'0')} (${bytes[i]})`);
+  }
+  document.getElementById('decDiag').textContent = diag.join('\n') +
+    (bytes.length > 8 ? `\n… (${bytes.length - 8} más)` : '') +
+    `\n\nM2 usado: ${M2.num.toString().length} dígitos` +
+    `\nM3 usado: ${M3.num.toString().length} dígitos`;
+}
+
+function decodificarMal() {
+  const raw = document.getElementById('packetIn').value.trim();
+  if (!raw) { alert('Falta el paquete'); return; }
+  const oA = document.getElementById('decPassA').value;
+  const oB = document.getElementById('decPassB').value;
+  const oC = document.getElementById('decPassC').value;
+  document.getElementById('decPassA').value = 'mal_A_123';
+  document.getElementById('decPassB').value = 'mal_B_456';
+  document.getElementById('decPassC').value = 'mal_C_789';
+  decodificarTriple();
+  document.getElementById('decPassA').value = oA;
+  document.getElementById('decPassB').value = oB;
+  document.getElementById('decPassC').value = oC;
+}
+
+function sendToDecode() {
+  if (!window._lastPacket) { alert('Nada que enviar'); return; }
+  document.getElementById('packetIn').value = JSON.stringify(window._lastPacket);
+  window.scrollTo({ top: document.getElementById('packetIn').getBoundingClientRect().top + window.scrollY - 80, behavior: 'smooth' });
+}
+
+function limpiar() {
+  ['packetMixOut','packetOut'].forEach(id => document.getElementById(id).textContent = '—');
+  ['sBytes','sBits','sF1','sM2','sM3','sFinal'].forEach(id => document.getElementById(id).textContent = '—');
+}
+function limpiarDecode() {
+  document.getElementById('decOutput').textContent = '—';
+  document.getElementById('decDiag').textContent = '—';
+}
+function copyPacket() {
+  const t = document.getElementById('packetOut').textContent;
+  navigator.clipboard.writeText(t).then(() => {
+    const b = event.target, o = b.innerText;
+    b.innerText = '✓';
+    setTimeout(() => b.innerText = o, 1200);
+  });
+}
+
+// ============================================================
+//  INIT
+// ============================================================
+window.addEventListener('load', () => {
+  estimarEntropia();
+  codificarTriple();
+  ['passA','passB','passC','bitsPerChar'].forEach(id => {
+    document.getElementById(id).addEventListener('input', estimarEntropia);
+    document.getElementById(id).addEventListener('change', estimarEntropia);
+  });
+});
+</script>
+
+</body>
+</html>

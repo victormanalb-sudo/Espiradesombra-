@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Medición empírica de R_efectiva · Filtros sobre claves AES</title>
+<style>
+  :root{
+    --bg:#0a0a15;--card:#12122a;--border:#1f1f3d;--text:#e2e8f0;--muted:#94a3b8;
+    --accent:#fbbf24;--accent2:#34d399;--accent3:#60a5fa;--accent4:#f472b6;
+    --code:#0d0d1f;--danger:#ef4444;
+  }
+  *{box-sizing:border-box}
+  body{font-family:'Segoe UI',Tahoma,sans-serif;max-width:1500px;margin:0 auto;
+    padding:14px;background:var(--bg);color:var(--text);line-height:1.5;font-size:13px}
+  h1{font-size:1.4em;background:linear-gradient(90deg,var(--accent3),var(--accent),var(--accent4));
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:2px}
+  h2{color:var(--accent);margin-top:16px;border-bottom:1px solid var(--border);
+    padding-bottom:3px;font-size:1em}
+  h3{color:var(--accent2);font-size:.88em;margin-top:10px;margin-bottom:4px}
+  .sub{color:var(--muted);font-size:.78em;margin-bottom:10px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:9px;
+    padding:11px;margin:8px 0}
+  .card.info{border-color:var(--accent3)}
+  .card.gold{border-color:var(--accent)}
+  .card.ok{border-color:var(--accent2)}
+  .card.pink{border-color:var(--accent4)}
+  .card.warn{border-color:var(--danger)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:6px}
+  .stat{background:var(--code);border:1px solid var(--border);border-radius:6px;
+    padding:6px;text-align:center}
+  .stat .v{font-size:.88em;font-weight:bold;font-family:'Courier New',monospace;word-break:break-all}
+  .stat .l{font-size:.56em;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+  label{display:block;font-weight:600;margin-bottom:2px;color:var(--muted);
+    font-size:.66em;text-transform:uppercase;letter-spacing:.5px}
+  input,textarea,select{width:100%;padding:5px 8px;background:rgba(0,0,0,.4);
+    border:1px solid var(--border);border-radius:6px;font-size:.82em;color:var(--text);
+    font-family:'Courier New',monospace}
+  textarea{min-height:55px;resize:vertical}
+  input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
+  button{background:linear-gradient(135deg,var(--accent3),#3b82f6);color:#fff;
+    border:none;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:.74em;
+    font-weight:700;margin:2px 2px 2px 0;transition:all .15s}
+  button:hover{transform:translateY(-1px);opacity:.9}
+  button:disabled{opacity:.4;cursor:not-allowed;transform:none}
+  button.ok{background:linear-gradient(135deg,var(--accent2),#22c55e)}
+  button.gold{background:linear-gradient(135deg,var(--accent),#f59e0b);color:#0a0a15}
+  button.pink{background:linear-gradient(135deg,var(--accent4),#ec4899)}
+  button.danger{background:linear-gradient(135deg,var(--danger),#dc2626)}
+  button.ghost{background:transparent;border:1px solid var(--border);color:var(--text)}
+  pre{background:var(--code);border:1px solid var(--border);border-radius:6px;
+    padding:8px;overflow-x:auto;font-family:'Courier New',monospace;font-size:.7em;
+    color:var(--accent2);white-space:pre-wrap;word-break:break-all;max-height:340px}
+  table{width:100%;border-collapse:collapse;margin:5px 0;font-size:.72em}
+  th,td{border:1px solid var(--border);padding:3px 5px;text-align:left}
+  th{background:var(--code);color:var(--accent);font-size:.66em;text-transform:uppercase}
+  .row{display:flex;gap:6px;flex-wrap:wrap;align-items:flex-end}
+  .row>div{flex:1;min-width:100px}
+  .hint{font-size:.68em;color:var(--muted);margin-top:2px}
+  .footer{color:var(--muted);font-size:.66em;text-align:center;margin-top:18px;
+    padding-top:8px;border-top:1px solid var(--border)}
+  .log{padding:3px 7px;border-left:3px solid var(--muted);background:rgba(0,0,0,.2);
+    margin:2px 0;border-radius:0 4px 4px 0;font-size:.68em;font-family:'Courier New',monospace}
+  .log.ok{border-color:var(--accent2);color:var(--accent2)}
+  .log.err{border-color:var(--danger);color:var(--danger)}
+  .log.info{border-color:var(--accent3);color:var(--accent3)}
+  .log.warn{border-color:var(--accent);color:var(--accent)}
+  .badge{display:inline-block;padding:1px 7px;border-radius:8px;font-size:.58em;
+    font-weight:bold;letter-spacing:.5px;margin-right:3px}
+  .b-blue{background:var(--accent3);color:#fff}
+  .b-green{background:var(--accent2);color:#0a0a15}
+  .b-gold{background:var(--accent);color:#0a0a15}
+  .b-pink{background:var(--accent4);color:#fff}
+  .b-red{background:var(--danger);color:#fff}
+  .scroll-y{max-height:400px;overflow-y:auto;border:1px solid var(--border);border-radius:6px}
+  .R-good{color:var(--accent2);font-weight:bold}
+  .R-neutral{color:var(--accent);font-weight:bold}
+  .R-bad{color:var(--danger);font-weight:bold}
+  .bar{height:12px;background:var(--code);border-radius:6px;overflow:hidden;border:1px solid var(--border);margin:3px 0}
+  .bar .fill{height:100%;transition:width .2s}
+</style>
+</head>
+<body>
+
+<h1>Medición empírica de R<sub>efectiva</sub></h1>
+<p class="sub">
+  <span class="badge b-blue">p = candidatos aceptados / total</span>
+  <span class="badge b-gold">q = claves reales aceptadas / total claves</span>
+  <span class="badge b-green">R = q/p</span>
+  <span class="badge b-pink">Múltiples filtros</span>
+  <span class="badge b-red">Sin trampa</span>
+  Medimos empíricamente si un filtro reduce el espacio de búsqueda o no.
+</p>
+
+<!-- ============================================================ -->
+<h2>0. Configuración del experimento</h2>
+<div class="card">
+  <div class="row">
+    <div>
+      <label>Bits del espacio</label>
+      <select id="bits">
+        <option value="16" selected>16 bits (65.536)</option>
+        <option value="18">18 bits (262.144)</option>
+        <option value="20">20 bits (1.048.576)</option>
+      </select>
+    </div>
+    <div>
+      <label>Nº de claves reales a probar</label>
+      <input id="numKeys" type="number" value="50">
+    </div>
+    <div>
+      <label>Primo p (para filtros A^k)</label>
+      <input id="primoP" type="number" value="23">
+    </div>
+    <div>
+      <label>Base A (para filtros A^k)</label>
+      <input id="baseA" type="number" value="5">
+    </div>
+  </div>
+  <div class="hint">
+    Las claves reales se generan aleatoriamente en el espacio. Se prueban varios filtros y se mide p, q, R.
+  </div>
+
+  <div style="margin-top:8px">
+    <button class="gold" onclick="ejecutarExperimento()">▶️ Ejecutar experimento completo</button>
+    <button class="ghost" onclick="limpiarTodo()">Limpiar</button>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2>1. Filtros a probar</h2>
+<div class="card info">
+  <p class="hint">
+    Cada filtro recibe un candidato \(k\) y devuelve <code>true</code> si pasa, <code>false</code> si se descarta.
+    Se ejecutarán todos sobre el mismo espacio y las mismas claves reales.
+  </p>
+
+  <table>
+    <thead>
+      <tr><th>ID</th><th>Nombre</th><th>Definición</th><th>Info teórica</th></tr>
+    </thead>
+    <tbody id="filterList">
+      <tr><td>F0</td><td>Aleatorio (control)</td><td>acepta con prob 1/2</td><td>0 bits (control)</td></tr>
+      <tr><td>F1</td><td>Paridad par</td><td>k % 2 === 0</td><td>1 bit</td></tr>
+      <tr><td>F2</td><td>Múltiplo de 4</td><td>k % 4 === 0</td><td>2 bits</td></tr>
+      <tr><td>F3</td><td>Resto firma básica</td><td>k%2 XOR k%3 === 0</td><td>~1,5 bits</td></tr>
+      <tr><td>F4</td><td>Suma restos par</td><td>Σ k%i (i=2..10) par</td><td>~1 bit</td></tr>
+      <tr><td>F5</td><td>Potencia A^k mod p</td><td>(A^k mod p) < p/2</td><td>~1 bit</td></tr>
+      <tr><td>F6</td><td>Potencia + paridad</td><td>(A^k mod p) < p/2 Y k%2===0</td><td>~2 bits</td></tr>
+      <tr><td>F7</td><td>Mínimo local de A^k</td><td>A^k mod p == min(A^j mod p, j≤k)</td><td>~log(p) bits</td></tr>
+      <tr><td>F8</td><td>Bit test bit 7</td><td>((k >> 7) & 1) === 0</td><td>1 bit</td></tr>
+      <tr><td>F9</td><td>k mod 210 == 0</td><td>k % 210 === 0</td><td>~7,7 bits</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ============================================================ -->
+<h2>2. Resultados</h2>
+<div class="card ok">
+  <h3>Resumen</h3>
+  <div class="grid">
+    <div class="stat"><div class="v" id="stEspacio" style="color:var(--accent3)">—</div><div class="l">Espacio total</div></div>
+    <div class="stat"><div class="v" id="stClaves" style="color:var(--accent4)">—</div><div class="l">Claves reales probadas</div></div>
+    <div class="stat"><div class="v" id="stTiempo" style="color:var(--accent)">—</div><div class="l">Tiempo total</div></div>
+    <div class="stat"><div class="v" id="stMejorR" style="color:var(--accent2)">—</div><div class="l">Mejor R</div></div>
+  </div>
+
+  <h3>Tabla comparativa</h3>
+  <div class="scroll-y">
+    <table id="tablaResultados">
+      <thead>
+        <tr>
+          <th>Filtro</th>
+          <th>Candidatos aceptados</th>
+          <th>p</th>
+          <th>Claves reales aceptadas</th>
+          <th>q</th>
+          <th>R = q/p</th>
+          <th>Bits ganados</th>
+          <th>Veredicto</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <h3>Detalle por filtro</h3>
+  <pre id="detalleOut">—</pre>
+</div>
+
+<!-- ============================================================ -->
+<h2>3. Análisis de ganancia real</h2>
+<div class="card gold">
+  <h3>Interpretación de R</h3>
+  <table>
+    <tr><th>R</th><th>Significado</th><th>Uso</th></tr>
+    <tr><td>R ≈ 1</td><td>El filtro no discrimina. Acepta candidatos al azar.</td><td>Inútil</td></tr>
+    <tr><td>R &gt; 1</td><td>El filtro preserva la clave real más que el azar.</td><td>Útil si R &gt; 1 y p pequeño</td></tr>
+    <tr><td>R &lt; 1</td><td>El filtro descarta la clave real más que el azar.</td><td>Peligroso</td></tr>
+    <tr><td>R = 1/p</td><td>Filtro perfecto: solo la clave real pasa.</td><td>Resuelve el problema</td></tr>
+  </table>
+
+  <h3>Ganancia en bits</h3>
+  <p class="hint">Bits ganados = log₂(R). Es la información que el filtro aporta sobre la clave real.</p>
+  <div id="gananciaOut">—</div>
+</div>
+
+<!-- ============================================================ -->
+<h2>4. Interpretación honesta</h2>
+<div class="card warn">
+  <h3>Lo que este experimento mide</h3>
+  <ul style="font-size:.82em">
+    <li><strong>p</strong>: fracción del espacio total que pasa el filtro.</li>
+    <li><strong>q</strong>: fracción de claves reales (aleatorias) que pasan el filtro.</li>
+    <li><strong>R = q/p</strong>: cuánto preserva el filtro la clave real frente al azar.</li>
+  </ul>
+
+  <h3>Lo que este experimento NO mide</h3>
+  <ul style="font-size:.82em;color:var(--muted)">
+    <li>No mide si el filtro es "seguro" criptográficamente.</li>
+    <li>No mide si el filtro tiene base matemática sólida.</li>
+    <li>No mide si el filtro se puede generalizar a espacios mayores.</li>
+  </ul>
+
+  <h3>La regla</h3>
+  <p style="font-size:.85em">
+    Un filtro solo es útil si <strong>R &gt; 1</strong> de forma sistemática y <strong>p</strong> es pequeño.
+    Si R ≈ 1, el filtro no aporta nada.
+    Si R &lt; 1, el filtro es contraproducente.
+    <br><br>
+    Para cualquier filtro basado en propiedades no relacionadas con AES (restos, potencias modulares, mínimos),
+    esperamos <strong>R ≈ 1</strong> en el experimento.
+  </p>
+</div>
+
+<div class="footer">
+  Medición empírica de R_efectiva · Filtros sobre claves AES · v1.0<br>
+  Shannon no se inmuta: |imagen| ≤ |dominio| = 2^(bits reales)
+</div>
+
+<script>
+// ============================================================
+//  ESTADO
+// ============================================================
+const state = {
+  bits: 16,
+  espacio: 65536,
+  clavesReales: [],
+  resultados: []
+};
+
+// ============================================================
+//  FILTROS
+// ============================================================
+// Cada filtro es una función que recibe (k, p, A) y devuelve true/false.
+const FILTROS = [
+  {
+    id: 'F0',
+    nombre: 'Aleatorio (control)',
+    info: '0 bits',
+    fn: (k) => Math.random() < 0.5
+  },
+  {
+    id: 'F1',
+    nombre: 'Paridad par',
+    info: '1 bit',
+    fn: (k) => (k % 2) === 0
+  },
+  {
+    id: 'F2',
+    nombre: 'Múltiplo de 4',
+    info: '2 bits',
+    fn: (k) => (k % 4) === 0
+  },
+  {
+    id: 'F3',
+    nombre: 'Firma básica',
+    info: '~1,5 bits',
+    fn: (k) => ((k % 2) ^ (k % 3)) === 0
+  },
+  {
+    id: 'F4',
+    nombre: 'Suma restos par',
+    info: '~1 bit',
+    fn: (k) => {
+      let s = 0;
+      for (let i = 2; i <= 10; i++) s += k % i;
+      return (s % 2) === 0;
+    }
+  },
+  {
+    id: 'F5',
+    nombre: 'A^k mod p < p/2',
+    info: '~1 bit',
+    fn: (k, p, A) => {
+      return (powMod(A, k, p) < p / 2);
+    }
+  },
+  {
+    id: 'F6',
+    nombre: 'A^k mod p < p/2 Y par',
+    info: '~2 bits',
+    fn: (k, p, A) => {
+      return (powMod(A, k, p) < p / 2) && (k % 2 === 0);
+    }
+  },
+  {
+    id: 'F7',
+    nombre: 'Mínimo local A^k',
+    info: '~log(p) bits',
+    fn: (k, p, A) => {
+      const actual = powMod(A, k, p);
+      for (let j = 1; j < k; j++) {
+        if (powMod(A, j, p) < actual) return false;
+      }
+      return true;
+    }
+  },
+  {
+    id: 'F8',
+    nombre: 'Bit 7 = 0',
+    info: '1 bit',
+    fn: (k) => ((k >> 7) & 1) === 0
+  },
+  {
+    id: 'F9',
+    nombre: 'k mod 210 == 0',
+    info: '~7,7 bits',
+    fn: (k) => (k % 210) === 0
+  }
+];
+
+// ============================================================
+//  UTILIDADES
+// ============================================================
+function powMod(base, exp, mod){
+  let result = 1;
+  base = base % mod;
+  while (exp > 0) {
+    if (exp & 1) result = (result * base) % mod;
+    exp = Math.floor(exp / 2);
+    base = (base * base) % mod;
+  }
+  return result;
+}
+
+function fmt(n, dec=4){
+  if (n === 0) return '0';
+  if (Math.abs(n) < 0.0001) return n.toExponential(2);
+  if (Math.abs(n) >= 1e6) return n.toExponential(3);
+  return n.toFixed(dec);
+}
+
+// ============================================================
+//  EXPERIMENTO
+// ============================================================
+async function ejecutarExperimento(){
+  const bits = parseInt(document.getElementById('bits').value);
+  const numKeys = parseInt(document.getElementById('numKeys').value);
+  const p = parseInt(document.getElementById('primoP').value);
+  const A = parseInt(document.getElementById('baseA').value);
+
+  state.bits = bits;
+  state.espacio = Math.pow(2, bits);
+
+  document.getElementById('stEspacio').textContent = state.espacio.toLocaleString();
+  document.getElementById('stClaves').textContent = numKeys;
+
+  // Generar claves reales aleatorias
+  state.clavesReales = [];
+  for (let i = 0; i < numKeys; i++) {
+    state.clavesReales.push(Math.floor(Math.random() * state.espacio));
+  }
+
+  const t0 = performance.now();
+
+  // Ejecutar todos los filtros
+  state.resultados = [];
+
+  for (const filtro of FILTROS) {
+    // Contar candidatos aceptados sobre TODO el espacio
+    let aceptados = 0;
+    for (let k = 0; k < state.espacio; k++) {
+      if (filtro.fn(k, p, A)) aceptados++;
+    }
+
+    // Contar claves reales aceptadas
+    let clavesAceptadas = 0;
+    for (const k of state.clavesReales) {
+      if (filtro.fn(k, p, A)) clavesAceptadas++;
+    }
+
+    const pFrac = aceptados / state.espacio;
+    const qFrac = clavesAceptadas / numKeys;
+    const R = qFrac > 0 ? qFrac / pFrac : 0;
+    const bitsGanados = R > 0 ? Math.log2(R) : -Infinity;
+
+    state.resultados.push({
+      id: filtro.id,
+      nombre: filtro.nombre,
+      info: filtro.info,
+      aceptados, pFrac,
+      clavesAceptadas, qFrac,
+      R, bitsGanados
+    });
+  }
+
+  const t1 = performance.now();
+  document.getElementById('stTiempo').textContent = ((t1 - t0) / 1000).toFixed(2) + ' s';
+
+  // Mejor R
+  let mejorR = 0;
+  for (const r of state.resultados) if (r.R > mejorR) mejorR = r.R;
+  document.getElementById('stMejorR').textContent = fmt(mejorR);
+
+  // Tabla
+  const tbody = document.querySelector('#tablaResultados tbody');
+  tbody.innerHTML = '';
+  for (const r of state.resultados) {
+    let veredicto, clase;
+    if (Math.abs(r.R - 1) < 0.1) {
+      veredicto = 'R ≈ 1 → inútil';
+      clase = 'R-neutral';
+    } else if (r.R > 1.1) {
+      veredicto = 'R > 1 → posible ganancia';
+      clase = 'R-good';
+    } else if (r.R < 0.9) {
+      veredicto = 'R < 1 → contraproducente';
+      clase = 'R-bad';
+    } else {
+      veredicto = 'ambiguo';
+      clase = 'R-neutral';
+    }
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><strong>${r.id}</strong> ${r.nombre}<br><span style="color:var(--muted);font-size:.9em">${r.info}</span></td>
+      <td>${r.aceptados.toLocaleString()}</td>
+      <td>${fmt(r.pFrac)}</td>
+      <td>${r.clavesAceptadas} / ${numKeys}</td>
+      <td>${fmt(r.qFrac)}</td>
+      <td class="${clase}">${fmt(r.R)}</td>
+      <td>${r.bitsGanados === -Infinity ? '−∞' : fmt(r.bitsGanados, 3)}</td>
+      <td>${veredicto}</td>
+    `;
+    tbody.appendChild(tr);
+  }
+
+  // Detalle
+  let det = '';
+  for (const r of state.resultados) {
+    det += `[${r.id}] ${r.nombre}\n`;
+    det += `  Aceptados: ${r.aceptados.toLocaleString()} / ${state.espacio.toLocaleString()}  (p = ${fmt(r.pFrac)})\n`;
+    det += `  Claves reales aceptadas: ${r.clavesAceptadas} / ${numKeys}  (q = ${fmt(r.qFrac)})\n`;
+    det += `  R = ${fmt(r.R)}   bits ganados = ${r.bitsGanados === -Infinity ? '−∞' : fmt(r.bitsGanados, 3)}\n\n`;
+  }
+  document.getElementById('detalleOut').textContent = det;
+
+  // Ganancia
+  let ganancia = '<table style="width:100%;font-size:.8em;border-collapse:collapse">';
+  ganancia += '<tr><th style="border:1px solid var(--border);padding:4px">Filtro</th><th style="border:1px solid var(--border);padding:4px">R</th><th style="border:1px solid var(--border);padding:4px">Bits</th><th style="border:1px solid var(--border);padding:4px">Candidatos con R</th></tr>';
+  for (const r of state.resultados) {
+    const cand = r.R > 0 ? state.espacio / r.R : Infinity;
+    ganancia += `<tr>`;
+    ganancia += `<td style="border:1px solid var(--border);padding:4px">${r.id}</td>`;
+    ganancia += `<td style="border:1px solid var(--border);padding:4px">${fmt(r.R)}</td>`;
+    ganancia += `<td style="border:1px solid var(--border);padding:4px">${r.bitsGanados === -Infinity ? '−∞' : fmt(r.bitsGanados, 2)}</td>`;
+    ganancia += `<td style="border:1px solid var(--border);padding:4px">${cand === Infinity ? '∞' : Math.round(cand).toLocaleString()}</td>`;
+    ganancia += `</tr>`;
+  }
+  ganancia += '</table>';
+  document.getElementById('gananciaOut').innerHTML = ganancia;
+}
+
+function limpiarTodo(){
+  document.querySelector('#tablaResultados tbody').innerHTML = '';
+  document.getElementById('detalleOut').textContent = '—';
+  document.getElementById('gananciaOut').textContent = '—';
+  ['stEspacio','stClaves','stTiempo','stMejorR'].forEach(id =>
+    document.getElementById(id).textContent = '—');
+}
+
+// ============================================================
+//  INIT
+// ============================================================
+window.addEventListener('load', () => {
+  // Ejecución automática con valores por defecto
+  setTimeout(ejecutarExperimento, 200);
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Deducción Geométrica Parametrizable · Figuras Irregulares</title>
+<style>
+  :root{
+    --bg:#0a0a15;--card:#12122a;--border:#1f1f3d;--text:#e2e8f0;--muted:#94a3b8;
+    --accent:#fbbf24;--accent2:#34d399;--accent3:#60a5fa;--accent4:#f472b6;
+    --code:#0d0d1f;--danger:#ef4444;
+  }
+  *{box-sizing:border-box}
+  body{font-family:'Segoe UI',Tahoma,sans-serif;max-width:1300px;margin:0 auto;
+    padding:20px;background:var(--bg);color:var(--text);line-height:1.55}
+  h1{font-size:1.7em;background:linear-gradient(90deg,var(--accent),var(--accent2),var(--accent3));
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:4px}
+  h2{color:var(--accent);margin-top:26px;border-bottom:1px solid var(--border);
+    padding-bottom:6px;font-size:1.1em}
+  h3{color:var(--accent2);font-size:.9em;margin-top:14px;margin-bottom:5px}
+  .sub{color:var(--muted);font-size:.85em;margin-bottom:18px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;
+    padding:15px;margin:12px 0}
+  .card.gold{border-color:var(--accent)}.card.ok{border-color:var(--accent2)}
+  .card.info{border-color:var(--accent3)}.card.pink{border-color:var(--accent4)}
+  .card.warn{border-color:var(--danger)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px}
+  .stat{background:var(--code);border:1px solid var(--border);border-radius:8px;
+    padding:8px;text-align:center}
+  .stat .v{font-size:1em;font-weight:bold;font-family:'Courier New',monospace;word-break:break-all}
+  .stat .l{font-size:.6em;color:var(--muted);text-transform:uppercase;
+    letter-spacing:.5px;margin-top:2px}
+  label{display:block;font-weight:600;margin-bottom:3px;color:var(--muted);
+    font-size:.7em;text-transform:uppercase;letter-spacing:.5px}
+  input,textarea,select{width:100%;padding:7px 10px;background:rgba(0,0,0,.4);
+    border:1px solid var(--border);border-radius:7px;font-size:.82em;color:var(--text);
+    font-family:'Courier New',monospace}
+  textarea{min-height:65px;resize:vertical}
+  input:focus,textarea:focus{outline:none;border-color:var(--accent)}
+  button{background:linear-gradient(135deg,var(--accent),#f59e0b);color:#0a0a15;
+    border:none;padding:7px 14px;border-radius:7px;cursor:pointer;font-size:.78em;
+    font-weight:700;margin:3px 3px 3px 0;transition:all .2s}
+  button:hover{transform:translateY(-1px);opacity:.9}
+  button.ok{background:linear-gradient(135deg,var(--accent2),#22c55e);color:#fff}
+  button.info{background:linear-gradient(135deg,var(--accent3),#3b82f6);color:#fff}
+  button.pink{background:linear-gradient(135deg,var(--accent4),#ec4899);color:#fff}
+  button.danger{background:linear-gradient(135deg,var(--danger),#dc2626);color:#fff}
+  button.ghost{background:transparent;border:1px solid var(--border);color:var(--text)}
+  button.tiny{padding:3px 8px;font-size:.7em}
+  pre{background:var(--code);border:1px solid var(--border);border-radius:7px;
+    padding:10px;overflow-x:auto;font-family:'Courier New',monospace;font-size:.73em;
+    color:var(--accent2);white-space:pre-wrap;word-break:break-all;max-height:300px}
+  table{width:100%;border-collapse:collapse;margin:8px 0;font-size:.78em}
+  th,td{border:1px solid var(--border);padding:5px 7px;text-align:left}
+  th{background:var(--code);color:var(--accent);font-size:.68em;text-transform:uppercase}
+  tr.fig-row:hover{background:rgba(251,191,36,.05)}
+  tr.fig-row input{font-size:.75em;padding:4px 6px}
+  .tag{display:inline-block;padding:2px 8px;border-radius:9px;font-size:.6em;
+    font-weight:bold;letter-spacing:.5px;margin-right:4px}
+  .tag.ok{background:var(--accent2);color:#0a0a15}
+  .tag.gold{background:var(--accent);color:#0a0a15}
+  .tag.info{background:var(--accent3);color:#0a0a15}
+  .tag.pink{background:var(--accent4);color:#0a0a15}
+  .tag.danger{background:var(--danger);color:#fff}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end}
+  .row>div{flex:1;min-width:110px}
+  .hint{font-size:.7em;color:var(--muted);margin-top:3px}
+  .footer{color:var(--muted);font-size:.7em;text-align:center;margin-top:26px;
+    padding-top:14px;border-top:1px solid var(--border)}
+  .big{font-size:1em;color:var(--accent);font-family:'Courier New',monospace;
+    word-break:break-all;text-align:center;padding:9px;background:var(--code);
+    border-radius:7px;border:1px solid var(--accent)}
+  canvas{width:100%;height:180px;background:var(--code);border-radius:7px;
+    border:1px solid var(--border);display:block}
+  .fig-preview{width:100%;height:60px;background:var(--code);border-radius:6px;
+    border:1px solid var(--border)}
+</style>
+</head>
+<body>
+
+<h1>Deducción Geométrica Parametrizable</h1>
+<p class="sub">
+  <span class="tag gold">FIGURAS IRREGULARES</span>
+  <span class="tag ok">PESOS ARBITRARIOS</span>
+  <span class="tag info">ENCADENADO</span>
+  <span class="tag pink">AES-GCM OPCIONAL</span>
+  Cada figura es una partición del segmento en dos trozos de pesos <code>a</code> y <code>b</code>.
+  Polígonos regulares, irregulares, o cualquier proporción.
+</p>
+
+<!-- ============================================================ -->
+<h2>1. Configuración global</h2>
+
+<div class="card gold">
+  <div class="row">
+    <div>
+      <label>Segmento inicial</label>
+      <input id="startValue" value="1.33">
+    </div>
+    <div>
+      <label>Modo</label>
+      <select id="mode">
+        <option value="chained" selected>Encadenado (1 fracción)</option>
+        <option value="independent">Independiente (1 por byte)</option>
+      </select>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2>2. Definición de figuras</h2>
+
+<div class="card">
+  <p style="font-size:.8em;color:var(--muted)">
+    Cada figura es una <strong>partición del segmento</strong> en dos trozos de pesos
+    \(a\) y \(b\), con \(a + b = W\). El bit decide qué trozo se resta.
+  </p>
+  <table id="figTable">
+    <thead>
+      <tr>
+        <th style="width:30px">#</th>
+        <th style="width:120px">Nombre</th>
+        <th style="width:70px">W</th>
+        <th style="width:70px">a</th>
+        <th style="width:70px">b</th>
+        <th style="width:80px">Tipo</th>
+        <th style="width:100px">Preview</th>
+        <th style="width:50px"></th>
+      </tr>
+    </thead>
+    <tbody id="figBody"></tbody>
+  </table>
+  <div style="margin-top:6px">
+    <button class="ok" onclick="addFigura()">+ Añadir figura</button>
+    <button class="ghost" onclick="addRegular()">+ Regular (n lados)</button>
+    <button class="ghost" onclick="addIrregular()">+ Irregular (a:b)</button>
+    <button class="ghost" onclick="resetFiguras()">Restaurar por defecto</button>
+  </div>
+  <div class="hint">
+    <strong>Regular:</strong> W = n lados, a = 1, b = 2 (mínimo 1 o 2 trozos).<br>
+    <strong>Irregular:</strong> W = a + b, con a y b arbitrarios. Ej: a=2, b=3 → figura de 5 trozos con pesos 2/5 y 3/5.
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2>3. Secuencia de figuras</h2>
+
+<div class="card info">
+  <p style="font-size:.8em;color:var(--muted)">
+    Índices de las figuras en orden. Se repite cíclicamente si es más corta que el mensaje.
+  </p>
+  <div class="row">
+    <div style="flex:3">
+      <label>Secuencia (índices separados por coma)</label>
+      <input id="secuencia" value="0,1,0,0">
+    </div>
+    <div>
+      <label>Longitud secuencia</label>
+      <input id="secLen" value="4" readonly>
+    </div>
+  </div>
+  <div style="margin-top:6px">
+    <button class="info" onclick="autoSecuencia()">Auto-secuencia</button>
+    <button class="ghost" onclick="randomSecuencia()">Aleatoria</button>
+  </div>
+  <div id="secuenciaVisual" class="grid" style="margin-top:8px"></div>
+</div>
+
+<!-- ============================================================ -->
+<h2>4. Codificación</h2>
+
+<div class="card">
+  <div class="row">
+    <div style="flex:3">
+      <label>Mensaje</label>
+      <textarea id="plainInput">Hola geometría magrad.es molt</textarea>
+    </div>
+  </div>
+
+  <div style="margin-top:6px">
+    <button class="ok" onclick="codificar()">🔒 Codificar</button>
+    <button class="ghost" onclick="limpiar()">Limpiar</button>
+  </div>
+
+  <div class="grid" style="margin-top:10px">
+    <div class="stat"><div class="v" id="sBytes" style="color:var(--accent3)">—</div><div class="l">Bytes</div></div>
+    <div class="stat"><div class="v" id="sBits" style="color:var(--accent)">—</div><div class="l">Bits</div></div>
+    <div class="stat"><div class="v" id="sFrac" style="color:var(--accent2)">—</div><div class="l">Fracción final</div></div>
+    <div class="stat"><div class="v" id="sSize" style="color:var(--accent4)">—</div><div class="l">Tamaño paquete</div></div>
+  </div>
+
+  <h3>Fracción final (lo único que viaja en modo encadenado)</h3>
+  <div class="big" id="fracOut">—</div>
+
+  <h3>Paquete completo</h3>
+  <pre id="packetOut">—</pre>
+
+  <div style="margin-top:6px">
+    <button class="info" onclick="copyPacket()">📋 Copiar</button>
+    <button class="ghost" onclick="sendToDecode()">➡️ Enviar al receptor</button>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2>5. Decodificación</h2>
+
+<div class="card pink">
+  <div class="row">
+    <div style="flex:3">
+      <label>Paquete recibido</label>
+      <textarea id="packetIn" placeholder="Pega aquí el paquete…"></textarea>
+    </div>
+  </div>
+
+  <div style="margin-top:6px">
+    <label>Clave: figuras (mismo formato que arriba, JSON)</label>
+    <textarea id="decFigs" style="min-height:50px"></textarea>
+  </div>
+
+  <div class="row" style="margin-top:6px">
+    <div>
+      <label>Secuencia (clave)</label>
+      <input id="decSeq" value="0,1,0,0">
+    </div>
+    <div>
+      <label>Segmento inicial</label>
+      <input id="decStart" value="1.33">
+    </div>
+  </div>
+
+  <div style="margin-top:6px">
+    <button class="pink" onclick="decodificar()">🔓 Descifrar</button>
+    <button class="danger" onclick="decodificarMal()">❌ Con clave errónea</button>
+    <button class="ghost" onclick="limpiarDecode()">Limpiar</button>
+  </div>
+
+  <h3>Mensaje recuperado</h3>
+  <pre id="decOutput">—</pre>
+  <h3>Diagnóstico</h3>
+  <pre id="decDiag">—</pre>
+</div>
+
+<!-- ============================================================ -->
+<h2>6. Visualización</h2>
+
+<div class="card">
+  <h3>Figuras definidas</h3>
+  <div class="grid" id="figVisual"></div>
+</div>
+
+<!-- ============================================================ -->
+<h2>7. Seguridad</h2>
+
+<div class="card warn">
+  <h3>Entropía de la clave geométrica</h3>
+  <div id="entropyOut">—</div>
+
+  <h3>Qué hay que ocultar</h3>
+  <ul style="font-size:.82em">
+    <li><strong>Definición de figuras</strong> (W, a, b por figura).</li>
+    <li><strong>Secuencia</strong> de figuras.</li>
+    <li><strong>Segmento inicial</strong>.</li>
+    <li><strong>Orden de bits</strong>.</li>
+    <li><strong>Longitud</strong> del mensaje (metadato).</li>
+  </ul>
+
+  <h3>Por qué mejora la seguridad con figuras irregulares</h3>
+  <p style="font-size:.82em">
+    Cada figura irregular añade parámetros \(a, b\) que multiplican el espacio de claves.
+    Una secuencia de figuras regulares tiene ~21 bits de entropía. Con figuras
+    irregulares parametrizables, el espacio crece a 30–50 bits por figura.
+  </p>
+
+  <h3>Lo que sigue siendo cierto</h3>
+  <ul style="font-size:.82em;color:var(--muted)">
+    <li>No comprime: el paquete es mayor que el mensaje.</li>
+    <li>No cifra por sí solo: hay que cifrar la clave con AES-GCM.</li>
+    <li>No supera a Shannon: |imagen| ≤ |dominio|.</li>
+  </ul>
+</div>
+
+<div class="footer">
+  Deducción Geométrica Parametrizable · v4.0<br>
+  Shannon no se inmuta: |imagen| ≤ |dominio| = 2^(bits reales)
+</div>
+
+<script>
+// ============================================================
+//  ESTADO
+// ============================================================
+const state = {
+  figuras: [],
+  secuencia: [],
+  startNum: 133n,
+  startDen: 100n,
+  lastBits: [],
+  lastPacket: null
+};
+
+// ============================================================
+//  FIGURAS POR DEFECTO
+// ============================================================
+function defaultFiguras() {
+  return [
+    { nombre: 'Triángulo',      W: 3, a: 1, b: 2, tipo: 'regular' },
+    { nombre: 'Pentágono',      W: 5, a: 1, b: 2, tipo: 'regular' },
+    { nombre: 'Triángulo',      W: 3, a: 1, b: 2, tipo: 'regular' },
+    { nombre: 'Triángulo',      W: 3, a: 1, b: 2, tipo: 'regular' }
+  ];
+}
+
+function resetFiguras() {
+  state.figuras = defaultFiguras();
+  state.secuencia = [0, 1, 0, 0];
+  document.getElementById('secuencia').value = state.secuencia.join(',');
+  renderFiguras();
+  renderSecuencia();
+  codificar();
+}
+
+// ============================================================
+//  RENDER: TABLA DE FIGURAS
+// ============================================================
+function renderFiguras() {
+  const tbody = document.getElementById('figBody');
+  tbody.innerHTML = '';
+  state.figuras.forEach((f, i) => {
+    const tr = document.createElement('tr');
+    tr.className = 'fig-row';
+    tr.innerHTML = `
+      <td style="color:var(--accent)">${i}</td>
+      <td><input data-i="${i}" data-k="nombre" value="${f.nombre}"></td>
+      <td><input data-i="${i}" data-k="W" type="number" min="2" value="${f.W}"></td>
+      <td><input data-i="${i}" data-k="a" type="number" min="1" value="${f.a}"></td>
+      <td><input data-i="${i}" data-k="b" type="number" min="1" value="${f.b}"></td>
+      <td><input data-i="${i}" data-k="tipo" value="${f.tipo}"></td>
+      <td><canvas class="fig-preview" data-i="${i}"></canvas></td>
+      <td><button class="tiny danger" onclick="removeFigura(${i})">✕</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+  // Listeners
+  tbody.querySelectorAll('input').forEach(inp => {
+    inp.addEventListener('input', e => {
+      const i = parseInt(e.target.dataset.i);
+      const k = e.target.dataset.k;
+      let v = e.target.value;
+      if (k === 'W' || k === 'a' || k === 'b') v = parseInt(v) || 0;
+      state.figuras[i][k] = v;
+      validateFigura(i);
+      renderSecuencia();
+      drawFigura(i);
+    });
+  });
+  state.figuras.forEach((_, i) => drawFigura(i));
+  renderFigVisual();
+}
+
+function validateFigura(i) {
+  const f = state.figuras[i];
+  if (f.a + f.b !== f.W) {
+    // Ajustar b para que sume
+    f.b = f.W - f.a;
+    if (f.b < 1) { f.b = 1; f.a = f.W - 1; }
+    if (f.a < 1) { f.a = 1; f.b = f.W - 1; }
+  }
+  if (f.a >= f.W) f.a = f.W - 1;
+  if (f.b >= f.W) f.b = f.W - 1;
+  if (f.a < 1) f.a = 1;
+  if (f.b < 1) f.b = 1;
+  // Refrescar inputs
+  const tbody = document.getElementById('figBody');
+  const row = tbody.children[i];
+  if (row) {
+    row.children[3].firstChild.value = f.a;
+    row.children[4].firstChild.value = f.b;
+  }
+}
+
+function addFigura() {
+  state.figuras.push({ nombre: 'Figura', W: 3, a: 1, b: 2, tipo: 'regular' });
+  renderFiguras();
+}
+
+function addRegular() {
+  const n = prompt('Número de lados (3-20):', '3');
+  if (!n) return;
+  const W = parseInt(n);
+  if (W < 3 || W > 20) { alert('Entre 3 y 20'); return; }
+  state.figuras.push({ nombre: `${W}-gono`, W, a: 1, b: 2, tipo: 'regular' });
+  renderFiguras();
+}
+
+function addIrregular() {
+  const a = parseInt(prompt('Peso a:', '2'));
+  const b = parseInt(prompt('Peso b:', '3'));
+  if (!a || !b || a < 1 || b < 1) { alert('Pesos inválidos'); return; }
+  state.figuras.push({ nombre: `Irreg ${a}:${b}`, W: a + b, a, b, tipo: 'irregular' });
+  renderFiguras();
+}
+
+function removeFigura(i) {
+  state.figuras.splice(i, 1);
+  renderFiguras();
+}
+
+// ============================================================
+//  DIBUJAR FIGURA
+// ============================================================
+function drawFigura(i) {
+  const canvas = document.querySelector(`canvas[data-i="${i}"]`);
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width = canvas.clientWidth * 2;
+  const H = canvas.height = 120;
+  ctx.scale(2, 2);
+  const w = W/2, h = H/2;
+
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = '#0d0d1f';
+  ctx.fillRect(0, 0, w, h);
+
+  const f = state.figuras[i];
+  if (!f) return;
+
+  // Barra: a y b proporcionales
+  const total = f.a + f.b;
+  const margin = 6;
+  const usableW = w - 2*margin;
+  const wa = (f.a / total) * usableW;
+  const wb = (f.b / total) * usableW;
+
+  ctx.fillStyle = '#60a5fa';
+  ctx.fillRect(margin, 20, wa, 20);
+  ctx.fillStyle = '#fbbf24';
+  ctx.fillRect(margin + wa, 20, wb, 20);
+
+  ctx.fillStyle = '#fff';
+  ctx.font = '10px Courier New';
+  ctx.textAlign = 'center';
+  if (wa > 20) ctx.fillText(`${f.a}`, margin + wa/2, 34);
+  if (wb > 20) ctx.fillText(`${f.b}`, margin + wa + wb/2, 34);
+
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '9px Segoe UI';
+  ctx.textAlign = 'left';
+  ctx.fillText(`W=${f.W}  ${f.a}:${f.b}`, margin, h - 10);
+}
+
+function renderFigVisual() {
+  const cont = document.getElementById('figVisual');
+  cont.innerHTML = '';
+  state.figuras.forEach((f, i) => {
+    const div = document.createElement('div');
+    div.className = 'stat';
+    const total = f.a + f.b;
+    const pa = (f.a/total*100).toFixed(1);
+    const pb = (f.b/total*100).toFixed(1);
+    div.innerHTML = `
+      <div class="v" style="color:var(--accent)">${f.nombre}</div>
+      <div class="l">W=${f.W} · a=${f.a} b=${f.b}</div>
+      <div style="display:flex;height:14px;margin-top:5px;border-radius:3px;overflow:hidden">
+        <div style="flex:${f.a};background:#60a5fa"></div>
+        <div style="flex:${f.b};background:#fbbf24"></div>
+      </div>
+      <div style="font-size:.65em;color:var(--muted);margin-top:3px">
+        ${pa}% / ${pb}%
+      </div>
+    `;
+    cont.appendChild(div);
+  });
+  renderEntropy();
+}
+
+// ============================================================
+//  SECUENCIA
+// ============================================================
+function renderSecuencia() {
+  const secStr = document.getElementById('secuencia').value;
+  const sec = secStr.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+  state.secuencia = sec;
+  document.getElementById('secLen').value = sec.length;
+
+  const cont = document.getElementById('secuenciaVisual');
+  cont.innerHTML = '';
+  sec.forEach((idx, pos) => {
+    const f = state.figuras[idx];
+    const div = document.createElement('div');
+    div.className = 'stat';
+    div.innerHTML = `
+      <div class="v" style="color:${f ? 'var(--accent2)' : 'var(--danger)'}">${idx}</div>
+      <div class="l">Pos ${pos}</div>
+      <div style="font-size:.65em;color:var(--muted);margin-top:2px">${f ? f.nombre : '?'}</div>
+    `;
+    cont.appendChild(div);
+  });
+  renderEntropy();
+}
+
+function autoSecuencia() {
+  const n = state.figuras.length;
+  const seq = [];
+  for (let i = 0; i < n; i++) seq.push(i);
+  document.getElementById('secuencia').value = seq.join(',');
+  renderSecuencia();
+}
+
+function randomSecuencia() {
+  const n = state.figuras.length;
+  const len = Math.max(4, n);
+  const seq = [];
+  for (let i = 0; i < len; i++) seq.push(Math.floor(Math.random() * n));
+  document.getElementById('secuencia').value = seq.join(',');
+  renderSecuencia();
+}
+
+// ============================================================
+//  UTILIDADES
+// ============================================================
+function gcd(a, b) {
+  a = a < 0n ? -a : a; b = b < 0n ? -b : b;
+  while (b) { const t = a % b; a = b; b = t; }
+  return a;
+}
+function byteToBits(b) {
+  const bits = [];
+  for (let i = 7; i >= 0; i--) bits.push((b >> i) & 1);
+  return bits;
+}
+function bitsToBytes(bits) {
+  const bytes = [];
+  for (let i = 0; i < bits.length; i += 8) {
+    let b = 0;
+    for (let j = 0; j < 8; j++) b = (b << 1) | (bits[i+j] || 0);
+    bytes.push(b);
+  }
+  return bytes;
+}
+
+// ============================================================
+//  ENCODE (ENCADENADO)
+//  x_final = x_0 − Σ d_i / Q_i
+//  Q_i = W_0 · W_1 · ... · W_{i-1}
+//  d_i ∈ {a_i, b_i}
+// ============================================================
+function encodeChained(bytes) {
+  const bits = [];
+  for (const b of bytes) bits.push(...byteToBits(b));
+  const n = bits.length;
+
+  const getFig = i => state.figuras[state.secuencia[i % state.secuencia.length]];
+  if (!getFig(0)) return { error: 'Secuencia vacía o figura inexistente' };
+
+  // Q[i+1] = W_i · W_{i+1} · ... · W_{n-1}? No. Vamos con P.
+  // Queremos N = Σ d_i · P_{i+1}  con P_n = 1, P_i = W_i · P_{i+1}
+  const P = new Array(n + 1);
+  P[n] = 1n;
+  for (let i = n - 1; i >= 0; i--) {
+    const f = getFig(i);
+    P[i] = BigInt(f.W) * P[i + 1];
+  }
+
+  let sum = 0n;
+  for (let i = 0; i < n; i++) {
+    const f = getFig(i);
+    const d = bits[i] === 0 ? BigInt(f.a) : BigInt(f.b);
+    sum += d * P[i + 1];
+  }
+
+  const num = state.startNum * P[0] - state.startDen * sum;
+  const den = state.startDen * P[0];
+  const g = gcd(num < 0n ? -num : num, den);
+
+  return { bits, n, P0: P[0].toString(), num: num/g, den: den/g };
+}
+
+// ============================================================
+//  DECODE
+// ============================================================
+function decodeChained(fracNum, fracDen, figuras, secuencia, n, startNum, startDen) {
+  const getFig = i => figuras[secuencia[i % secuencia.length]];
+  if (!getFig(0)) return { error: 'Figura inexistente en la secuencia' };
+
+  let P0 = 1n;
+  for (let i = 0; i < n; i++) P0 *= BigInt(getFig(i).W);
+
+  const N_num = (startNum * fracDen - fracNum * startDen) * P0;
+  const N_den = startDen * fracDen;
+  if (N_num % N_den !== 0n) return { error: 'N no entero. Clave incorrecta.' };
+
+  let N = N_num / N_den;
+  const bits = new Array(n).fill(0);
+
+  for (let i = n - 1; i >= 0; i--) {
+    const f = getFig(i);
+    let d = N % BigInt(f.W);
+    if (d < 0n) d += BigInt(f.W);
+    const dNum = Number(d);
+    if (dNum === f.a) bits[i] = 0;
+    else if (dNum === f.b) bits[i] = 1;
+    else return { error: `d_${i}=${dNum} no es ni a=${f.a} ni b=${f.b}. Clave incorrecta.` };
+    N = (N - d) / BigInt(f.W);
+  }
+  if (N !== 0n) return { error: 'Sobra información. Clave incorrecta.' };
+
+  return { bits };
+}
+
+// ============================================================
+//  UI CODIFICAR
+// ============================================================
+function codificar() {
+  const text = document.getElementById('plainInput').value;
+  const bytes = new TextEncoder().encode(text);
+  const mode = document.getElementById('mode').value;
+
+  if (mode === 'chained') {
+    const enc = encodeChained(bytes);
+    if (enc.error) { alert(enc.error); return; }
+
+    state.lastBits = enc.bits;
+    document.getElementById('sBytes').textContent = bytes.length;
+    document.getElementById('sBits').textContent = enc.n;
+    document.getElementById('sFrac').textContent = `${enc.num.toString().length}/${enc.den.toString().length}`;
+    document.getElementById('fracOut').textContent = `${enc.num} / ${enc.den}`;
+
+    const packet = {
+      v: 4, mode: 'chained', n: enc.n,
+      frac: { n: enc.num.toString(), d: enc.den.toString() }
+    };
+    const s = JSON.stringify(packet);
+    document.getElementById('packetOut').textContent = JSON.stringify(packet, null, 2);
+    document.getElementById('sSize').textContent = s.length + ' B';
+    state.lastPacket = packet;
+  }
+}
+
+// ============================================================
+//  UI DECODIFICAR
+// ============================================================
+function sendToDecode() {
+  if (!state.lastPacket) { alert('Nada que enviar'); return; }
+  document.getElementById('packetIn').value = JSON.stringify(state.lastPacket);
+  document.getElementById('decFigs').value = JSON.stringify(state.figuras);
+  document.getElementById('decSeq').value = document.getElementById('secuencia').value;
+  document.getElementById('decStart').value = document.getElementById('startValue').value;
+  window.scrollTo({ top: document.getElementById('packetIn').getBoundingClientRect().top + window.scrollY - 80, behavior: 'smooth' });
+}
+
+function decodificar() {
+  const raw = document.getElementById('packetIn').value.trim();
+  if (!raw) { alert('Falta el paquete'); return; }
+
+  let packet;
+  try { packet = JSON.parse(raw); }
+  catch (e) { document.getElementById('decOutput').textContent = '✗ JSON inválido'; return; }
+
+  let figuras;
+  try { figuras = JSON.parse(document.getElementById('decFigs').value); }
+  catch (e) { document.getElementById('decOutput').textContent = '✗ Figuras inválidas'; return; }
+
+  const seq = document.getElementById('decSeq').value.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+  if (!seq.length) { alert('Secuencia inválida'); return; }
+
+  const sv = document.getElementById('decStart').value;
+  const parts = sv.split('.');
+  let startNum, startDen;
+  if (parts.length === 2) {
+    const ip = parts[0] || '0', dp = parts[1] || '0';
+    const den = 10n ** BigInt(dp.length);
+    startNum = BigInt(ip) * den + BigInt(dp);
+    startDen = den;
+  } else {
+    startNum = BigInt(sv);
+    startDen = 1n;
+  }
+
+  const fracNum = BigInt(packet.frac.n);
+  const fracDen = BigInt(packet.frac.d);
+
+  const res = decodeChained(fracNum, fracDen, figuras, seq, packet.n, startNum, startDen);
+
+  if (res.error) {
+    document.getElementById('decOutput').textContent = '✗ ' + res.error;
+    document.getElementById('decDiag').textContent = 'No se pudo invertir con esta clave.';
+    return;
+  }
+
+  const bytes = bitsToBytes(res.bits);
+  const text = new TextDecoder().decode(new Uint8Array(bytes));
+  document.getElementById('decOutput').textContent = '✓ ' + text;
+
+  const diag = [];
+  for (let i = 0; i < Math.min(8, bytes.length); i++) {
+    const bs = res.bits.slice(i*8, i*8+8).join('');
+    diag.push(`Byte ${i}: bits=${bs} → 0x${bytes[i].toString(16).padStart(2,'0')} (${bytes[i]})`);
+  }
+  document.getElementById('decDiag').textContent = diag.join('\n') +
+    (bytes.length > 8 ? `\n… (${bytes.length - 8} más)` : '');
+}
+
+function decodificarMal() {
+  const raw = document.getElementById('packetIn').value.trim();
+  if (!raw) { alert('Falta el paquete'); return; }
+  const o1 = document.getElementById('decSeq').value;
+  const o2 = document.getElementById('decFigs').value;
+  // Cambiar secuencia
+  document.getElementById('decSeq').value = o1.split(',').reverse().join(',');
+  decodificar();
+  document.getElementById('decSeq').value = o1;
+  document.getElementById('decFigs').value = o2;
+}
+
+function limpiar() {
+  document.getElementById('fracOut').textContent = '—';
+  document.getElementById('packetOut').textContent = '—';
+  ['sBytes','sBits','sFrac','sSize'].forEach(id => document.getElementById(id).textContent = '—');
+}
+function limpiarDecode() {
+  document.getElementById('decOutput').textContent = '—';
+  document.getElementById('decDiag').textContent = '—';
+}
+function copyPacket() {
+  const t = document.getElementById('packetOut').textContent;
+  navigator.clipboard.writeText(t).then(() => {
+    const b = event.target, o = b.innerText;
+    b.innerText = '✓';
+    setTimeout(() => b.innerText = o, 1200);
+  });
+}
+
+// ============================================================
+//  ENTROPÍA
+// ============================================================
+function renderEntropy() {
+  const nFig = state.figuras.length;
+  const nSec = state.secuencia.length;
+  // Entropía: cada posición de la secuencia puede ser cualquier figura
+  const bitsSec = nSec * Math.log2(nFig);
+  // Cada figura: parámetros W, a, b
+  const bitsFig = state.figuras.reduce((acc, f) => {
+    // W puede ser 2..20, a y b determinados por W
+    acc += Math.log2(20);
+    acc += Math.log2(f.W - 1);
+    return acc;
+  }, 0);
+  // Segmento inicial: ~20 bits (decimales)
+  const bitsStart = 20;
+
+  const total = bitsSec + bitsFig + bitsStart;
+  document.getElementById('entropyOut').innerHTML = `
+    <div class="grid">
+      <div class="stat"><div class="v" style="color:var(--accent3)">${nFig}</div><div class="l">Figuras</div></div>
+      <div class="stat"><div class="v" style="color:var(--accent2)">${nSec}</div><div class="l">Secuencia</div></div>
+      <div class="stat"><div class="v" style="color:var(--accent)">${bitsSec.toFixed(1)}</div><div class="l">Bits secuencia</div></div>
+      <div class="stat"><div class="v" style="color:var(--accent4)">${bitsFig.toFixed(1)}</div><div class="l">Bits figuras</div></div>
+      <div class="stat"><div class="v" style="color:var(--danger)">${total.toFixed(1)}</div><div class="l">Bits totales</div></div>
+    </div>
+    <p style="font-size:.78em;color:var(--muted);margin-top:8px">
+      Con ${total.toFixed(0)} bits de clave, un atacante con fuerza bruta moderna tardaría
+      ${total < 60 ? 'segundos o minutos' : total < 80 ? 'horas o días' : 'años'} en romperla.
+      Para seguridad real, hay que cifrar la clave con AES-256-GCM.
+    </p>
+  `;
+}
+
+// ============================================================
+//  INIT
+// ============================================================
+window.addEventListener('load', () => {
+  resetFiguras();
+  document.getElementById('secuencia').addEventListener('input', renderSecuencia);
+  document.getElementById('mode').addEventListener('change', codificar);
+  document.getElementById('plainInput').addEventListener('input', codificar);
+});
+window.addEventListener('resize', () => {
+  state.figuras.forEach((_, i) => drawFigura(i));
+});
+</script>
+
+</body>
+</html>

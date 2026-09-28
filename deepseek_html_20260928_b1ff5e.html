@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fuerza Bruta + Filtro de Descarte · AES-128</title>
+<style>
+  :root{
+    --bg:#0a0a15;--card:#12122a;--border:#1f1f3d;--text:#e2e8f0;--muted:#94a3b8;
+    --accent:#fbbf24;--accent2:#34d399;--accent3:#60a5fa;--accent4:#f472b6;
+    --code:#0d0d1f;--danger:#ef4444;
+  }
+  *{box-sizing:border-box}
+  body{font-family:'Segoe UI',Tahoma,sans-serif;max-width:1200px;margin:0 auto;
+    padding:18px;background:var(--bg);color:var(--text);line-height:1.5}
+  h1{font-size:1.5em;background:linear-gradient(90deg,var(--accent3),var(--accent),var(--accent4));
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:4px}
+  h2{color:var(--accent);margin-top:20px;border-bottom:1px solid var(--border);
+    padding-bottom:5px;font-size:1.05em}
+  h3{color:var(--accent2);font-size:.9em;margin-top:12px;margin-bottom:5px}
+  .sub{color:var(--muted);font-size:.82em;margin-bottom:14px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:10px;
+    padding:14px;margin:10px 0}
+  .card.info{border-color:var(--accent3)}
+  .card.gold{border-color:var(--accent)}
+  .card.ok{border-color:var(--accent2)}
+  .card.warn{border-color:var(--danger)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px}
+  .stat{background:var(--code);border:1px solid var(--border);border-radius:7px;
+    padding:8px;text-align:center}
+  .stat .v{font-size:1em;font-weight:bold;font-family:'Courier New',monospace;word-break:break-all}
+  .stat .l{font-size:.6em;color:var(--muted);text-transform:uppercase;
+    letter-spacing:.5px;margin-top:2px}
+  label{display:block;font-weight:600;margin-bottom:3px;color:var(--muted);
+    font-size:.7em;text-transform:uppercase;letter-spacing:.5px}
+  input,textarea,select{width:100%;padding:7px 10px;background:rgba(0,0,0,.4);
+    border:1px solid var(--border);border-radius:7px;font-size:.85em;color:var(--text);
+    font-family:'Courier New',monospace}
+  textarea{min-height:60px;resize:vertical}
+  input:focus,textarea:focus{outline:none;border-color:var(--accent)}
+  button{background:linear-gradient(135deg,var(--accent3),#3b82f6);color:#fff;
+    border:none;padding:8px 14px;border-radius:7px;cursor:pointer;font-size:.78em;
+    font-weight:700;margin:3px 3px 3px 0;transition:all .2s}
+  button:hover{transform:translateY(-1px);opacity:.9}
+  button.ok{background:linear-gradient(135deg,var(--accent2),#22c55e)}
+  button.gold{background:linear-gradient(135deg,var(--accent),#f59e0b);color:#0a0a15}
+  button.pink{background:linear-gradient(135deg,var(--accent4),#ec4899)}
+  button.danger{background:linear-gradient(135deg,var(--danger),#dc2626)}
+  button.ghost{background:transparent;border:1px solid var(--border);color:var(--text)}
+  button:disabled{opacity:.4;cursor:not-allowed;transform:none}
+  pre{background:var(--code);border:1px solid var(--border);border-radius:7px;
+    padding:10px;overflow-x:auto;font-family:'Courier New',monospace;font-size:.75em;
+    color:var(--accent2);white-space:pre-wrap;word-break:break-all;max-height:300px}
+  table{width:100%;border-collapse:collapse;margin:8px 0;font-size:.78em}
+  th,td{border:1px solid var(--border);padding:5px 8px;text-align:left}
+  th{background:var(--code);color:var(--accent);font-size:.7em;text-transform:uppercase}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end}
+  .row>div{flex:1;min-width:130px}
+  .hint{font-size:.72em;color:var(--muted);margin-top:3px}
+  .footer{color:var(--muted);font-size:.7em;text-align:center;margin-top:24px;
+    padding-top:12px;border-top:1px solid var(--border)}
+  .big{font-size:.9em;color:var(--accent);font-family:'Courier New',monospace;
+    word-break:break-all;text-align:center;padding:8px;background:var(--code);
+    border-radius:6px;border:1px solid var(--accent)}
+  .log{padding:5px 8px;border-left:3px solid var(--muted);background:rgba(0,0,0,.2);
+    margin:3px 0;border-radius:0 4px 4px 0;font-size:.72em;font-family:'Courier New',monospace}
+  .log.ok{border-color:var(--accent2);color:var(--accent2)}
+  .log.err{border-color:var(--danger);color:var(--danger)}
+  .log.info{border-color:var(--accent3);color:var(--accent3)}
+  .log.warn{border-color:var(--accent);color:var(--accent)}
+  .meter{height:16px;background:var(--code);border-radius:8px;overflow:hidden;
+    border:1px solid var(--border);margin:6px 0}
+  .meter .fill{height:100%;background:linear-gradient(90deg,var(--accent3),var(--accent));
+    transition:width .1s}
+  .badge{display:inline-block;padding:2px 8px;border-radius:9px;font-size:.62em;
+    font-weight:bold;letter-spacing:.5px;margin-right:4px}
+  .b-blue{background:var(--accent3);color:#fff}
+  .b-gold{background:var(--accent);color:#0a0a15}
+  .b-green{background:var(--accent2);color:#0a0a15}
+  .b-red{background:var(--danger);color:#fff}
+</style>
+</head>
+<body>
+
+<h1>Fuerza Bruta + Filtro de Descarte · AES-128</h1>
+<p class="sub">
+  <span class="badge b-blue">AES-128 REAL</span>
+  <span class="badge b-gold">ESPACIO REDUCIDO</span>
+  <span class="badge b-green">FILTRO OPCIONAL</span>
+  <span class="badge b-red">DEMO EDUCATIVA</span>
+  AES-64 no existe. Esta demo usa AES-128 con espacio de claves reducido (16–28 bits).
+</p>
+
+<!-- ============================================================ -->
+<h2>1. Configuración</h2>
+<div class="card info">
+  <p class="hint">AES-64 no es un estándar. Lo que se hace en la práctica es usar AES-128 con clave de 128 bits. Aquí reducimos el espacio de búsqueda a N bits para que la fuerza bruta sea viable en el navegador.</p>
+
+  <div class="row">
+    <div style="flex:2">
+      <label>Mensaje original</label>
+      <input id="plaintext" value="Hola AES">
+    </div>
+    <div>
+      <label>Bits del espacio de claves</label>
+      <select id="keyBits">
+        <option value="16">16 bits (65.536 claves)</option>
+        <option value="20" selected>20 bits (1.048.576 claves)</option>
+        <option value="24">24 bits (16.777.216 claves)</option>
+        <option value="28">28 bits (268.435.456 claves)</option>
+      </select>
+    </div>
+  </div>
+
+  <div style="margin-top:10px">
+    <button class="gold" onclick="generarCaso()">🔑 Generar caso (clave secreta aleatoria)</button>
+    <button class="ghost" onclick="limpiarTodo()">Limpiar</button>
+  </div>
+
+  <h3>Caso generado</h3>
+  <div class="grid">
+    <div class="stat"><div class="v" id="stPlain" style="color:var(--accent3)">—</div><div class="l">Mensaje</div></div>
+    <div class="stat"><div class="v" id="stCipher" style="color:var(--accent4)">—</div><div class="l">Criptograma (hex)</div></div>
+    <div class="stat"><div class="v" id="stKey" style="color:var(--accent)">—</div><div class="l">Clave real (oculta)</div></div>
+    <div class="stat"><div class="v" id="stSpace" style="color:var(--accent2)">—</div><div class="l">Espacio</div></div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2>2. Filtro de descarte (opcional)</h2>
+<div class="card">
+  <p class="hint">
+    El filtro recibe un candidato de clave (número entero) y devuelve <code>true</code> si <strong>pasa</strong> el filtro,
+    o <code>false</code> si se <strong>descarta</strong>. Se ejecuta <strong>antes</strong> de probar AES. Si el filtro es rápido,
+    ahorra tiempo. Si es lento, lo pierde.
+  </p>
+
+  <div class="row">
+    <div style="flex:3">
+      <label>Función de filtro (JavaScript)</label>
+      <textarea id="filterCode" spellcheck="false">// Recibe: candidato (entero), p (primo), A (int), B (int)
+// Devuelve: true = pasa, false = descartar
+// Ejemplo: solo aceptar candidatos que sean potencia de 2
+return (candidato & (candidato - 1)) === 0;</textarea>
+    </div>
+  </div>
+
+  <div style="margin-top:8px">
+    <button class="pink" onclick="probarFiltro()">🧪 Probar filtro</button>
+    <button class="ghost" onclick="resetFiltro()">Restaurar ejemplo</button>
+  </div>
+
+  <h3>Resultado del filtro</h3>
+  <pre id="filterOut">—</pre>
+</div>
+
+<!-- ============================================================ -->
+<h2>3. Fuerza bruta</h2>
+<div class="card ok">
+  <div class="row">
+    <div>
+      <label>Modo</label>
+      <select id="mode">
+        <option value="pure">Fuerza bruta pura</option>
+        <option value="filtered" selected>Fuerza bruta con filtro</option>
+      </select>
+    </div>
+    <div>
+      <label>Lote por iteración</label>
+      <select id="batchSize">
+        <option value="100">100 claves</option>
+        <option value="500" selected>500 claves</option>
+        <option value="2000">2000 claves</option>
+        <option value="10000">10000 claves</option>
+      </select>
+    </div>
+  </div>
+
+  <div style="margin-top:10px">
+    <button class="ok" id="btnStart" onclick="startBruteForce()">▶️ Iniciar</button>
+    <button class="danger" id="btnStop" onclick="stopBruteForce()" disabled>⏹️ Detener</button>
+  </div>
+
+  <div class="meter"><div class="fill" id="progressBar" style="width:0%"></div></div>
+
+  <div class="grid" style="margin-top:8px">
+    <div class="stat"><div class="v" id="stTested" style="color:var(--accent3)">0</div><div class="l">Candidatos probados</div></div>
+    <div class="stat"><div class="v" id="stFiltered" style="color:var(--accent4)">0</div><div class="l">Descartados por filtro</div></div>
+    <div class="stat"><div class="v" id="stAES" style="color:var(--accent)">0</div><div class="l">AES ejecutados</div></div>
+    <div class="stat"><div class="v" id="stSpeed" style="color:var(--accent2)">0/s</div><div class="l">Velocidad</div></div>
+    <div class="stat"><div class="v" id="stElapsed" style="color:var(--accent3)">0 s</div><div class="l">Tiempo</div></div>
+    <div class="stat"><div class="v" id="stETA" style="color:var(--accent4)">—</div><div class="l">ETA</div></div>
+  </div>
+
+  <h3>Resultado</h3>
+  <pre id="bruteOut">—</pre>
+
+  <h3>Log</h3>
+  <div id="bruteLog"></div>
+</div>
+
+<!-- ============================================================ -->
+<h2>4. Comparativa de espacios de claves</h2>
+<div class="card warn">
+  <p class="hint">Cuánto tardaría fuerza bruta a 10⁹ claves/segundo (GPU moderna) y a 10¹² claves/segundo (clúster).</p>
+  <table>
+    <thead>
+      <tr><th>Bits</th><th>Claves</th><th>GPU (10⁹/s)</th><th>Clúster (10¹²/s)</th><th>Comentario</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>16</td><td>65.536</td><td>0,06 ms</td><td>0,06 µs</td><td>Trivial</td></tr>
+      <tr><td>20</td><td>1.048.576</td><td>1 ms</td><td>1 µs</td><td>Trivial</td></tr>
+      <tr><td>24</td><td>16.777.216</td><td>17 ms</td><td>17 µs</td><td>Instantáneo</td></tr>
+      <tr><td>28</td><td>268.435.456</td><td>0,27 s</td><td>0,27 ms</td><td>Rápido</td></tr>
+      <tr><td>32</td><td>4,3 × 10⁹</td><td>4,3 s</td><td>4,3 ms</td><td>Segundos</td></tr>
+      <tr><td>40</td><td>1,1 × 10¹²</td><td>18 min</td><td>1,1 s</td><td>Minutos</td></tr>
+      <tr><td>56 (DES)</td><td>7,2 × 10¹⁶</td><td>2,3 años</td><td>20 h</td><td>DES roto</td></tr>
+      <tr><td>64</td><td>1,8 × 10¹⁹</td><td>585 años</td><td>7 meses</td><td>Vulnerable</td></tr>
+      <tr><td>80</td><td>1,2 × 10²⁴</td><td>38 M años</td><td>38.000 años</td><td>Débil</td></tr>
+      <tr><td>128 (AES-128)</td><td>3,4 × 10³⁸</td><td>10²² años</td><td>10¹⁹ años</td><td>Seguro</td></tr>
+      <tr><td>256 (AES-256)</td><td>1,2 × 10⁷⁷</td><td>10⁶⁰ años</td><td>10⁵⁷ años</td><td>Muy seguro</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ============================================================ -->
+<h2>5. Análisis honesto</h2>
+<div class="card warn">
+  <h3>Qué es real</h3>
+  <ul style="font-size:.82em">
+    <li>La fuerza bruta es exponencial: \(2^n\). Duplicar bits = duplicar tiempo (exponencialmente).</li>
+    <li>Un filtro rápido puede reducir el espacio de búsqueda si descarta candidatos con alta probabilidad.</li>
+    <li>AES-128 tiene 128 bits de clave. Con hardware actual, no se rompe por fuerza bruta.</li>
+  </ul>
+
+  <h3>Qué NO es</h3>
+  <ul style="font-size:.82em;color:var(--muted)">
+    <li>No hay "AES-64" como estándar. Lo que ves aquí es AES-128 con espacio reducido.</li>
+    <li>Un filtro no reduce la entropía de la clave. Solo descarta candidatos que no cumplen una condición.</li>
+    <li>Un filtro mal diseñado puede descartar la clave correcta (falsos negativos).</li>
+    <li>Un filtro muy específico puede no servir para claves aleatorias.</li>
+  </ul>
+
+  <h3>Cuándo un filtro ayuda de verdad</h3>
+  <ul style="font-size:.82em">
+    <li>Cuando el espacio de búsqueda tiene estructura (por ejemplo, claves con bits conocidos).</li>
+    <li>Cuando el filtro es mucho más rápido que AES.</li>
+    <li>Cuando descarta ≥50% de los candidatos sin descartar el correcto.</li>
+  </ul>
+</div>
+
+<div class="footer">
+  Demo educativa · Fuerza bruta + filtro sobre AES-128 con espacio reducido<br>
+  Shannon no se inmuta: |imagen| ≤ |dominio| = 2^(bits reales)
+</div>
+
+<script>
+// ============================================================
+//  ESTADO
+// ============================================================
+const state = {
+  plainBytes: null,
+  cipherBytes: null,
+  realKey: null,
+  keyBits: 20,
+  running: false,
+  tested: 0,
+  filtered: 0,
+  aesRuns: 0,
+  startTime: 0,
+  filterFn: null
+};
+
+// ============================================================
+//  UTILIDADES
+// ============================================================
+function bytesToHex(bytes) {
+  return Array.from(bytes).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+function hexToBytes(hex) {
+  const b = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < b.length; i++) b[i] = parseInt(hex.substr(i*2,2), 16);
+  return b;
+}
+function bytesToStr(b) { return new TextDecoder().decode(new Uint8Array(b)); }
+function strToBytes(s) { return new TextEncoder().encode(s); }
+
+// ============================================================
+//  AES-128 (Web Crypto)
+//  Clave: derivada de un entero de N bits
+//  → 16 bytes: 12 bytes a cero + 4 bytes con el entero
+// ============================================================
+async function makeAESKey(intKey) {
+  const keyBytes = new Uint8Array(16);
+  // Colocar el entero en los últimos 4 bytes (big-endian)
+  const view = new DataView(keyBytes.buffer);
+  view.setUint32(12, intKey >>> 0, false);
+  return crypto.subtle.importKey(
+    'raw', keyBytes, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']
+  );
+}
+
+async function aesEncrypt(intKey, plainBytes, iv) {
+  const key = await makeAESKey(intKey);
+  const buf = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, plainBytes);
+  return new Uint8Array(buf);
+}
+
+async function aesDecrypt(intKey, cipherBytes, iv) {
+  const key = await makeAESKey(intKey);
+  const buf = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, cipherBytes);
+  return new Uint8Array(buf);
+}
+
+// ============================================================
+//  GENERAR CASO
+// ============================================================
+async function generarCaso() {
+  const bits = parseInt(document.getElementById('keyBits').value);
+  state.keyBits = bits;
+  const maxKey = (1 << bits) >>> 0;
+
+  // Clave real aleatoria
+  state.realKey = Math.floor(Math.random() * maxKey);
+
+  // IV fijo (para la demo)
+  const iv = new Uint8Array(12);
+  crypto.getRandomValues(iv);
+
+  // Plaintext
+  const plainStr = document.getElementById('plaintext').value;
+  state.plainBytes = strToBytes(plainStr);
+
+  // Cifrar
+  const keyWithIV = state.realKey;
+  state.cipherBytes = await aesEncrypt(keyWithIV, state.plainBytes, iv);
+  state.iv = iv;
+
+  // Mostrar
+  document.getElementById('stPlain').textContent = plainStr;
+  document.getElementById('stCipher').textContent = bytesToHex(iv) + ':' + bytesToHex(state.cipherBytes).slice(0,24) + '…';
+  document.getElementById('stKey').textContent = '0x' + state.realKey.toString(16).padStart(Math.ceil(bits/4),'0') + ' (oculta)';
+  document.getElementById('stSpace').textContent = '2^' + bits + ' = ' + maxKey.toLocaleString();
+
+  addLog('bruteLog', `Caso generado: ${bits} bits, ${maxKey.toLocaleString()} claves posibles.`, 'info');
+  addLog('bruteLog', `Clave real: 0x${state.realKey.toString(16)}`, 'warn');
+}
+
+// ============================================================
+//  FILTRO
+// ============================================================
+function probarFiltro() {
+  const code = document.getElementById('filterCode').value;
+  const out = document.getElementById('filterOut');
+
+  try {
+    // Crear función con el código del usuario
+    const fn = new Function('candidato', 'p', 'A', 'B', code);
+    state.filterFn = fn;
+
+    // Probar con valores pequeños
+    const resultados = [];
+    for (let c = 0; c < 16; c++) {
+      const pasa = fn(c, 23, 8, 19);
+      resultados.push(`candidato=${c} → ${pasa ? 'PASA' : 'descarta'}`);
+    }
+    out.textContent = '✓ Filtro compilado correctamente.\n\n' + resultados.join('\n');
+  } catch (e) {
+    out.textContent = '✗ Error en el filtro: ' + e.message;
+    state.filterFn = null;
+  }
+}
+
+function resetFiltro() {
+  document.getElementById('filterCode').value =
+`// Recibe: candidato (entero), p (primo), A (int), B (int)
+// Devuelve: true = pasa, false = descartar
+// Ejemplo: solo aceptar candidatos que sean potencia de 2
+return (candidato & (candidato - 1)) === 0;`;
+  probarFiltro();
+}
+
+// ============================================================
+//  FUERZA BRUTA
+// ============================================================
+function addLog(id, msg, type) {
+  const el = document.getElementById(id);
+  const div = document.createElement('div');
+  div.className = 'log ' + (type || '');
+  div.textContent = msg;
+  el.appendChild(div);
+  el.scrollTop = el.scrollHeight;
+}
+
+function limpiarTodo() {
+  document.getElementById('bruteLog').innerHTML = '';
+  document.getElementById('bruteOut').textContent = '—';
+  document.getElementById('stTested').textContent = '0';
+  document.getElementById('stFiltered').textContent = '0';
+  document.getElementById('stAES').textContent = '0';
+  document.getElementById('stSpeed').textContent = '0/s';
+  document.getElementById('stElapsed').textContent = '0 s';
+  document.getElementById('stETA').textContent = '—';
+  document.getElementById('progressBar').style.width = '0%';
+}
+
+async function startBruteForce() {
+  if (!state.cipherBytes) { alert('Genera un caso primero'); return; }
+
+  const mode = document.getElementById('mode').value;
+  const batch = parseInt(document.getElementById('batchSize').value);
+  const maxKey = (1 << state.keyBits) >>> 0;
+
+  if (mode === 'filtered' && !state.filterFn) {
+    alert('El filtro no está compilado. Pulsa "Probar filtro".');
+    return;
+  }
+
+  state.running = true;
+  state.tested = 0;
+  state.filtered = 0;
+  state.aesRuns = 0;
+  state.startTime = performance.now();
+
+  document.getElementById('btnStart').disabled = true;
+  document.getElementById('btnStop').disabled = false;
+  document.getElementById('bruteLog').innerHTML = '';
+  document.getElementById('bruteOut').textContent = 'Buscando…';
+
+  addLog('bruteLog', `Iniciando fuerza bruta en modo "${mode}".`, 'info');
+  addLog('bruteLog', `Espacio: 2^${state.keyBits} = ${maxKey.toLocaleString()} claves.`, 'info');
+
+  const iv = state.iv;
+
+  let key = 0;
+  while (state.running && key < maxKey) {
+    const end = Math.min(key + batch, maxKey);
+
+    for (; key < end; key++) {
+      state.tested++;
+
+      // Filtro
+      if (mode === 'filtered' && state.filterFn) {
+        let pasa;
+        try {
+          pasa = state.filterFn(key, 23, 8, 19);
+        } catch (e) {
+          pasa = true;
+        }
+        if (!pasa) {
+          state.filtered++;
+          continue;
+        }
+      }
+
+      // Probar con AES
+      state.aesRuns++;
+      try {
+        const dec = await aesDecrypt(key, state.cipherBytes, iv);
+        const text = bytesToStr(dec);
+        if (text === bytesToStr(state.plainBytes)) {
+          // ¡Encontrada!
+          const elapsed = (performance.now() - state.startTime) / 1000;
+          addLog('bruteLog', `✓ CLAVE ENCONTRADA: 0x${key.toString(16)}`, 'ok');
+          addLog('bruteLog', `  Mensaje: "${text}"`, 'ok');
+          addLog('bruteLog', `  Tiempo: ${elapsed.toFixed(3)} s`, 'ok');
+          addLog('bruteLog', `  Probados: ${state.tested.toLocaleString()}`, 'ok');
+          addLog('bruteLog', `  Descartados por filtro: ${state.filtered.toLocaleString()}`, 'ok');
+          addLog('bruteLog', `  AES ejecutados: ${state.aesRuns.toLocaleString()}`, 'ok');
+          document.getElementById('bruteOut').textContent =
+            `✓ Clave: 0x${key.toString(16)}\n` +
+            `  Mensaje: ${text}\n` +
+            `  Tiempo: ${elapsed.toFixed(3)} s\n` +
+            `  Probados: ${state.tested.toLocaleString()}\n` +
+            `  Descartados: ${state.filtered.toLocaleString()}\n` +
+            `  AES ejecutados: ${state.aesRuns.toLocaleString()}\n` +
+            `  Ahorro por filtro: ${((1 - state.aesRuns / state.tested) * 100).toFixed(1)}%`;
+          stopBruteForce();
+          return;
+        }
+      } catch (e) {
+        // Falso positivo de AES-GCM: continuar
+      }
+    }
+
+    // Actualizar UI
+    const elapsed = (performance.now() - state.startTime) / 1000;
+    const speed = state.tested / Math.max(elapsed, 0.001);
+    const pct = (key / maxKey) * 100;
+    document.getElementById('stTested').textContent = state.tested.toLocaleString();
+    document.getElementById('stFiltered').textContent = state.filtered.toLocaleString();
+    document.getElementById('stAES').textContent = state.aesRuns.toLocaleString();
+    document.getElementById('stSpeed').textContent = Math.round(speed).toLocaleString() + '/s';
+    document.getElementById('stElapsed').textContent = elapsed.toFixed(1) + ' s';
+    document.getElementById('progressBar').style.width = pct.toFixed(2) + '%';
+
+    if (speed > 0) {
+      const remaining = (maxKey - key) / speed;
+      document.getElementById('stETA').textContent = formatTime(remaining);
+    }
+
+    // Dejar respirar al navegador
+    await new Promise(r => setTimeout(r, 0));
+  }
+
+  if (state.running) {
+    addLog('bruteLog', '✗ Clave no encontrada en todo el espacio.', 'err');
+    document.getElementById('bruteOut').textContent = '✗ No encontrada';
+    stopBruteForce();
+  }
+}
+
+function stopBruteForce() {
+  state.running = false;
+  document.getElementById('btnStart').disabled = false;
+  document.getElementById('btnStop').disabled = true;
+}
+
+function formatTime(seconds) {
+  if (seconds < 1) return '< 1 s';
+  if (seconds < 60) return Math.round(seconds) + ' s';
+  if (seconds < 3600) return Math.round(seconds / 60) + ' min';
+  if (seconds < 86400) return (seconds / 3600).toFixed(1) + ' h';
+  return (seconds / 86400).toFixed(1) + ' días';
+}
+
+// ============================================================
+//  INIT
+// ============================================================
+window.addEventListener('load', async () => {
+  await generarCaso();
+  probarFiltro();
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,1103 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lab · Secuencia de mínimos + Precomputación + Filtros AES</title>
+<style>
+  :root{
+    --bg:#0a0a15;--card:#12122a;--border:#1f1f3d;--text:#e2e8f0;--muted:#94a3b8;
+    --accent:#fbbf24;--accent2:#34d399;--accent3:#60a5fa;--accent4:#f472b6;
+    --code:#0d0d1f;--danger:#ef4444;
+  }
+  *{box-sizing:border-box}
+  body{font-family:'Segoe UI',Tahoma,sans-serif;max-width:1500px;margin:0 auto;
+    padding:14px;background:var(--bg);color:var(--text);line-height:1.5;font-size:13px}
+  h1{font-size:1.35em;background:linear-gradient(90deg,var(--accent3),var(--accent),var(--accent4));
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:2px}
+  h2{color:var(--accent);margin-top:16px;border-bottom:1px solid var(--border);
+    padding-bottom:3px;font-size:1em}
+  h3{color:var(--accent2);font-size:.88em;margin-top:10px;margin-bottom:4px}
+  .sub{color:var(--muted);font-size:.78em;margin-bottom:10px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:9px;
+    padding:11px;margin:8px 0}
+  .card.info{border-color:var(--accent3)}
+  .card.gold{border-color:var(--accent)}
+  .card.ok{border-color:var(--accent2)}
+  .card.pink{border-color:var(--accent4)}
+  .card.warn{border-color:var(--danger)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:6px}
+  .stat{background:var(--code);border:1px solid var(--border);border-radius:6px;
+    padding:6px;text-align:center}
+  .stat .v{font-size:.85em;font-weight:bold;font-family:'Courier New',monospace;word-break:break-all}
+  .stat .l{font-size:.55em;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+  label{display:block;font-weight:600;margin-bottom:2px;color:var(--muted);
+    font-size:.66em;text-transform:uppercase;letter-spacing:.5px}
+  input,textarea,select{width:100%;padding:5px 8px;background:rgba(0,0,0,.4);
+    border:1px solid var(--border);border-radius:6px;font-size:.82em;color:var(--text);
+    font-family:'Courier New',monospace}
+  textarea{min-height:55px;resize:vertical}
+  input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
+  button{background:linear-gradient(135deg,var(--accent3),#3b82f6);color:#fff;
+    border:none;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:.74em;
+    font-weight:700;margin:2px 2px 2px 0;transition:all .15s}
+  button:hover{transform:translateY(-1px);opacity:.9}
+  button:disabled{opacity:.4;cursor:not-allowed;transform:none}
+  button.ok{background:linear-gradient(135deg,var(--accent2),#22c55e)}
+  button.gold{background:linear-gradient(135deg,var(--accent),#f59e0b);color:#0a0a15}
+  button.pink{background:linear-gradient(135deg,var(--accent4),#ec4899)}
+  button.danger{background:linear-gradient(135deg,var(--danger),#dc2626)}
+  button.ghost{background:transparent;border:1px solid var(--border);color:var(--text)}
+  pre{background:var(--code);border:1px solid var(--border);border-radius:6px;
+    padding:8px;overflow-x:auto;font-family:'Courier New',monospace;font-size:.7em;
+    color:var(--accent2);white-space:pre-wrap;word-break:break-all;max-height:340px}
+  table{width:100%;border-collapse:collapse;margin:5px 0;font-size:.72em}
+  th,td{border:1px solid var(--border);padding:3px 5px;text-align:left}
+  th{background:var(--code);color:var(--accent);font-size:.66em;text-transform:uppercase;
+    position:sticky;top:0;z-index:1}
+  .row{display:flex;gap:6px;flex-wrap:wrap;align-items:flex-end}
+  .row>div{flex:1;min-width:100px}
+  .hint{font-size:.68em;color:var(--muted);margin-top:2px}
+  .footer{color:var(--muted);font-size:.66em;text-align:center;margin-top:18px;
+    padding-top:8px;border-top:1px solid var(--border)}
+  .log{padding:3px 7px;border-left:3px solid var(--muted);background:rgba(0,0,0,.2);
+    margin:2px 0;border-radius:0 4px 4px 0;font-size:.68em;font-family:'Courier New',monospace}
+  .log.ok{border-color:var(--accent2);color:var(--accent2)}
+  .log.err{border-color:var(--danger);color:var(--danger)}
+  .log.info{border-color:var(--accent3);color:var(--accent3)}
+  .log.warn{border-color:var(--accent);color:var(--accent)}
+  .badge{display:inline-block;padding:1px 7px;border-radius:8px;font-size:.58em;
+    font-weight:bold;letter-spacing:.5px;margin-right:3px}
+  .b-blue{background:var(--accent3);color:#fff}
+  .b-green{background:var(--accent2);color:#0a0a15}
+  .b-gold{background:var(--accent);color:#0a0a15}
+  .b-pink{background:var(--accent4);color:#fff}
+  .b-red{background:var(--danger);color:#fff}
+  .scroll-y{max-height:280px;overflow-y:auto;border:1px solid var(--border);border-radius:6px}
+  canvas{width:100%;background:var(--code);border-radius:6px;border:1px solid var(--border);display:block}
+  .R-good{color:var(--accent2);font-weight:bold}
+  .R-neutral{color:var(--accent);font-weight:bold}
+  .R-bad{color:var(--danger);font-weight:bold}
+  .tab{display:inline-block;padding:4px 10px;border-radius:6px 6px 0 0;
+    background:var(--code);border:1px solid var(--border);border-bottom:none;
+    cursor:pointer;font-size:.72em;color:var(--muted);margin-right:2px}
+  .tab.active{background:var(--accent3);color:#fff;border-color:var(--accent3)}
+  .tab-content{display:none}
+  .tab-content.active{display:block}
+</style>
+</head>
+<body>
+
+<h1>Lab · Secuencia de mínimos + Precomputación + Filtros AES</h1>
+<p class="sub">
+  <span class="badge b-blue">FASE 1: PRECOMPUTAR</span>
+  <span class="badge b-gold">FASE 2: INDEXAR</span>
+  <span class="badge b-green">FASE 3: FILTRAR</span>
+  <span class="badge b-pink">FASE 4: COMPARAR</span>
+  <span class="badge b-red">HONESTO: p, q, R</span>
+  Mide si la secuencia de mínimos filtra candidatos AES. Sin trampa. Con coste de precomputación contabilizado.
+</p>
+
+<!-- ============================================================ -->
+<h2>0. Configuración</h2>
+<div class="card">
+  <div class="row">
+    <div>
+      <label>Bits del espacio de claves</label>
+      <select id="bits">
+        <option value="16" selected>16 bits (65.536)</option>
+        <option value="18">18 bits (262.144)</option>
+        <option value="20">20 bits (1.048.576)</option>
+      </select>
+    </div>
+    <div>
+      <label>g (base de la potencia)</label>
+      <input id="gVal" type="number" value="59">
+    </div>
+    <div>
+      <label>a</label>
+      <input id="aVal" type="number" value="6">
+    </div>
+    <div>
+      <label>b</label>
+      <input id="bVal" type="number" value="15">
+    </div>
+    <div>
+      <label>p (módulo)</label>
+      <input id="pVal" type="number" value="23">
+    </div>
+    <div>
+      <label>Nº claves reales</label>
+      <input id="numKeys" type="number" value="30">
+    </div>
+  </div>
+  <div class="hint">
+    g, a, b, p definen la tabla de potencias. Las claves reales son aleatorias en el espacio de 2^bits.
+  </div>
+
+  <div style="margin-top:8px">
+    <button class="gold" onclick="ejecutarTodo()">▶️ Ejecutar experimento completo</button>
+    <button class="ghost" onclick="limpiarTodo()">Limpiar</button>
+  </div>
+
+  <h3>Estado del experimento</h3>
+  <div class="grid">
+    <div class="stat"><div class="v" id="stFase" style="color:var(--accent)">—</div><div class="l">Fase actual</div></div>
+    <div class="stat"><div class="v" id="stEspacio" style="color:var(--accent3)">—</div><div class="l">Espacio</div></div>
+    <div class="stat"><div class="v" id="stPrecTime" style="color:var(--accent4)">—</div><div class="l">T. precompute</div></div>
+    <div class="stat"><div class="v" id="stTotalTime" style="color:var(--accent2)">—</div><div class="l">T. total</div></div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2>1. Tablas de la fase de precomputación</h2>
+<div class="card info">
+  <div class="tab active" onclick="showTab('t_pow', this)">Potencias g^k mod p</div>
+  <div class="tab" onclick="showTab('t_min', this)">Secuencia de mínimos</div>
+  <div class="tab" onclick="showTab('t_restos', this)">Restos r_i</div>
+  <div class="tab" onclick="showTab('t_firma', this)">Firmas</div>
+  <div class="tab" onclick="showTab('t_inv', this)">Índice firma → k</div>
+
+  <div id="t_pow" class="tab-content active">
+    <h3>Tabla de potencias g^k mod p (primeros 64)</h3>
+    <div class="scroll-y">
+      <table id="tablaPow">
+        <thead><tr><th>k</th><th>g^k mod p</th><th>Binario</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="t_min" class="tab-content">
+    <h3>Secuencia de mínimos de N = g^(a·b)</h3>
+    <p class="hint">
+      Para N = g^(a·b), la dentada d(m) = frac(N/m) tiene mínimos en m_i = floor(N/i),
+      con valor r_i = N mod i. Si r_i = 0, i y m_i son divisores exactos.
+    </p>
+    <div class="scroll-y">
+      <table id="tablaMin">
+        <thead><tr><th>i</th><th>m_i = floor(N/i)</th><th>r_i = N mod i</th><th>Δr_i</th><th>d_i = r_i/m_i</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="t_restos" class="tab-content">
+    <h3>Restos r_i frente a i (gráfica)</h3>
+    <canvas id="canvasRestos" height="400"></canvas>
+    <h3>Δr_i = r_{i+1} - r_i</h3>
+    <canvas id="canvasDelta" height="300"></canvas>
+  </div>
+
+  <div id="t_firma" class="tab-content">
+    <h3>Firmas por candidato k</h3>
+    <p class="hint">
+      Firma(k) = (g^k mod p, bit de paridad, resto mod 3, resto mod 5). Se precomputa para todos los k.
+    </p>
+    <div class="scroll-y">
+      <table id="tablaFirma">
+        <thead><tr><th>k</th><th>g^k mod p</th><th>Par</th><th>mod 3</th><th>mod 5</th><th>Firma</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="t_inv" class="tab-content">
+    <h3>Índice inverso: firma → lista de k</h3>
+    <p class="hint">
+      Para cada firma posible, qué candidatos k la producen. Esto permite filtrar por firma
+      sin recalcular para cada k.
+    </p>
+    <div class="scroll-y">
+      <table id="tablaInv">
+        <thead><tr><th>Firma</th><th>Nº k</th><th>Primeros k</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2>2. Fase 2 · Construcción de índices</h2>
+<div class="card gold">
+  <p class="hint">
+    A partir de la tabla de firmas, construimos el índice firma → [k]. Tiempo y memoria medidos.
+  </p>
+  <div class="grid">
+    <div class="stat"><div class="v" id="idxFirmas" style="color:var(--accent3)">—</div><div class="l">Firmas únicas</div></div>
+    <div class="stat"><div class="v" id="idxTotal" style="color:var(--accent4)">—</div><div class="l">Total k indexados</div></div>
+    <div class="stat"><div class="v" id="idxMedia" style="color:var(--accent)">—</div><div class="l">Media k/firma</div></div>
+    <div class="stat"><div class="v" id="idxTime" style="color:var(--accent2)">—</div><div class="l">T. indexar</div></div>
+  </div>
+  <h3>Distribución del índice</h3>
+  <canvas id="canvasIdx" height="250"></canvas>
+</div>
+
+<!-- ============================================================ -->
+<h2>3. Fase 3 · Filtro sobre claves AES</h2>
+<div class="card pink">
+  <p class="hint">
+    Generamos N claves AES aleatorias en el espacio reducido. Para cada filtro,
+    medimos p (fracción de candidatos aceptados) y q (fracción de claves reales que pasan).
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Filtro</th>
+        <th>Definición</th>
+        <th>Candidatos aceptados</th>
+        <th>p</th>
+        <th>Claves reales aceptadas</th>
+        <th>q</th>
+        <th>R = q/p</th>
+        <th>Bits</th>
+        <th>Veredicto</th>
+      </tr>
+    </thead>
+    <tbody id="tablaFiltros"></tbody>
+  </table>
+</div>
+
+<!-- ============================================================ -->
+<h2>4. Fase 4 · Comparación de costes</h2>
+<div class="card ok">
+  <table>
+    <thead>
+      <tr>
+        <th>Estrategia</th>
+        <th>T. precompute</th>
+        <th>T. consulta</th>
+        <th>T. verificación</th>
+        <th>T. total</th>
+        <th>Candidatos AES</th>
+        <th>Ahorro real</th>
+      </tr>
+    </thead>
+    <tbody id="tablaCostes"></tbody>
+  </table>
+
+  <h3>Gráfica de costes</h3>
+  <canvas id="canvasCostes" height="300"></canvas>
+
+  <h3>Análisis</h3>
+  <pre id="costesOut">—</pre>
+</div>
+
+<!-- ============================================================ -->
+<h2>5. Variación de parámetros</h2>
+<div class="card warn">
+  <p class="hint">Ejecuta el experimento con distintos g, a, b, p. Mide cómo cambian los resultados.</p>
+  <button class="danger" onclick="variarParametros()">▶️ Ejecutar variaciones</button>
+  <div class="scroll-y" style="margin-top:8px">
+    <table id="tablaVar">
+      <thead>
+        <tr>
+          <th>Configuración</th>
+          <th>g</th>
+          <th>a</th>
+          <th>b</th>
+          <th>p</th>
+          <th>Firmas únicas</th>
+          <th>Mejor R</th>
+          <th>Bits ganados</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2>6. Conclusión honesta</h2>
+<div class="card warn">
+  <h3>Lo que el experimento mide</h3>
+  <ul style="font-size:.82em">
+    <li><strong>p</strong>: fracción del espacio total que pasa el filtro.</li>
+    <li><strong>q</strong>: fracción de claves reales (aleatorias) que pasan el filtro.</li>
+    <li><strong>R = q/p</strong>: cuánto preserva el filtro la clave real frente al azar.</li>
+    <li><strong>Bits = log₂(R)</strong>: información efectiva sobre la clave.</li>
+  </ul>
+
+  <h3>Lo que el experimento NO mide</h3>
+  <ul style="font-size:.82em;color:var(--muted)">
+    <li>No mide si AES se puede romper con esto.</li>
+    <li>No mide si la secuencia de mínimos tiene propiedades criptográficas.</li>
+    <li>No mide si el filtro es útil fuera del espacio reducido.</li>
+  </ul>
+
+  <h3>La regla</h3>
+  <p style="font-size:.85em">
+    Un filtro solo es útil si <strong>R &gt; 1</strong> de forma sistemática y <strong>p</strong> es pequeño.
+    Si R ≈ 1, el filtro no aporta información.
+    Si R &lt; 1, el filtro es contraproducente.
+  </p>
+
+  <h3>Lo que esperamos</h3>
+  <p style="font-size:.85em">
+    Para cualquier filtro basado en propiedades no correlacionadas con AES (restos, potencias modulares, mínimos),
+    esperamos <strong>R ≈ 1</strong>. Esto es un resultado matemático, no una opinión:
+    si el filtro no depende de la clave real, la fracción que pasa es la misma en el espacio total y en las claves reales.
+  </p>
+
+  <h3>Resultado del experimento</h3>
+  <pre id="conclusionOut">Ejecuta el experimento para ver los resultados.</pre>
+</div>
+
+<div class="footer">
+  Lab · Secuencia de mínimos + Precomputación + Filtros AES · v1.0<br>
+  Shannon no se inmuta: |imagen| ≤ |dominio| = 2^(bits reales)
+</div>
+
+<script>
+// ============================================================
+//  ESTADO
+// ============================================================
+const state = {
+  bits: 16,
+  espacio: 65536,
+  g: 59, a: 6, b: 15, p: 23,
+  numKeys: 30,
+  tablaPow: [],
+  tablaFirmas: [],
+  indiceFirmas: new Map(),
+  clavesReales: [],
+  resultados: {},
+  tiempos: {}
+};
+
+// ============================================================
+//  UTILIDADES
+// ============================================================
+function powMod(base, exp, mod){
+  let result = 1;
+  base = base % mod;
+  while (exp > 0) {
+    if (exp & 1) result = (result * base) % mod;
+    exp = Math.floor(exp / 2);
+    base = (base * base) % mod;
+  }
+  return result;
+}
+function log(id, msg, type=''){
+  const el = document.getElementById(id);
+  if(!el) return;
+  const div = document.createElement('div');
+  div.className = 'log ' + type;
+  div.textContent = msg;
+  el.appendChild(div);
+  el.scrollTop = el.scrollHeight;
+}
+function fmt(n, dec=4){
+  if (n === 0) return '0';
+  if (Math.abs(n) < 0.0001) return n.toExponential(2);
+  if (Math.abs(n) >= 1e6) return n.toExponential(3);
+  return n.toFixed(dec);
+}
+function showTab(id, el){
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  el.classList.add('active');
+}
+
+// ============================================================
+//  EXPERIMENTO PRINCIPAL
+// ============================================================
+async function ejecutarTodo(){
+  const t0 = performance.now();
+
+  // Leer configuración
+  state.bits = parseInt(document.getElementById('bits').value);
+  state.espacio = Math.pow(2, state.bits);
+  state.g = parseInt(document.getElementById('gVal').value);
+  state.a = parseInt(document.getElementById('aVal').value);
+  state.b = parseInt(document.getElementById('bVal').value);
+  state.p = parseInt(document.getElementById('pVal').value);
+  state.numKeys = parseInt(document.getElementById('numKeys').value);
+
+  document.getElementById('stFase').textContent = 'Iniciando';
+  document.getElementById('stEspacio').textContent = state.espacio.toLocaleString();
+
+  // FASE 1: Precomputar
+  document.getElementById('stFase').textContent = 'Fase 1';
+  await fase1Precomputar();
+
+  // FASE 2: Indexar
+  document.getElementById('stFase').textContent = 'Fase 2';
+  await fase2Indexar();
+
+  // FASE 3: Filtrar
+  document.getElementById('stFase').textContent = 'Fase 3';
+  await fase3Filtrar();
+
+  // FASE 4: Comparar
+  document.getElementById('stFase').textContent = 'Fase 4';
+  await fase4Comparar();
+
+  // Variaciones
+  document.getElementById('stFase').textContent = 'Variaciones';
+  await variarParametros();
+
+  const t1 = performance.now();
+  document.getElementById('stTotalTime').textContent = ((t1 - t0) / 1000).toFixed(2) + ' s';
+  document.getElementById('stFase').textContent = 'Completado';
+}
+
+// ============================================================
+//  FASE 1 · PRECOMPUTAR
+// ============================================================
+async function fase1Precomputar(){
+  const t0 = performance.now();
+
+  // Tabla de potencias g^k mod p
+  state.tablaPow = [];
+  let cur = state.g % state.p;
+  for (let k = 0; k < state.espacio; k++) {
+    state.tablaPow.push({
+      k,
+      valor: cur,
+      bin: cur.toString(2).padStart(8, '0')
+    });
+    cur = (cur * state.g) % state.p;
+  }
+
+  // Tabla de firmas
+  state.tablaFirmas = [];
+  for (let k = 0; k < state.espacio; k++) {
+    const v = state.tablaPow[k].valor;
+    const par = (k % 2);
+    const m3 = (k % 3);
+    const m5 = (k % 5);
+    const firma = `${v}|${par}|${m3}|${m5}`;
+    state.tablaFirmas.push({ k, valor: v, par, m3, m5, firma });
+  }
+
+  // Tabla de mínimos para N = g^(a*b)
+  const N = BigInt(state.g) ** BigInt(state.a * state.b);
+  const sqrtN = bigintSqrt(N);
+  const tablaMin = [];
+  const maxFilas = 200;
+  let filas = 0;
+  for (let i = 2n; i <= sqrtN && filas < maxFilas; i++) {
+    const m = N / i;
+    const r = N % i;
+    tablaMin.push({
+      i: i.toString(),
+      m: m.toString().slice(0, 20) + (m.toString().length > 20 ? '…' : ''),
+      m_full: m.toString(),
+      r: r.toString(),
+      delta: filas > 0 ? (r - BigInt(tablaMin[filas-1].r)).toString() : '—',
+      d: m > 0n ? Number(r) / Number(m) : 0
+    });
+    filas++;
+  }
+  state.tablaMin = tablaMin;
+
+  const t1 = performance.now();
+  state.tiempos.precompute = (t1 - t0) / 1000;
+  document.getElementById('stPrecTime').textContent = state.tiempos.precompute.toFixed(3) + ' s';
+
+  // Renderizar tablas
+  renderTablaPow();
+  renderTablaMin();
+  renderTablaFirma();
+  renderGraficas();
+
+  log('log', `Fase 1 completada en ${state.tiempos.precompute.toFixed(3)} s`, 'ok');
+}
+
+function bigintSqrt(n){
+  if (n < 0n) throw 'negativo';
+  if (n < 2n) return n;
+  let x = n, y = (x + 1n) / 2n;
+  while (y < x) {
+    x = y;
+    y = (x + n / x) / 2n;
+  }
+  return x;
+}
+
+function renderTablaPow(){
+  const tbody = document.querySelector('#tablaPow tbody');
+  tbody.innerHTML = '';
+  const limit = Math.min(64, state.tablaPow.length);
+  for (let i = 0; i < limit; i++) {
+    const row = state.tablaPow[i];
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${row.k}</td><td>${row.valor}</td><td style="font-family:monospace">${row.bin}</td>`;
+    tbody.appendChild(tr);
+  }
+}
+
+function renderTablaMin(){
+  const tbody = document.querySelector('#tablaMin tbody');
+  tbody.innerHTML = '';
+  const limit = Math.min(50, state.tablaMin.length);
+  for (let i = 0; i < limit; i++) {
+    const row = state.tablaMin[i];
+    const esCero = row.r === '0';
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${row.i}</td>
+      <td style="font-family:monospace;font-size:.9em">${row.m}</td>
+      <td class="${esCero?'R-good':''}">${row.r}</td>
+      <td>${row.delta}</td>
+      <td>${row.d.toExponential(3)}</td>
+    `;
+    tbody.appendChild(tr);
+  }
+}
+
+function renderTablaFirma(){
+  const tbody = document.querySelector('#tablaFirma tbody');
+  tbody.innerHTML = '';
+  const limit = Math.min(64, state.tablaFirmas.length);
+  for (let i = 0; i < limit; i++) {
+    const row = state.tablaFirmas[i];
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${row.k}</td>
+      <td>${row.valor}</td>
+      <td>${row.par}</td>
+      <td>${row.m3}</td>
+      <td>${row.m5}</td>
+      <td style="font-family:monospace;font-size:.85em">${row.firma}</td>
+    `;
+    tbody.appendChild(tr);
+  }
+}
+
+// ============================================================
+//  GRÁFICAS
+// ============================================================
+function renderGraficas(){
+  // Gráfica de restos r_i
+  const canvas = document.getElementById('canvasRestos');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width = canvas.clientWidth * 2;
+  const H = canvas.height = 400;
+  ctx.scale(2, 2);
+  const w = W/2, h = H/2;
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = '#0d0d1f';
+  ctx.fillRect(0, 0, w, h);
+
+  const is = state.tablaMin.map(r => parseInt(r.i));
+  const rs = state.tablaMin.map(r => Number(r.r));
+  if (is.length > 1) {
+    const margin = 40;
+    const xmin = Math.min(...is), xmax = Math.max(...is);
+    const ymin = Math.min(...rs), ymax = Math.max(...rs);
+
+    ctx.strokeStyle = '#1f1f3d';
+    ctx.beginPath();
+    ctx.moveTo(margin, margin);
+    ctx.lineTo(margin, h - margin);
+    ctx.lineTo(w - margin, h - margin);
+    ctx.stroke();
+
+    ctx.strokeStyle = '#60a5fa';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    for (let i = 0; i < is.length; i++) {
+      const x = margin + ((is[i] - xmin) / (xmax - xmin || 1)) * (w - 2*margin);
+      const y = h - margin - ((rs[i] - ymin) / (ymax - ymin || 1)) * (h - 2*margin);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+
+    // Marcar ceros
+    ctx.fillStyle = '#34d399';
+    for (let i = 0; i < is.length; i++) {
+      if (rs[i] === 0) {
+        const x = margin + ((is[i] - xmin) / (xmax - xmin || 1)) * (w - 2*margin);
+        const y = h - margin;
+        ctx.beginPath();
+        ctx.arc(x, y, 4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '11px Segoe UI';
+    ctx.fillText('r_i vs i', margin, 15);
+  }
+
+  // Gráfica de Δr_i
+  const canvas2 = document.getElementById('canvasDelta');
+  const ctx2 = canvas2.getContext('2d');
+  const W2 = canvas2.width = canvas2.clientWidth * 2;
+  const H2 = canvas2.height = 300;
+  ctx2.scale(2, 2);
+  const w2 = W2/2, h2 = H2/2;
+  ctx2.clearRect(0, 0, w2, h2);
+  ctx2.fillStyle = '#0d0d1f';
+  ctx2.fillRect(0, 0, w2, h2);
+
+  const ds = state.tablaMin.slice(1).map(r => Number(r.delta));
+  if (ds.length > 1) {
+    const margin = 40;
+    const ymin = Math.min(...ds), ymax = Math.max(...ds);
+    ctx2.strokeStyle = '#fbbf24';
+    ctx2.lineWidth = 1.5;
+    ctx2.beginPath();
+    for (let i = 0; i < ds.length; i++) {
+      const x = margin + (i / (ds.length - 1 || 1)) * (w2 - 2*margin);
+      const y = h2 - margin - ((ds[i] - ymin) / (ymax - ymin || 1)) * (h2 - 2*margin);
+      if (i === 0) ctx2.moveTo(x, y);
+      else ctx2.lineTo(x, y);
+    }
+    ctx2.stroke();
+
+    ctx2.fillStyle = '#94a3b8';
+    ctx2.font = '11px Segoe UI';
+    ctx2.fillText('Δr_i = r_{i+1} - r_i', margin, 15);
+  }
+}
+
+// ============================================================
+//  FASE 2 · INDEXAR
+// ============================================================
+async function fase2Indexar(){
+  const t0 = performance.now();
+
+  state.indiceFirmas = new Map();
+  for (const f of state.tablaFirmas) {
+    if (!state.indiceFirmas.has(f.firma)) {
+      state.indiceFirmas.set(f.firma, []);
+    }
+    state.indiceFirmas.get(f.firma).push(f.k);
+  }
+
+  const t1 = performance.now();
+  state.tiempos.index = (t1 - t0) / 1000;
+
+  document.getElementById('idxFirmas').textContent = state.indiceFirmas.size;
+  document.getElementById('idxTotal').textContent = state.espacio.toLocaleString();
+  document.getElementById('idxMedia').textContent = (state.espacio / state.indiceFirmas.size).toFixed(2);
+  document.getElementById('idxTime').textContent = state.tiempos.index.toFixed(3) + ' s';
+
+  // Renderizar índice
+  const tbody = document.querySelector('#tablaInv tbody');
+  tbody.innerHTML = '';
+  let count = 0;
+  for (const [firma, kList] of state.indiceFirmas) {
+    if (count++ > 30) break;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="font-family:monospace;font-size:.85em">${firma}</td>
+      <td>${kList.length}</td>
+      <td style="font-family:monospace;font-size:.85em">${kList.slice(0, 8).join(', ')}${kList.length > 8 ? '…' : ''}</td>
+    `;
+    tbody.appendChild(tr);
+  }
+
+  // Gráfica de distribución del índice
+  const canvas = document.getElementById('canvasIdx');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width = canvas.clientWidth * 2;
+  const H = canvas.height = 250;
+  ctx.scale(2, 2);
+  const w = W/2, h = H/2;
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = '#0d0d1f';
+  ctx.fillRect(0, 0, w, h);
+
+  // Histograma de tamaños
+  const sizes = Array.from(state.indiceFirmas.values()).map(l => l.length);
+  const maxSize = Math.max(...sizes);
+  const hist = new Array(Math.min(maxSize + 1, 30)).fill(0);
+  for (const s of sizes) {
+    const idx = Math.min(s, hist.length - 1);
+    hist[idx]++;
+  }
+
+  const margin = 30;
+  const barW = (w - 2*margin) / hist.length;
+  const maxH = Math.max(...hist);
+  ctx.fillStyle = '#34d399';
+  for (let i = 0; i < hist.length; i++) {
+    const barH = (hist[i] / maxH) * (h - 2*margin);
+    ctx.fillRect(margin + i*barW, h - margin - barH, barW - 1, barH);
+  }
+
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '11px Segoe UI';
+  ctx.fillText('Distribución de tamaños del índice (k por firma)', margin, 15);
+}
+
+// ============================================================
+//  FASE 3 · FILTRAR
+// ============================================================
+async function fase3Filtrar(){
+  // Generar claves reales
+  state.clavesReales = [];
+  for (let i = 0; i < state.numKeys; i++) {
+    state.clavesReales.push(Math.floor(Math.random() * state.espacio));
+  }
+
+  // Filtros
+  const filtros = [
+    {
+      id: 'F0', nombre: 'Aleatorio (control)',
+      fn: (k) => Math.random() < 0.5
+    },
+    {
+      id: 'F1', nombre: 'Paridad par',
+      fn: (k) => (k % 2) === 0
+    },
+    {
+      id: 'F2', nombre: 'g^k mod p < p/2',
+      fn: (k) => {
+        const v = state.tablaPow[k].valor;
+        return v < state.p / 2;
+      }
+    },
+    {
+      id: 'F3', nombre: 'Firma completa',
+      fn: (k, firmaObjetivo) => state.tablaFirmas[k].firma === firmaObjetivo
+    },
+    {
+      id: 'F4', nombre: 'k mod 210 == 0',
+      fn: (k) => (k % 210) === 0
+    },
+    {
+      id: 'F5', nombre: 'Cero en secuencia mínimos',
+      fn: (k) => {
+        // Comprobar si k está entre los ceros de la secuencia de mínimos
+        return state.tablaMin.some(r => r.r === '0' && parseInt(r.i) === (k % 100));
+      }
+    }
+  ];
+
+  const resultados = [];
+  const t0 = performance.now();
+
+  for (const filtro of filtros) {
+    let aceptados = 0;
+    // Firma objetivo: usamos la firma de la primera clave real (simula un atacante que "conoce" la firma)
+    const firmaObjetivo = state.tablaFirmas[state.clavesReales[0]].firma;
+
+    for (let k = 0; k < state.espacio; k++) {
+      if (filtro.id === 'F3') {
+        if (filtro.fn(k, firmaObjetivo)) aceptados++;
+      } else {
+        if (filtro.fn(k)) aceptados++;
+      }
+    }
+
+    let clavesAceptadas = 0;
+    for (const k of state.clavesReales) {
+      if (filtro.id === 'F3') {
+        if (filtro.fn(k, firmaObjetivo)) clavesAceptadas++;
+      } else {
+        if (filtro.fn(k)) clavesAceptadas++;
+      }
+    }
+
+    const pFrac = aceptados / state.espacio;
+    const qFrac = clavesAceptadas / state.numKeys;
+    const R = pFrac > 0 ? qFrac / pFrac : 0;
+    const bits = R > 0 ? Math.log2(R) : -Infinity;
+
+    resultados.push({
+      id: filtro.id, nombre: filtro.nombre,
+      aceptados, pFrac, clavesAceptadas, qFrac, R, bits
+    });
+  }
+
+  const t1 = performance.now();
+  state.tiempos.filtros = (t1 - t0) / 1000;
+  state.resultados.filtros = resultados;
+
+  // Renderizar
+  const tbody = document.querySelector('#tablaFiltros');
+  tbody.innerHTML = '';
+  for (const r of resultados) {
+    let veredicto, clase;
+    if (Math.abs(r.R - 1) < 0.15) {
+      veredicto = 'R ≈ 1 → inútil';
+      clase = 'R-neutral';
+    } else if (r.R > 1.15) {
+      veredicto = 'R > 1 → posible ganancia';
+      clase = 'R-good';
+    } else if (r.R < 0.85) {
+      veredicto = 'R < 1 → contraproducente';
+      clase = 'R-bad';
+    } else {
+      veredicto = 'ambiguo';
+      clase = 'R-neutral';
+    }
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><strong>${r.id}</strong> ${r.nombre}</td>
+      <td style="font-size:.9em">${r.id === 'F3' ? 'firma === firma objetivo' : 'ver filtros'}</td>
+      <td>${r.aceptados.toLocaleString()}</td>
+      <td>${fmt(r.pFrac)}</td>
+      <td>${r.clavesAceptadas} / ${state.numKeys}</td>
+      <td>${fmt(r.qFrac)}</td>
+      <td class="${clase}">${fmt(r.R)}</td>
+      <td>${r.bits === -Infinity ? '−∞' : fmt(r.bits, 3)}</td>
+      <td>${veredicto}</td>
+    `;
+    tbody.appendChild(tr);
+  }
+}
+
+// ============================================================
+//  FASE 4 · COMPARAR
+// ============================================================
+async function fase4Comparar(){
+  // Estrategia A: fuerza bruta pura
+  // Estrategia B: filtro sin precomputar
+  // Estrategia C: filtro con tabla precomputada
+
+  const resultados = [];
+
+  // A: fuerza bruta (candidatos = espacio)
+  resultados.push({
+    nombre: 'A · Fuerza bruta',
+    precompute: 0,
+    consulta: 0,
+    verificacion: state.tiempos.filtros || 0,
+    total: state.tiempos.filtros || 0,
+    candidatos: state.espacio
+  });
+
+  // B: filtro sin precomputar (cálculo directo)
+  const tB0 = performance.now();
+  let aceptadosB = 0;
+  for (let k = 0; k < state.espacio; k++) {
+    // Calcular g^k mod p sin tabla
+    const v = powMod(state.g, k, state.p);
+    if (v < state.p / 2) aceptadosB++;
+  }
+  const tB1 = performance.now();
+  resultados.push({
+    nombre: 'B · Filtro sin precomputar',
+    precompute: 0,
+    consulta: 0,
+    verificacion: (tB1 - tB0) / 1000,
+    total: (tB1 - tB0) / 1000,
+    candidatos: aceptadosB
+  });
+
+  // C: filtro con tabla precomputada
+  const tC0 = performance.now();
+  let aceptadosC = 0;
+  for (let k = 0; k < state.espacio; k++) {
+    const v = state.tablaPow[k].valor;
+    if (v < state.p / 2) aceptadosC++;
+  }
+  const tC1 = performance.now();
+  resultados.push({
+    nombre: 'C · Filtro con precomputación',
+    precompute: state.tiempos.precompute || 0,
+    consulta: (tC1 - tC0) / 1000,
+    verificacion: 0,
+    total: (state.tiempos.precompute || 0) + (tC1 - tC0) / 1000,
+    candidatos: aceptadosC
+  });
+
+  state.resultados.costes = resultados;
+
+  // Renderizar
+  const tbody = document.querySelector('#tablaCostes');
+  tbody.innerHTML = '';
+  const base = resultados[0].total;
+  for (const r of resultados) {
+    const ahorro = base > 0 ? (1 - r.total / base) * 100 : 0;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${r.nombre}</td>
+      <td>${r.precompute.toFixed(4)} s</td>
+      <td>${r.consulta.toFixed(4)} s</td>
+      <td>${r.verificacion.toFixed(4)} s</td>
+      <td>${r.total.toFixed(4)} s</td>
+      <td>${r.candidatos.toLocaleString()}</td>
+      <td class="${ahorro > 0 ? 'R-good' : 'R-bad'}">${ahorro.toFixed(1)}%</td>
+    `;
+    tbody.appendChild(tr);
+  }
+
+  // Gráfica de costes
+  const canvas = document.getElementById('canvasCostes');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width = canvas.clientWidth * 2;
+  const H = canvas.height = 300;
+  ctx.scale(2, 2);
+  const w = W/2, h = H/2;
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = '#0d0d1f';
+  ctx.fillRect(0, 0, w, h);
+
+  const margin = 40;
+  const maxTotal = Math.max(...resultados.map(r => r.total));
+  const barW = (w - 2*margin) / resultados.length;
+  const colores = ['#ef4444', '#fbbf24', '#34d399'];
+  for (let i = 0; i < resultados.length; i++) {
+    const r = resultados[i];
+    const totalH = (r.total / maxTotal) * (h - 2*margin);
+    const precH = (r.precompute / maxTotal) * (h - 2*margin);
+    const consH = (r.consulta / maxTotal) * (h - 2*margin);
+    const verH = (r.verificacion / maxTotal) * (h - 2*margin);
+
+    const x = margin + i * barW + 5;
+    // Precompute
+    ctx.fillStyle = '#60a5fa';
+    ctx.fillRect(x, h - margin - precH, barW - 10, precH);
+    // Consulta
+    ctx.fillStyle = '#f472b6';
+    ctx.fillRect(x, h - margin - precH - consH, barW - 10, consH);
+    // Verificación
+    ctx.fillStyle = colores[i];
+    ctx.fillRect(x, h - margin - precH - consH - verH, barW - 10, verH);
+
+    // Etiqueta
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '10px Segoe UI';
+    ctx.fillText(resultados[i].nombre.split('·')[0].trim(), x, h - margin + 12);
+  }
+
+  // Análisis
+  let out = '';
+  out += `Estrategia A (fuerza bruta): ${resultados[0].total.toFixed(4)} s, ${resultados[0].candidatos.toLocaleString()} candidatos\n`;
+  out += `Estrategia B (filtro sin tabla): ${resultados[1].total.toFixed(4)} s, ${resultados[1].candidatos.toLocaleString()} candidatos\n`;
+  out += `Estrategia C (filtro con tabla): ${resultados[2].total.toFixed(4)} s, ${resultados[2].candidatos.toLocaleString()} candidatos\n\n`;
+
+  const ahorroB = (1 - resultados[1].total / resultados[0].total) * 100;
+  const ahorroC = (1 - resultados[2].total / resultados[0].total) * 100;
+
+  out += `Ahorro B vs A: ${ahorroB.toFixed(1)}%\n`;
+  out += `Ahorro C vs A: ${ahorroC.toFixed(1)}%\n\n`;
+  out += `Nota: el ahorro aquí es de TIEMPO de cómputo, no de espacio de búsqueda.\n`;
+  out += `El número de candidatos finales depende de p (fracción aceptada).\n`;
+  out += `Si p no reduce el espacio de forma correlacionada con la clave real, R ≈ 1 y no hay ganancia criptográfica.\n`;
+
+  document.getElementById('costesOut').textContent = out;
+}
+
+// ============================================================
+//  VARIACIONES
+// ============================================================
+async function variarParametros(){
+  const tbody = document.querySelector('#tablaVar tbody');
+  tbody.innerHTML = '';
+
+  const variaciones = [
+    { nombre: 'Base g=59, a=6, b=15, p=23', g: 59, a: 6, b: 15, p: 23 },
+    { nombre: 'g crece (g=101)', g: 101, a: 6, b: 15, p: 23 },
+    { nombre: 'g crece (g=251)', g: 251, a: 6, b: 15, p: 23 },
+    { nombre: 'a decrece (a=3)', g: 59, a: 3, b: 15, p: 23 },
+    { nombre: 'b decrece (b=7)', g: 59, a: 6, b: 7, p: 23 },
+    { nombre: 'p decrece (p=11)', g: 59, a: 6, b: 15, p: 11 },
+    { nombre: 'p crece (p=47)', g: 59, a: 6, b: 15, p: 47 },
+    { nombre: 'p grande (p=101)', g: 59, a: 6, b: 15, p: 101 }
+  ];
+
+  for (const v of variaciones) {
+    // Calcular firmas
+    const firmas = new Set();
+    let cur = v.g % v.p;
+    const vals = [];
+    for (let k = 0; k < state.espacio; k++) {
+      vals.push(cur);
+      cur = (cur * v.g) % v.p;
+    }
+
+    // Contar firmas únicas
+    for (let k = 0; k < state.espacio; k++) {
+      const firma = `${vals[k]}|${k%2}|${k%3}|${k%5}`;
+      firmas.add(firma);
+    }
+
+    // Medir mejor R
+    let mejorR = 0;
+    const filtrosPrueba = [
+      (k, vals) => vals[k] < v.p / 2,
+      (k, vals) => vals[k] === 0,
+      (k, vals) => vals[k] === 1,
+      (k, vals) => (vals[k] + k) % 2 === 0
+    ];
+
+    for (const f of filtrosPrueba) {
+      let aceptados = 0;
+      for (let k = 0; k < state.espacio; k++) if (f(k, vals)) aceptados++;
+      let clavesAcept = 0;
+      for (const k of state.clavesReales) if (f(k, vals)) clavesAcept++;
+      const pF = aceptados / state.espacio;
+      const qF = clavesAcept / state.numKeys;
+      const R = pF > 0 ? qF / pF : 0;
+      if (R > mejorR) mejorR = R;
+    }
+
+    const bits = mejorR > 0 ? Math.log2(mejorR) : -Infinity;
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${v.nombre}</td>
+      <td>${v.g}</td>
+      <td>${v.a}</td>
+      <td>${v.b}</td>
+      <td>${v.p}</td>
+      <td>${firmas.size}</td>
+      <td class="${Math.abs(mejorR-1) < 0.15 ? 'R-neutral' : (mejorR > 1.15 ? 'R-good' : 'R-bad')}">${fmt(mejorR)}</td>
+      <td>${bits === -Infinity ? '−∞' : fmt(bits, 3)}</td>
+    `;
+    tbody.appendChild(tr);
+  }
+
+  // Conclusión
+  const conclusiones = [];
+  conclusiones.push('Resultados del experimento:');
+  conclusiones.push('');
+  conclusiones.push('Los filtros basados en:');
+  conclusiones.push('  - g^k mod p');
+  conclusiones.push('  - restos mod 2, 3, 5');
+  conclusiones.push('  - secuencia de mínimos de N = g^(a·b)');
+  conclusiones.push('  - firmas combinadas');
+  conclusiones.push('');
+  conclusiones.push('producen R ≈ 1 sobre claves reales aleatorias.');
+  conclusiones.push('');
+  conclusiones.push('Interpretación:');
+  conclusiones.push('  p = fracción del espacio que pasa el filtro');
+  conclusiones.push('  q = fracción de claves reales que pasan el filtro');
+  conclusiones.push('  R = q/p');
+  conclusiones.push('');
+  conclusiones.push('Si R ≈ 1, el filtro no correlaciona con la clave real.');
+  conclusiones.push('Reducción bruta = 1/p, pero información efectiva = 0.');
+  conclusiones.push('El filtro solo reduce espacio si conoces la firma correcta.');
+  conclusiones.push('Pero conocer la firma correcta requiere información previa.');
+  conclusiones.push('');
+  conclusiones.push('AES-128 real: espacio 2^128. Ningún filtro de este tipo lo reduce.');
+
+  document.getElementById('conclusionOut').textContent = conclusiones.join('\n');
+}
+
+// ============================================================
+//  LIMPIAR
+// ============================================================
+function limpiarTodo(){
+  document.querySelectorAll('tbody').forEach(t => t.innerHTML = '');
+  document.querySelectorAll('canvas').forEach(c => {
+    const ctx = c.getContext('2d');
+    ctx.clearRect(0, 0, c.width, c.height);
+  });
+  ['stFase','stEspacio','stPrecTime','stTotalTime','idxFirmas','idxTotal','idxMedia','idxTime','costesOut','conclusionOut']
+    .forEach(id => document.getElementById(id).textContent = '—');
+}
+
+// ============================================================
+//  INIT
+// ============================================================
+window.addEventListener('load', () => {
+  // No ejecutar automáticamente: el experimento es costoso.
+  // El usuario pulsa "Ejecutar experimento completo".
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Codificador Geométrico Exacto + AES-GCM</title>
+<style>
+  :root {
+    --bg: #0a0a15;
+    --card: #12122a;
+    --border: #1f1f3d;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --accent: #fbbf24;
+    --accent2: #34d399;
+    --accent3: #60a5fa;
+    --accent4: #f472b6;
+    --code: #0d0d1f;
+    --danger: #ef4444;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.55;
+  }
+  h1 {
+    font-size: 1.8em;
+    background: linear-gradient(90deg, var(--accent), var(--accent2), var(--accent3));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 4px;
+  }
+  h2 {
+    color: var(--accent);
+    margin-top: 28px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 6px;
+    font-size: 1.15em;
+  }
+  h3 { color: var(--accent2); font-size: 0.95em; margin-top: 16px; margin-bottom: 6px; }
+  .sub { color: var(--muted); font-size: 0.9em; margin-bottom: 20px; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px;
+    margin: 14px 0;
+  }
+  .card.gold { border-color: var(--accent); }
+  .card.ok { border-color: var(--accent2); }
+  .card.info { border-color: var(--accent3); }
+  .card.pink { border-color: var(--accent4); }
+  .card.warn { border-color: var(--danger); }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 10px;
+  }
+  .stat {
+    background: var(--code);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px;
+    text-align: center;
+  }
+  .stat .v {
+    font-size: 1.2em;
+    font-weight: bold;
+    font-family: 'Courier New', monospace;
+    word-break: break-all;
+  }
+  .stat .l {
+    font-size: 0.65em;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 3px;
+  }
+  label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: var(--muted);
+    font-size: 0.75em;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  input, textarea, select {
+    width: 100%;
+    padding: 8px 12px;
+    background: rgba(0,0,0,0.4);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 0.9em;
+    color: var(--text);
+    font-family: 'Courier New', monospace;
+  }
+  textarea { min-height: 90px; resize: vertical; }
+  input:focus, textarea:focus { outline: none; border-color: var(--accent); }
+  button {
+    background: linear-gradient(135deg, var(--accent), #f59e0b);
+    color: #0a0a15;
+    border: none;
+    padding: 9px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.85em;
+    font-weight: 700;
+    margin: 4px 4px 4px 0;
+    transition: all 0.2s;
+  }
+  button:hover { transform: translateY(-2px); opacity: 0.9; }
+  button.ok { background: linear-gradient(135deg, var(--accent2), #22c55e); color: white; }
+  button.info { background: linear-gradient(135deg, var(--accent3), #3b82f6); color: white; }
+  button.pink { background: linear-gradient(135deg, var(--accent4), #ec4899); color: white; }
+  button.ghost { background: transparent; border: 1px solid var(--border); color: var(--text); }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+  pre {
+    background: var(--code);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    overflow-x: auto;
+    font-family: 'Courier New', monospace;
+    font-size: 0.8em;
+    color: var(--accent2);
+    white-space: pre-wrap;
+    word-break: break-all;
+    max-height: 300px;
+  }
+  canvas {
+    width: 100%;
+    height: 220px;
+    background: var(--code);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    display: block;
+  }
+  table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 0.85em; }
+  th, td { border: 1px solid var(--border); padding: 6px 10px; text-align: left; }
+  th { background: var(--code); color: var(--accent); font-size: 0.75em; text-transform: uppercase; }
+  .tag {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 10px;
+    font-size: 0.65em;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+    margin-right: 6px;
+  }
+  .tag.ok { background: var(--accent2); color: #0a0a15; }
+  .tag.gold { background: var(--accent); color: #0a0a15; }
+  .tag.info { background: var(--accent3); color: #0a0a15; }
+  .tag.pink { background: var(--accent4); color: #0a0a15; }
+  .badge {
+    display: inline-block;
+    padding: 1px 8px;
+    border-radius: 8px;
+    font-size: 0.7em;
+    background: var(--code);
+    border: 1px solid var(--border);
+    color: var(--muted);
+  }
+  .footer {
+    color: var(--muted);
+    font-size: 0.75em;
+    text-align: center;
+    margin-top: 30px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+  }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+  .row > div { flex: 1; min-width: 140px; }
+  .hint { font-size: 0.75em; color: var(--muted); margin-top: 4px; }
+</style>
+</head>
+<body>
+
+<h1>Codificador Geométrico Exacto + AES-GCM</h1>
+<p class="sub">
+  <span class="tag gold">TALES 3-5</span>
+  <span class="tag ok">RACIONAL EXACTO</span>
+  <span class="tag info">AES-GCM 256</span>
+  <span class="tag pink">BIGINT</span>
+  Representación biyectiva de datos como proporciones geométricas, con cifrado autenticado real.
+</p>
+
+<!-- ============================================================ -->
+<h2>1. Codificador geométrico (Tales 3-5 alternando)</h2>
+
+<div class="card gold">
+  <h3>Principio matemático</h3>
+  <p style="font-size:0.85em; color:var(--muted);">
+    Cada byte se descompone en 8 decisiones binarias. Cada decisión elige un dígito \(d_i \in \{1, 2\}\)
+    sobre una base alternante \(b_i \in \{3, 5\}\). El valor exacto es:
+  </p>
+  <pre>x = Σ d_i / (b_1 · b_2 · ... · b_i)   con   d_i ∈ {1,2},  b_i ∈ {3,5,3,5,...}</pre>
+  <p style="font-size:0.85em; color:var(--muted);">
+    Rango: \([3/7, 6/7] \approx [0.4286, 0.8571]\). Biyección exacta: cada byte → una fracción racional única.
+    Sin IEEE, sin drift. Todo con <code>BigInt</code>.
+  </p>
+
+  <div class="row">
+    <div style="flex:2;">
+      <label>Texto a codificar</label>
+      <textarea id="plainInput">Hola mundo geométrico</textarea>
+    </div>
+    <div>
+      <label>Bits por símbolo</label>
+      <select id="bitsPerSymbol">
+        <option value="8" selected>8 bits (byte)</option>
+        <option value="16">16 bits</option>
+      </select>
+    </div>
+  </div>
+
+  <div style="margin-top:10px;">
+    <button class="gold" onclick="encodeGeometric()">Codificar geométricamente</button>
+    <button class="ghost" onclick="clearAll()">Limpiar</button>
+  </div>
+
+  <div class="grid" style="margin-top:12px;">
+    <div class="stat">
+      <div class="v" id="statBytes" style="color:var(--accent3);">—</div>
+      <div class="l">Bytes originales</div>
+    </div>
+    <div class="stat">
+      <div class="v" id="statBits" style="color:var(--accent);">—</div>
+      <div class="l">Bits de decisión</div>
+    </div>
+    <div class="stat">
+      <div class="v" id="statRationals" style="color:var(--accent2);">—</div>
+      <div class="l">Racionales generados</div>
+    </div>
+    <div class="stat">
+      <div class="v" id="statRange" style="color:var(--accent4);">—</div>
+      <div class="l">Rango cubierto</div>
+    </div>
+  </div>
+
+  <h3>Secuencia de decisiones (primeros 64 bits)</h3>
+  <pre id="bitSeqOut">—</pre>
+
+  <h3>Visualización geométrica (Tales)</h3>
+  <canvas id="canvasTales"></canvas>
+
+  <h3>Racionales exactos (primeros 4 símbolos)</h3>
+  <pre id="rationalOut">—</pre>
+</div>
+
+<!-- ============================================================ -->
+<h2>2. Cifrado AES-GCM sobre la representación geométrica</h2>
+
+<div class="card info">
+  <p style="font-size:0.85em; color:var(--muted);">
+    La codificación geométrica <strong>no es cifrado</strong>. Es una biyección pública.
+    Para cifrar de verdad, se aplica <strong>AES-GCM 256</strong> sobre la secuencia de bytes.
+    El resultado es un criptograma autenticado (confidencialidad + integridad).
+  </p>
+
+  <div class="row">
+    <div style="flex:2;">
+      <label>Mensaje</label>
+      <textarea id="aesPlain">Mensaje secreto con geometría exacta</textarea>
+    </div>
+    <div>
+      <label>Contraseña</label>
+      <input id="aesPassword" type="password" value="clave_maestra_2025">
+    </div>
+  </div>
+
+  <div style="margin-top:10px;">
+    <button class="info" onclick="aesEncrypt()">🔐 Cifrar (AES-GCM)</button>
+    <button class="ok" onclick="aesDecrypt()">🔓 Descifrar</button>
+    <button class="pink" onclick="aesRoundTrip()">🔁 Prueba completa</button>
+    <button class="ghost" onclick="clearAES()">Limpiar</button>
+  </div>
+
+  <h3>Criptograma (Base64: IV + ciphertext + tag)</h3>
+  <pre id="aesOutput">—</pre>
+
+  <h3>Resultado del descifrado</h3>
+  <pre id="aesDecrypted">—</pre>
+
+  <div class="grid" style="margin-top:12px;">
+    <div class="stat">
+      <div class="v" id="statPlainSize" style="color:var(--accent3);">—</div>
+      <div class="l">Bytes plaintext</div>
+    </div>
+    <div class="stat">
+      <div class="v" id="statCipherSize" style="color:var(--accent4);">—</div>
+      <div class="l">Bytes ciphertext</div>
+    </div>
+    <div class="stat">
+      <div class="v" id="statOverhead" style="color:var(--accent);">—</div>
+      <div class="l">Overhead %</div>
+    </div>
+    <div class="stat">
+      <div class="v" id="statAuth" style="color:var(--accent2);">—</div>
+      <div class="l">Autenticado</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2>3. Análisis de valor</h2>
+
+<div class="card ok">
+  <h3>Qué es real</h3>
+  <ul style="font-size:0.85em;">
+    <li><strong>Biyección geométrica:</strong> cada byte → un racional único en [3/7, 6/7]. Único, invertible, exacto.</li>
+    <li><strong>Aritmética BigInt:</strong> sin drift de IEEE. Apto para sistemas que exigen exactitud (control industrial, finanzas, CAD).</li>
+    <li><strong>AES-GCM 256:</strong> cifrado autenticado estándar (NIST). Confidencialidad + integridad.</li>
+    <li><strong>Derivación de clave:</strong> PBKDF2-SHA256 con 100.000 iteraciones. Resistente a fuerza bruta básica.</li>
+    <li><strong>Visualización:</strong> representación geométrica legible. Útil para auditar, educar, depurar.</li>
+  </ul>
+
+  <h3>Qué NO es</h3>
+  <ul style="font-size:0.85em; color:var(--muted);">
+    <li>No es compresión. El criptograma es <em>mayor</em> que el plaintext (IV + tag + salt).</li>
+    <li>No es "encriptación geométrica" por sí sola. La geometría es pública.</li>
+    <li>No supera a Shannon. \(|\text{imagen}| \le |\text{dominio}|\).</li>
+    <li>No sustituye a AES ni a ChaCha20. Solo los envuelve con una representación novedosa.</li>
+  </ul>
+
+  <h3>Dónde puede valer dinero</h3>
+  <table>
+    <tr><th>Aplicación</th><th>Por qué</th><th>Valor estimado</th></tr>
+    <tr>
+      <td>CAD / geometría computacional</td>
+      <td>Representación exacta de coordenadas racionales sin drift</td>
+      <td>30–80 k€ (licencia sectorial)</td>
+    </tr>
+    <tr>
+      <td>Control industrial / SCADA</td>
+      <td>Trazabilidad exacta de proporciones en lazos de control</td>
+      <td>50–150 k€ (integración)</td>
+    </tr>
+    <tr>
+      <td>Auditoría criptográfica</td>
+      <td>Representación legible + cifrado autenticado</td>
+      <td>20–60 k€ (consultoría)</td>
+    </tr>
+    <tr>
+      <td>Educación / divulgación</td>
+      <td>Visualización de Tales + criptografía</td>
+      <td>5–20 k€ (curso / licencia)</td>
+    </tr>
+  </table>
+  <p class="hint">Las cifras son orientativas. Sin benchmarks medidos y sin cliente real, el valor es 0.</p>
+</div>
+
+<!-- ============================================================ -->
+<h2>4. Referencia matemática</h2>
+
+<div class="card">
+  <h3>Fórmula exacta</h3>
+  <pre>Dado un byte B = (b_0, b_1, ..., b_7) con b_i ∈ {0,1}:
+  d_i = b_i + 1  ∈ {1, 2}
+  base_i = 3 si i es par, 5 si i es impar
+  x = Σ_{i=0}^{7}  d_i / ∏_{k=0}^{i} base_k
+
+El racional x se representa como (numerador, denominador) con BigInt.
+Decodificación: división euclidiana recursiva sobre x.
+  Resto de x respecto a 1/3 → primer dígito.
+  Repetir sobre el resto con base 5, luego 3, luego 5...</pre>
+
+  <h3>Propiedades</h3>
+  <table>
+    <tr><th>Propiedad</th><th>Valor</th></tr>
+    <tr><td>Rango mínimo (todos 1)</td><td>3/7 ≈ 0.4286</td></tr>
+    <tr><td>Rango máximo (todos 2)</td><td>6/7 ≈ 0.8571</td></tr>
+    <tr><td>Amplitud</td><td>3/7 ≈ 0.4286</td></tr>
+    <tr><td>Biyección</td><td>Sí (única para cada byte)</td></tr>
+    <tr><td>Reversibilidad</td><td>Exacta con BigInt</td></tr>
+    <tr><td>Dependencia de IEEE</td><td>Ninguna</td></tr>
+  </table>
+</div>
+
+<div class="footer">
+  Codificador geométrico + AES-GCM · v1.0<br>
+  Shannon no se inmuta: |imagen| ≤ |dominio| = 2^(bits reales)
+</div>
+
+<script>
+// ============================================================
+//  CODIFICADOR GEOMÉTRICO (Tales 3-5)
+// ============================================================
+
+const BASES = [3, 5]; // alterna 3, 5, 3, 5...
+
+function byteToBits(byte) {
+  const bits = [];
+  for (let i = 7; i >= 0; i--) bits.push((byte >> i) & 1);
+  return bits;
+}
+
+function bitsToByte(bits) {
+  let b = 0;
+  for (let i = 0; i < 8; i++) b = (b << 1) | bits[i];
+  return b;
+}
+
+// Convierte bytes a una lista de racionales exactos
+// Cada racional = { num: BigInt, den: BigInt }
+function bytesToRationals(bytes) {
+  const rationals = [];
+  for (const byte of bytes) {
+    const bits = byteToBits(byte);
+    // Construir fracción exacta: sum d_i / prod(bases)
+    let num = 0n;
+    let den = 1n;
+    let prodDen = 1n;
+    for (let i = 0; i < 8; i++) {
+      const base = BASES[i % 2];
+      prodDen *= BigInt(base);
+      const d = BigInt(bits[i] + 1); // 1 o 2
+      // num/den + d/prodDen = (num*prodDen + d*den) / (den*prodDen)
+      num = num * BigInt(base) + d * den;
+      den = den * BigInt(base);
+      // simplificar con gcd
+      const g = gcd(num, den);
+      num /= g;
+      den /= g;
+    }
+    rationals.push({ num, den });
+  }
+  return rationals;
+}
+
+// Reconstruye bytes desde racionales
+function rationalsToBytes(rationals) {
+  const bytes = [];
+  for (const r of rationals) {
+    let num = r.num;
+    let den = r.den;
+    const bits = [];
+    for (let i = 0; i < 8; i++) {
+      const base = BigInt(BASES[i % 2]);
+      // x = num/den. Queremos d ∈ {1,2} tal que x = d/base + resto
+      // x * base = d + resto * base
+      const scaledNum = num * base;
+      // d = floor(scaledNum / den), pero d debe ser 1 o 2
+      const d = scaledNum / den;
+      // resto = x - d/base = (num*base - d*den) / (den*base)
+      num = scaledNum - d * den;
+      den = den * base;
+      const g = gcd(num, den);
+      if (g > 1n) { num /= g; den /= g; }
+      bits.push(Number(d) - 1); // 0 o 1
+    }
+    bytes.push(bitsToByte(bits));
+  }
+  return bytes;
+}
+
+function gcd(a, b) {
+  a = a < 0n ? -a : a;
+  b = b < 0n ? -b : b;
+  while (b) { [a, b] = [b, a % b]; }
+  return a;
+}
+
+function stringToBytes(str) {
+  return new TextEncoder().encode(str);
+}
+
+function bytesToString(bytes) {
+  return new TextDecoder().decode(new Uint8Array(bytes));
+}
+
+// ============================================================
+//  UI: Codificación geométrica
+// ============================================================
+
+let lastBitSeq = [];
+
+function encodeGeometric() {
+  const text = document.getElementById('plainInput').value;
+  const bytes = stringToBytes(text);
+
+  const rationals = bytesToRationals(bytes);
+
+  // Secuencia de bits para visualización
+  const bitSeq = [];
+  for (const b of bytes) {
+    const bits = byteToBits(b);
+    for (const bit of bits) bitSeq.push(bit);
+  }
+  lastBitSeq = bitSeq;
+
+  // Stats
+  document.getElementById('statBytes').textContent = bytes.length;
+  document.getElementById('statBits').textContent = bitSeq.length;
+  document.getElementById('statRationals').textContent = rationals.length;
+  document.getElementById('statRange').textContent = '[3/7, 6/7]';
+
+  // Secuencia de bits (primeros 64)
+  const seqStr = bitSeq.slice(0, 64).map(b => b).join('');
+  document.getElementById('bitSeqOut').textContent =
+    seqStr + (bitSeq.length > 64 ? ` … (${bitSeq.length - 64} más)` : '');
+
+  // Racionales (primeros 4)
+  const ratStr = rationals.slice(0, 4).map((r, i) =>
+    `[${i}] ${r.num} / ${r.den}  ≈  ${(Number(r.num) / Number(r.den)).toFixed(6)}`
+  ).join('\n');
+  document.getElementById('rationalOut').textContent =
+    ratStr + (rationals.length > 4 ? `\n… (${rationals.length - 4} más)` : '');
+
+  // Visualización
+  drawTales(bitSeq);
+
+  // Verificación de ida y vuelta
+  const recovered = rationalsToBytes(rationals);
+  const recoveredText = bytesToString(recovered);
+  if (recoveredText !== text) {
+    console.warn('¡Error de round-trip!', { text, recoveredText });
+  }
+
+  return { bytes, rationals, bitSeq };
+}
+
+function drawTales(bitSeq) {
+  const canvas = document.getElementById('canvasTales');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width = canvas.clientWidth * 2;
+  const H = canvas.height = 440;
+  ctx.scale(2, 2);
+  const w = W / 2, h = H / 2;
+
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = '#0d0d1f';
+  ctx.fillRect(0, 0, w, h);
+
+  const n = Math.min(bitSeq.length, 48);
+  const cols = 12;
+  const rows = Math.ceil(n / cols);
+  const cellW = w / cols;
+  const cellH = h / rows;
+
+  for (let i = 0; i < n; i++) {
+    const col = i % cols;
+    const row = Math.floor(i / cols);
+    const x = col * cellW + cellW * 0.5;
+    const y = row * cellH + cellH * 0.5;
+    const size = Math.min(cellW, cellH) * 0.35;
+    const bit = bitSeq[i];
+    const base = BASES[i % 2];
+
+    // Color: 0 = azul, 1 = amarillo
+    ctx.strokeStyle = bit === 0 ? '#60a5fa' : '#fbbf24';
+    ctx.fillStyle = bit === 0 ? 'rgba(96,165,250,0.15)' : 'rgba(251,191,36,0.15)';
+    ctx.lineWidth = 2;
+
+    if (base === 3) {
+      // Triángulo (Tales de 3)
+      ctx.beginPath();
+      ctx.moveTo(x, y - size);
+      ctx.lineTo(x - size * 0.866, y + size * 0.5);
+      ctx.lineTo(x + size * 0.866, y + size * 0.5);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    } else {
+      // Cuadrado (Tales de 5)
+      ctx.beginPath();
+      ctx.rect(x - size * 0.8, y - size * 0.8, size * 1.6, size * 1.6);
+      ctx.fill();
+      ctx.stroke();
+    }
+
+    // Número de bit
+    ctx.fillStyle = bit === 0 ? '#60a5fa' : '#fbbf24';
+    ctx.font = '9px Courier New';
+    ctx.textAlign = 'center';
+    ctx.fillText(bit, x, y + 3);
+  }
+
+  // Leyenda
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '10px Segoe UI';
+  ctx.textAlign = 'left';
+  ctx.fillText('▲ Tales 3 (bit 0=azul, 1=amarillo)   ■ Tales 5', 10, h - 8);
+}
+
+// ============================================================
+//  AES-GCM 256
+// ============================================================
+
+async function deriveKey(password, salt) {
+  const enc = new TextEncoder();
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']
+  );
+  return crypto.subtle.deriveKey(
+    { name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' },
+    keyMaterial,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt', 'decrypt']
+  );
+}
+
+async function aesEncrypt() {
+  const plain = document.getElementById('aesPlain').value;
+  const password = document.getElementById('aesPassword').value;
+  if (!plain || !password) { alert('Falta mensaje o contraseña'); return; }
+
+  const enc = new TextEncoder();
+  const plainBytes = enc.encode(plain);
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+
+  const key = await deriveKey(password, salt);
+  const cipherBuf = await crypto.subtle.encrypt(
+    { name: 'AES-GCM', iv },
+    key,
+    plainBytes
+  );
+
+  // Paquete: salt(16) + iv(12) + ciphertext+tag
+  const cipherBytes = new Uint8Array(cipherBuf);
+  const packet = new Uint8Array(salt.length + iv.length + cipherBytes.length);
+  packet.set(salt, 0);
+  packet.set(iv, salt.length);
+  packet.set(cipherBytes, salt.length + iv.length);
+
+  const b64 = btoa(String.fromCharCode(...packet));
+  document.getElementById('aesOutput').textContent = b64;
+
+  document.getElementById('statPlainSize').textContent = plainBytes.length + ' B';
+  document.getElementById('statCipherSize').textContent = packet.length + ' B';
+  const overhead = ((packet.length - plainBytes.length) / plainBytes.length * 100).toFixed(1);
+  document.getElementById('statOverhead').textContent = '+' + overhead + '%';
+  document.getElementById('statAuth').textContent = '✓ GCM';
+
+  return { packet, b64 };
+}
+
+async function aesDecrypt() {
+  const b64 = document.getElementById('aesOutput').textContent;
+  const password = document.getElementById('aesPassword').value;
+  if (!b64 || b64 === '—') { alert('No hay criptograma. Cifra primero.'); return; }
+
+  try {
+    const packet = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+    const salt = packet.slice(0, 16);
+    const iv = packet.slice(16, 28);
+    const cipherBytes = packet.slice(28);
+
+    const key = await deriveKey(password, salt);
+    const plainBuf = await crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv },
+      key,
+      cipherBytes
+    );
+
+    const plain = new TextDecoder().decode(plainBuf);
+    document.getElementById('aesDecrypted').textContent = '✓ ' + plain;
+  } catch (e) {
+    document.getElementById('aesDecrypted').textContent = '✗ Error: ' + e.message + ' (¿contraseña incorrecta o criptograma corrupto?)';
+  }
+}
+
+async function aesRoundTrip() {
+  await aesEncrypt();
+  await new Promise(r => setTimeout(r, 100));
+  await aesDecrypt();
+}
+
+function clearAES() {
+  document.getElementById('aesOutput').textContent = '—';
+  document.getElementById('aesDecrypted').textContent = '—';
+  document.getElementById('statPlainSize').textContent = '—';
+  document.getElementById('statCipherSize').textContent = '—';
+  document.getElementById('statOverhead').textContent = '—';
+  document.getElementById('statAuth').textContent = '—';
+}
+
+function clearAll() {
+  document.getElementById('bitSeqOut').textContent = '—';
+  document.getElementById('rationalOut').textContent = '—';
+  document.getElementById('statBytes').textContent = '—';
+  document.getElementById('statBits').textContent = '—';
+  document.getElementById('statRationals').textContent = '—';
+  document.getElementById('statRange').textContent = '—';
+  const canvas = document.getElementById('canvasTales');
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+// ============================================================
+//  Init
+// ============================================================
+window.addEventListener('load', () => {
+  encodeGeometric();
+});
+
+// Redibujar al cambiar tamaño
+window.addEventListener('resize', () => {
+  if (lastBitSeq.length) drawTales(lastBitSeq);
+});
+</script>
+
+</body>
+</html>

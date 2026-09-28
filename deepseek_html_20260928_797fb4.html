@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tabla de potencias 59^k mod p · Búsqueda en memoria</title>
+<style>
+  :root{
+    --bg:#0a0a15;--card:#12122a;--border:#1f1f3d;--text:#e2e8f0;--muted:#94a3b8;
+    --accent:#fbbf24;--accent2:#34d399;--accent3:#60a5fa;--accent4:#f472b6;
+    --code:#0d0d1f;--danger:#ef4444;
+  }
+  *{box-sizing:border-box}
+  body{font-family:'Segoe UI',Tahoma,sans-serif;max-width:1400px;margin:0 auto;
+    padding:14px;background:var(--bg);color:var(--text);line-height:1.5;font-size:13px}
+  h1{font-size:1.35em;background:linear-gradient(90deg,var(--accent3),var(--accent),var(--accent4));
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:2px}
+  h2{color:var(--accent);margin-top:16px;border-bottom:1px solid var(--border);
+    padding-bottom:3px;font-size:1em}
+  h3{color:var(--accent2);font-size:.88em;margin-top:10px;margin-bottom:4px}
+  .sub{color:var(--muted);font-size:.78em;margin-bottom:10px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:9px;
+    padding:11px;margin:8px 0}
+  .card.info{border-color:var(--accent3)}
+  .card.gold{border-color:var(--accent)}
+  .card.ok{border-color:var(--accent2)}
+  .card.pink{border-color:var(--accent4)}
+  .card.warn{border-color:var(--danger)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:6px}
+  .stat{background:var(--code);border:1px solid var(--border);border-radius:6px;
+    padding:6px;text-align:center}
+  .stat .v{font-size:.85em;font-weight:bold;font-family:'Courier New',monospace;word-break:break-all}
+  .stat .l{font-size:.55em;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+  label{display:block;font-weight:600;margin-bottom:2px;color:var(--muted);
+    font-size:.66em;text-transform:uppercase;letter-spacing:.5px}
+  input,select{width:100%;padding:5px 8px;background:rgba(0,0,0,.4);
+    border:1px solid var(--border);border-radius:6px;font-size:.82em;color:var(--text);
+    font-family:'Courier New',monospace}
+  input:focus,select:focus{outline:none;border-color:var(--accent)}
+  button{background:linear-gradient(135deg,var(--accent3),#3b82f6);color:#fff;
+    border:none;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:.74em;
+    font-weight:700;margin:2px 2px 2px 0;transition:all .15s}
+  button:hover{transform:translateY(-1px);opacity:.9}
+  button:disabled{opacity:.4;cursor:not-allowed;transform:none}
+  button.ok{background:linear-gradient(135deg,var(--accent2),#22c55e)}
+  button.gold{background:linear-gradient(135deg,var(--accent),#f59e0b);color:#0a0a15}
+  button.pink{background:linear-gradient(135deg,var(--accent4),#ec4899)}
+  button.danger{background:linear-gradient(135deg,var(--danger),#dc2626)}
+  button.ghost{background:transparent;border:1px solid var(--border);color:var(--text)}
+  pre{background:var(--code);border:1px solid var(--border);border-radius:6px;
+    padding:8px;overflow-x:auto;font-family:'Courier New',monospace;font-size:.7em;
+    color:var(--accent2);white-space:pre-wrap;word-break:break-all;max-height:340px}
+  table{width:100%;border-collapse:collapse;margin:5px 0;font-size:.72em}
+  th,td{border:1px solid var(--border);padding:3px 5px;text-align:left}
+  th{background:var(--code);color:var(--accent);font-size:.66em;text-transform:uppercase;
+    position:sticky;top:0;z-index:1}
+  .row{display:flex;gap:6px;flex-wrap:wrap;align-items:flex-end}
+  .row>div{flex:1;min-width:100px}
+  .hint{font-size:.68em;color:var(--muted);margin-top:2px}
+  .footer{color:var(--muted);font-size:.66em;text-align:center;margin-top:18px;
+    padding-top:8px;border-top:1px solid var(--border)}
+  .log{padding:3px 7px;border-left:3px solid var(--muted);background:rgba(0,0,0,.2);
+    margin:2px 0;border-radius:0 4px 4px 0;font-size:.68em;font-family:'Courier New',monospace}
+  .log.ok{border-color:var(--accent2);color:var(--accent2)}
+  .log.err{border-color:var(--danger);color:var(--danger)}
+  .log.info{border-color:var(--accent3);color:var(--accent3)}
+  .log.warn{border-color:var(--accent);color:var(--accent)}
+  .badge{display:inline-block;padding:1px 7px;border-radius:8px;font-size:.58em;
+    font-weight:bold;letter-spacing:.5px;margin-right:3px}
+  .b-blue{background:var(--accent3);color:#fff}
+  .b-green{background:var(--accent2);color:#0a0a15}
+  .b-gold{background:var(--accent);color:#0a0a15}
+  .b-pink{background:var(--accent4);color:#fff}
+  .b-red{background:var(--danger);color:#fff}
+  .scroll-y{max-height:300px;overflow-y:auto;border:1px solid var(--border);border-radius:6px}
+  .meter{height:14px;background:var(--code);border-radius:7px;overflow:hidden;
+    border:1px solid var(--border);margin:4px 0}
+  .meter .fill{height:100%;background:linear-gradient(90deg,var(--accent3),var(--accent));
+    transition:width .1s}
+  .big{font-size:.85em;color:var(--accent);font-family:'Courier New',monospace;
+    word-break:break-all;text-align:center;padding:6px;background:var(--code);
+    border-radius:6px;border:1px solid var(--accent)}
+</style>
+</head>
+<body>
+
+<h1>Tabla de potencias 59<sup>k</sup> mod p · Búsqueda en memoria</h1>
+<p class="sub">
+  <span class="badge b-blue">PRECOMPUTAR</span>
+  <span class="badge b-gold">GUARDAR EN MEMORIA</span>
+  <span class="badge b-green">BUSCAR k DADO EL VALOR</span>
+  <span class="badge b-pink">ESCALADO HONESTO</span>
+  <span class="badge b-red">EL LÍMITE ES LA MEMORIA</span>
+  Precomputa <code>g^k mod p</code> hasta el límite. Busca en memoria. Mide tiempo y memoria.
+</p>
+
+<!-- ============================================================ -->
+<h2>1. Configuración</h2>
+<div class="card">
+  <div class="row">
+    <div>
+      <label>g (base)</label>
+      <input id="gVal" type="number" value="59">
+    </div>
+    <div>
+      <label>p (módulo)</label>
+      <input id="pVal" type="number" value="23">
+    </div>
+    <div>
+      <label>Límite k (máximo)</label>
+      <select id="limitK">
+        <option value="1000000">10⁶ (1 millón)</option>
+        <option value="10000000" selected>10⁷ (10 millones)</option>
+        <option value="100000000">10⁸ (100 millones)</option>
+        <option value="1000000000">10⁹ (1000 millones) ⚠️ no cabe</option>
+      </select>
+    </div>
+    <div>
+      <label>Memoria máx (MB)</label>
+      <input id="maxMemMB" type="number" value="500">
+    </div>
+  </div>
+  <div class="hint">
+    La tabla se guarda como Uint32Array (4 bytes por entrada). El navegador puede alojar ~1-2 GB.
+    10⁹ entradas = 4 GB → no cabe. Ver sección 3 para el escalado.
+  </div>
+
+  <div style="margin-top:8px">
+    <button class="gold" onclick="precomputar()">▶️ Precomputar tabla</button>
+    <button class="danger" onclick="limpiarTabla()">🗑️ Liberar memoria</button>
+  </div>
+
+  <div class="meter"><div class="fill" id="progBar" style="width:0%"></div></div>
+
+  <h3>Estado</h3>
+  <div class="grid">
+    <div class="stat"><div class="v" id="stFase" style="color:var(--accent)">—</div><div class="l">Fase</div></div>
+    <div class="stat"><div class="v" id="stEntradas" style="color:var(--accent3)">—</div><div class="l">Entradas</div></div>
+    <div class="stat"><div class="v" id="stMemoria" style="color:var(--accent4)">—</div><div class="l">Memoria</div></div>
+    <div class="stat"><div class="v" id="stTiempo" style="color:var(--accent2)">—</div><div class="l">Tiempo</div></div>
+    <div class="stat"><div class="v" id="stPeriodo" style="color:var(--accent)">—</div><div class="l">Período detectado</div></div>
+    <div class="stat"><div class="v" id="stVelocidad" style="color:var(--accent3)">—</div><div class="l">Velocidad</div></div>
+  </div>
+
+  <div id="log" style="margin-top:8px"></div>
+</div>
+
+<!-- ============================================================ -->
+<h2>2. Buscar en la tabla</h2>
+<div class="card ok">
+  <p class="hint">
+    Dado un valor A, encontrar el k tal que g^k ≡ A (mod p). Esto es el DLP por tabla.
+    Si el valor no está en la tabla, no se encuentra.
+  </p>
+
+  <div class="row">
+    <div>
+      <label>Valor A a buscar</label>
+      <input id="targetVal" type="number" value="2">
+    </div>
+    <div>
+      <label>O bien: calcular A = g^a mod p con a =</label>
+      <input id="targetA" type="number" value="6">
+    </div>
+  </div>
+
+  <div style="margin-top:6px">
+    <button class="ok" onclick="buscarValor()">🔍 Buscar A en tabla</button>
+    <button class="pink" onclick="buscarDesdeA()">🔍 Calcular A = g^a y buscar</button>
+    <button class="ghost" onclick="buscarAleatorio()">🎲 Buscar valor aleatorio en la tabla</button>
+  </div>
+
+  <h3>Resultado de la búsqueda</h3>
+  <pre id="buscarOut">—</pre>
+</div>
+
+<!-- ============================================================ -->
+<h2>3. Escalado: qué necesitas para cada p</h2>
+<div class="card warn">
+  <p class="hint">
+    Para resolver el DLP por tabla, necesitas una tabla de tamaño igual al período (o al orden del grupo).
+    Aquí está el coste en memoria para distintos p.
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>p (aprox)</th>
+        <th>Bits de p</th>
+        <th>Período máx</th>
+        <th>Entradas necesarias</th>
+        <th>Memoria (Uint32)</th>
+        <th>¿Cabe en navegador?</th>
+      </tr>
+    </thead>
+    <tbody id="tablaEscalado"></tbody>
+  </table>
+
+  <h3>Comparación con AES-128</h3>
+  <pre id="escaladoOut">—</pre>
+</div>
+
+<!-- ============================================================ -->
+<h2>4. Vista de la tabla (primeros 100)</h2>
+<div class="card info">
+  <div class="scroll-y">
+    <table id="tablaPow">
+      <thead><tr><th>k</th><th>g^k mod p</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2>5. Análisis honesto</h2>
+<div class="card warn">
+  <h3>Qué hace este experimento</h3>
+  <ul style="font-size:.82em">
+    <li>Precomputa \(g^k \bmod p\) hasta el límite.</li>
+    <li>Guarda la tabla en memoria (Uint32Array).</li>
+    <li>Dado un valor A, busca k por indexación inversa.</li>
+    <li>Detecta el período (el ciclo se repite).</li>
+    <li>Mide tiempo y memoria reales.</li>
+  </ul>
+
+  <h3>Qué límites tiene</h3>
+  <ul style="font-size:.82em;color:var(--muted)">
+    <li><strong>Memoria:</strong> 10⁹ entradas = 4 GB. No cabe en navegador.</li>
+    <li><strong>Tiempo:</strong> 10⁹ iteraciones ≈ 10-30 s en JS moderno.</li>
+    <li><strong>Período:</strong> si p es pequeño, la tabla se repite. No necesitas 10⁹.</li>
+    <li><strong>Si p es grande:</strong> el período puede ser ~p. Tabla de tamaño p.</li>
+  </ul>
+
+  <h3>La regla</h3>
+  <p style="font-size:.85em">
+    Para resolver el DLP por tabla necesitas una tabla de tamaño \(O(\sqrt{p})\) o \(O(p)\),
+    dependiendo del algoritmo. Para \(p = 2^{2048}\) (Diffie-Hellman), necesitas \(2^{1024}\) o \(2^{2048}\) entradas.
+    <br><br>
+    Para AES-128, el espacio de claves es \(2^{128}\). Necesitas \(2^{128}\) entradas. Imposible.
+    <br><br>
+    Para \(g = 59\) y \(p = 23\), el período es 11. La tabla tiene 11 entradas. Trivial.
+  </p>
+</div>
+
+<div class="footer">
+  Tabla de potencias 59^k mod p · Precomputar + Buscar en memoria · v1.0<br>
+  Shannon no se inmuta: |imagen| ≤ |dominio| = 2^(bits reales)
+</div>
+
+<script>
+// ============================================================
+//  ESTADO
+// ============================================================
+const state = {
+  g: 59,
+  p: 23,
+  limit: 10000000,
+  maxMemMB: 500,
+  tabla: null,
+  indice: null,
+  periodo: 0,
+  entradas: 0
+};
+
+// ============================================================
+//  UTILIDADES
+// ============================================================
+function log(msg, type=''){
+  const el = document.getElementById('log');
+  const div = document.createElement('div');
+  div.className = 'log ' + type;
+  div.textContent = msg;
+  el.appendChild(div);
+  el.scrollTop = el.scrollHeight;
+}
+function fmtBytes(bytes){
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024*1024) return (bytes/1024).toFixed(2) + ' KB';
+  if (bytes < 1024*1024*1024) return (bytes/1024/1024).toFixed(2) + ' MB';
+  return (bytes/1024/1024/1024).toFixed(3) + ' GB';
+}
+function fmtNum(n){
+  if (n < 1000) return n.toString();
+  if (n < 1e6) return (n/1e3).toFixed(1) + ' K';
+  if (n < 1e9) return (n/1e6).toFixed(2) + ' M';
+  if (n < 1e12) return (n/1e9).toFixed(2) + ' G';
+  if (n < 1e15) return (n/1e12).toFixed(2) + ' T';
+  return n.toExponential(3);
+}
+function powMod(base, exp, mod){
+  let result = 1;
+  base = base % mod;
+  while (exp > 0) {
+    if (exp & 1) result = (result * base) % mod;
+    exp = Math.floor(exp / 2);
+    base = (base * base) % mod;
+  }
+  return result;
+}
+
+// ============================================================
+//  PRECOMPUTAR
+// ============================================================
+async function precomputar(){
+  const g = parseInt(document.getElementById('gVal').value);
+  const p = parseInt(document.getElementById('pVal').value);
+  const limit = parseInt(document.getElementById('limitK').value);
+  const maxMemMB = parseInt(document.getElementById('maxMemMB').value);
+
+  state.g = g;
+  state.p = p;
+  state.limit = limit;
+  state.maxMemMB = maxMemMB;
+
+  document.getElementById('log').innerHTML = '';
+  document.getElementById('stFase').textContent = 'Detectando período...';
+  document.getElementById('progBar').style.width = '0%';
+
+  log(`Configuración: g=${g}, p=${p}, límite=${limit.toLocaleString()}`, 'info');
+
+  // Detectar período (multiplicative order of g mod p) — max p iteraciones
+  const t0 = performance.now();
+  const gMod = ((g % p) + p) % p;
+  let cur = 1 % p;
+  let period = 0;
+  if (gMod === 0) {
+    period = 1;
+    log('g ≡ 0 mod p. La secuencia es 0, 0, 0, ...', 'warn');
+  } else {
+    for (let k = 1; k <= p; k++) {
+      cur = (cur * gMod) % p;
+      if (cur === 1) { period = k; break; }
+    }
+    log(`Período detectado: ${period}`, 'ok');
+  }
+  state.periodo = period;
+
+  // Cuántas entradas vamos a guardar
+  const needed = period > 0 ? Math.min(period, limit) : limit;
+  const memBytes = needed * 4; // Uint32Array
+  const memMB = memBytes / 1024 / 1024;
+
+  log(`Entradas necesarias: ${needed.toLocaleString()}`, 'info');
+  log(`Memoria necesaria: ${fmtBytes(memBytes)}`, 'info');
+
+  if (memMB > maxMemMB) {
+    log(`⚠️ Memoria necesaria (${memMB.toFixed(1)} MB) > límite (${maxMemMB} MB). Truncando.`, 'warn');
+    const maxEntries = Math.floor(maxMemMB * 1024 * 1024 / 4);
+    needed = Math.min(needed, maxEntries);
+    log(`Entradas finales: ${needed.toLocaleString()}`, 'warn');
+  }
+
+  document.getElementById('stFase').textContent = 'Precomputando...';
+
+  // Precomputar tabla como Uint32Array
+  const tabla = new Uint32Array(needed);
+  const indice = new Int32Array(p).fill(-1); // índice inverso: valor → primer k
+
+  cur = 1 % p;
+  const tStart = performance.now();
+  const batch = Math.max(1, Math.floor(needed / 100));
+
+  for (let k = 0; k < needed; k++) {
+    tabla[k] = cur;
+    if (indice[cur] === -1) indice[cur] = k;
+    cur = (cur * gMod) % p;
+
+    if (k % batch === 0) {
+      const pct = (k / needed) * 100;
+      document.getElementById('progBar').style.width = pct.toFixed(1) + '%';
+      if (k % (batch * 10) === 0) await new Promise(r => setTimeout(r, 0));
+    }
+  }
+
+  const tEnd = performance.now();
+  const elapsed = (tEnd - tStart) / 1000;
+
+  state.tabla = tabla;
+  state.indice = indice;
+  state.entradas = needed;
+
+  document.getElementById('progBar').style.width = '100%';
+  document.getElementById('stFase').textContent = 'Completado';
+  document.getElementById('stEntradas').textContent = needed.toLocaleString();
+  document.getElementById('stMemoria').textContent = fmtBytes(needed * 4);
+  document.getElementById('stTiempo').textContent = elapsed.toFixed(3) + ' s';
+  document.getElementById('stPeriodo').textContent = period.toLocaleString();
+  document.getElementById('stVelocidad').textContent = fmtNum(needed / elapsed) + '/s';
+
+  log(`✓ Precomputación completada en ${elapsed.toFixed(3)} s (${fmtNum(needed/elapsed)} entradas/s)`, 'ok');
+
+  renderTablaPow();
+  renderEscalado();
+}
+
+function limpiarTabla(){
+  state.tabla = null;
+  state.indice = null;
+  state.entradas = 0;
+  document.getElementById('stFase').textContent = '—';
+  document.getElementById('stEntradas').textContent = '—';
+  document.getElementById('stMemoria').textContent = '—';
+  document.getElementById('stTiempo').textContent = '—';
+  document.getElementById('stPeriodo').textContent = '—';
+  document.getElementById('stVelocidad').textContent = '—';
+  document.getElementById('progBar').style.width = '0%';
+  document.getElementById('tablaPow').querySelector('tbody').innerHTML = '';
+  log('Tabla liberada.', 'warn');
+}
+
+// ============================================================
+//  BUSCAR
+// ============================================================
+function buscarValor(){
+  if (!state.indice) { alert('Precomputa la tabla primero'); return; }
+  const A = parseInt(document.getElementById('targetVal').value);
+  const out = document.getElementById('buscarOut');
+
+  const t0 = performance.now();
+  let k = -1;
+  if (A >= 0 && A < state.p) {
+    k = state.indice[A];
+  }
+  const t1 = performance.now();
+
+  if (k === -1) {
+    out.textContent = `✗ Valor ${A} no está en la tabla.\n` +
+      `  Buscado en ${(t1-t0).toFixed(6)} s.\n` +
+      `  g = ${state.g}, p = ${state.p}, período = ${state.periodo}`;
+  } else {
+    // Verificar
+    const check = powMod(state.g, k, state.p);
+    out.textContent = `✓ Encontrado:\n` +
+      `  g^k ≡ A (mod p) → k = ${k}\n` +
+      `  Verificación: ${state.g}^${k} mod ${state.p} = ${check} (debe ser ${A})\n` +
+      `  Tiempo de búsqueda: ${(t1-t0).toFixed(6)} s\n` +
+      `  Entradas en tabla: ${state.entradas.toLocaleString()}`;
+  }
+}
+
+function buscarDesdeA(){
+  if (!state.indice) { alert('Precomputa la tabla primero'); return; }
+  const a = parseInt(document.getElementById('targetA').value);
+  const A = powMod(state.g, a, state.p);
+
+  document.getElementById('targetVal').value = A;
+  document.getElementById('buscarOut').textContent =
+    `Calculado: g^a mod p = ${state.g}^${a} mod ${state.p} = ${A}\n` +
+    `Ahora buscando ${A} en la tabla...\n\n`;
+
+  setTimeout(() => buscarValor(), 100);
+}
+
+function buscarAleatorio(){
+  if (!state.indice) { alert('Precomputa la tabla primero'); return; }
+  const A = Math.floor(Math.random() * state.p);
+  document.getElementById('targetVal').value = A;
+  buscarValor();
+}
+
+// ============================================================
+//  RENDER TABLA
+// ============================================================
+function renderTablaPow(){
+  const tbody = document.getElementById('tablaPow').querySelector('tbody');
+  tbody.innerHTML = '';
+  if (!state.tabla) return;
+
+  const limit = Math.min(100, state.tabla.length);
+  for (let i = 0; i < limit; i++) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${i}</td><td>${state.tabla[i]}</td>`;
+    tbody.appendChild(tr);
+  }
+}
+
+// ============================================================
+//  ESCALADO
+// ============================================================
+function renderEscalado(){
+  const tbody = document.getElementById('tablaEscalado');
+  tbody.innerHTML = '';
+
+  const casos = [
+    { p: 23, bits: 5, desc: 'juguete' },
+    { p: 1000003, bits: 20, desc: 'primo pequeño' },
+    { p: 1000000007, bits: 30, desc: 'primo de 30 bits' },
+    { p: 2147483647, bits: 31, desc: 'Mersenne 2^31-1' },
+    { p: 4294967311, bits: 32, desc: 'primo > 2^32' },
+    { p: 1000000000039, bits: 40, desc: 'primo de 40 bits' },
+    { p: 1000000000000037, bits: 50, desc: 'primo de 50 bits' },
+    { p: 100000000000000003, bits: 57, desc: 'primo de ~2^57' },
+    { p: 340282366920938463463374607431768211507n, bits: 128, desc: 'primo de 128 bits' },
+    { p: 2n ** 2048n - 2n ** 1984n - 1n + 2n ** 64n * (2n ** 1918n * Math.floor(2 ** 64) + 124476n) / (2n ** 64n) - 1n, bits: 2048, desc: 'primo DH (RFC 3526)' }
+  ];
+
+  for (const c of casos) {
+    const bits = c.bits;
+    const periodMax = c.p - 1n > 0n ? c.p - 1n : c.p;
+    const entradas = periodMax;
+    const mem = entradas * 4n; // bytes
+
+    // Formato
+    let memStr;
+    if (mem < 1024n) memStr = mem.toString() + ' B';
+    else if (mem < 1024n*1024n) memStr = (Number(mem)/1024).toFixed(1) + ' KB';
+    else if (mem < 1024n**3n) memStr = (Number(mem)/1024/1024).toFixed(1) + ' MB';
+    else if (mem < 1024n**4n) memStr = (Number(mem)/1024/1024/1024).toFixed(1) + ' GB';
+    else if (mem < 1024n**5n) memStr = (Number(mem)/1024**4).toFixed(1) + ' TB';
+    else if (mem < 1024n**6n) memStr = (Number(mem)/1024**5).toFixed(1) + ' PB';
+    else memStr = (Number(mem)/1024**6).toExponential(3) + ' EB';
+
+    let cabe, clase;
+    if (mem < 500n * 1024n * 1024n) { cabe = 'SÍ'; clase = 'log ok'; }
+    else if (mem < 2n * 1024n**3n) { cabe = 'quizás'; clase = 'log warn'; }
+    else { cabe = 'NO'; clase = 'log err'; }
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="font-size:.85em">${c.desc}</td>
+      <td>${bits}</td>
+      <td style="font-family:monospace;font-size:.85em">${entradas > 1e6 ? entradas.toExponential(2) : entradas.toString()}</td>
+      <td style="font-family:monospace;font-size:.85em">${entradas.toExponential(2)}</td>
+      <td style="font-family:monospace;font-size:.85em">${memStr}</td>
+      <td class="${clase}" style="font-weight:bold">${cabe}</td>
+    `;
+    tbody.appendChild(tr);
+  }
+
+  // Comparación con AES
+  const aes128Mem = (2n ** 128n) * 4n;
+  const aes128Str = (Number(aes128Mem) / 1024**6).toExponential(3) + ' EB';
+
+  let out = `Comparación con AES-128:\n\n`;
+  out += `Para resolver por tabla un espacio de 2^128 (AES-128), necesitas 2^128 entradas.\n`;
+  out += `Memoria: 2^128 × 4 bytes = ${aes128Str}.\n\n`;
+  out += `Referencia:\n`;
+  out += `  - 1 EB (exabyte) = 10^18 bytes\n`;
+  out += `  - Todos los discos duros del mundo ≈ 10^22 bytes\n`;
+  out += `  - 2^128 × 4 B ≈ 1.36 × 10^39 B = 10^21 EB\n\n`;
+  out += `Ni con todos los discos del mundo durante toda la historia del universo.\n\n`;
+  out += `Para g = 59, p = 23: período 11, tabla de 11 entradas. Trivial.\n`;
+  out += `Para g = 59, p = 2048 bits: período ~2^2048, tabla imposible.\n`;
+
+  document.getElementById('escaladoOut').textContent = out;
+}
+
+// ============================================================
+//  INIT
+// ============================================================
+window.addEventListener('load', () => {
+  renderEscalado();
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Brief para Grok — AntiPC Runtime</title>
+<style>
+  :root {
+    --bg: #0a0a15;
+    --card: #12122a;
+    --border: #1f1f3d;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --accent: #fbbf24;
+    --accent2: #34d399;
+    --accent3: #60a5fa;
+    --accent4: #f472b6;
+    --code: #0d0d1f;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 24px;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+  }
+  h1 {
+    font-size: 1.9em;
+    background: linear-gradient(90deg, var(--accent), var(--accent2), var(--accent3));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 4px;
+  }
+  h2 {
+    color: var(--accent);
+    margin-top: 32px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 6px;
+    font-size: 1.25em;
+  }
+  h3 {
+    color: var(--accent2);
+    font-size: 1em;
+    margin-top: 20px;
+    margin-bottom: 6px;
+  }
+  .sub {
+    color: var(--muted);
+    font-size: 0.9em;
+    margin-bottom: 24px;
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin: 16px 0;
+  }
+  .card.warn { border-color: var(--accent4); }
+  .card.ok { border-color: var(--accent2); }
+  .card.info { border-color: var(--accent3); }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+  }
+  .stat {
+    background: var(--code);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    text-align: center;
+  }
+  .stat .v {
+    font-size: 1.4em;
+    font-weight: bold;
+    font-family: 'Courier New', monospace;
+  }
+  .stat .l {
+    font-size: 0.7em;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  pre {
+    background: var(--code);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+    overflow-x: auto;
+    font-family: 'Courier New', monospace;
+    font-size: 0.85em;
+    color: var(--accent2);
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  code {
+    background: var(--code);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9em;
+    color: var(--accent3);
+  }
+  ul, ol { padding-left: 22px; }
+  li { margin: 4px 0; }
+  .tag {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 10px;
+    font-size: 0.7em;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+    margin-right: 6px;
+  }
+  .tag.f1 { background: var(--accent3); color: #0a0a15; }
+  .tag.f2 { background: var(--accent2); color: #0a0a15; }
+  .tag.f3 { background: var(--accent); color: #0a0a15; }
+  .tag.f4 { background: var(--accent4); color: #0a0a15; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0;
+    font-size: 0.9em;
+  }
+  th, td {
+    border: 1px solid var(--border);
+    padding: 8px 10px;
+    text-align: left;
+  }
+  th {
+    background: var(--code);
+    color: var(--accent);
+    font-size: 0.8em;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .copy-btn {
+    background: var(--accent);
+    color: #0a0a15;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 0.85em;
+    margin: 4px 4px 4px 0;
+  }
+  .copy-btn:hover { opacity: 0.85; }
+  .footer {
+    color: var(--muted);
+    font-size: 0.8em;
+    text-align: center;
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+  }
+</style>
+</head>
+<body>
+
+<h1>Brief para Grok — AntiPC Runtime</h1>
+<p class="sub">Especificación técnica para generación de código. Copia por fases, no todo de golpe.</p>
+
+<div class="card info">
+  <h2>Reglas para Grok</h2>
+  <ol>
+    <li><strong>No generar código sin métricas.</strong> Cada módulo debe incluir cómo medirlo.</li>
+    <li><strong>No inventar dependencias.</strong> Solo C++20 estándar + winsock2 / POSIX sockets.</li>
+    <li><strong>No decir "esto revoluciona".</strong> Solo hechos verificables.</li>
+    <li><strong>No generar todo de golpe.</strong> Por fases, esperar confirmación.</li>
+    <li><strong>Compilable.</strong> <code>g++ -O3 -std=c++20 -pthread</code> sin errores.</li>
+    <li><strong>Sin frameworks externos.</strong> Nada de Boost, Qt, LLVM.</li>
+    <li><strong>Cada respuesta ≤ 300 líneas.</strong> Si hace falta más, dividir.</li>
+  </ol>
+</div>
+
+<h2>Fase 1 — Documento de arquitectura</h2>
+<span class="tag f1">FASE 1</span>
+<div class="card">
+  <h3>Entregable</h3>
+  <p>Documento de 10 páginas máximo. Sin código.</p>
+  <h3>Contenido</h3>
+  <ul>
+    <li><strong>Problema:</strong> la CPU gasta ciclos gestionando red, copias de memoria y saltos condicionales.</li>
+    <li><strong>Hipótesis:</strong> una arquitectura de flujo distribuido con buffer lock-free, ingesta zero-copy y motor branchless reduce la carga de CPU frente a una arquitectura secuencial equivalente.</li>
+    <li><strong>Diseño:</strong> buffer circular, UDP no bloqueante, Grafcet algebraico, matriz de existencia, redundancia topológica.</li>
+    <li><strong>Métricas:</strong> CPU %, latencia μs, throughput paquetes/s, temperatura °C.</li>
+    <li><strong>Limitaciones:</strong> no comprime, no encripta, requiere programación de bajo nivel.</li>
+  </ul>
+  <h3>Prompt exacto</h3>
+  <pre id="p1">Genera un documento técnico de 10 páginas máximo sobre la arquitectura AntiPC (Adaptive Network Through Parallel Computing). Sin código. Secciones: Problema, Hipótesis, Diseño, Métricas, Limitaciones. En español. Sin exageraciones. Sin decir "revoluciona". Solo hechos verificables y medibles.</pre>
+  <button class="copy-btn" onclick="copy('p1')">Copiar prompt</button>
+</div>
+
+<h2>Fase 2 — Runtime mínimo</h2>
+<span class="tag f2">FASE 2</span>
+<div class="card">
+  <h3>Entregable</h3>
+  <p>500–1.000 líneas de C++20. Compilable y ejecutable.</p>
+  <h3>Módulos</h3>
+  <table>
+    <tr><th>Módulo</th><th>Descripción</th><th>Líneas</th></tr>
+    <tr><td>Buffer circular</td><td>Lock-free, atómico, sin malloc</td><td>~150</td></tr>
+    <tr><td>Ingesta UDP</td><td>Socket no bloqueante, zero-copy</td><td>~150</td></tr>
+    <tr><td>Motor Grafcet</td><td>Branchless, matriz de existencia</td><td>~150</td></tr>
+    <tr><td>Autocuración</td><td>Colapso por LSB, máscara geométrica</td><td>~100</td></tr>
+    <tr><td>Main</td><td>Lanzar hilos, medir, cerrar</td><td>~150</td></tr>
+  </table>
+  <h3>Prompt exacto</h3>
+  <pre id="p2">Genera el módulo de buffer circular lock-free en C++20. Requisitos:
+- Sin malloc en runtime. Memoria pre-asignada.
+- Atómicos con memory_order_acquire/release.
+- Alineado a 64 bytes (línea de caché).
+- ≤ 150 líneas.
+- Incluir main() mínimo para probarlo.
+- Compilable con: g++ -O3 -std=c++20 -pthread
+- Sin dependencias externas.
+Solo el código y un comentario de cómo medirlo con perf stat.</pre>
+  <button class="copy-btn" onclick="copy('p2')">Copiar prompt</button>
+</div>
+
+<div class="card">
+  <h3>Prompt Fase 2 — Ingesta UDP</h3>
+  <pre id="p2b">Añade al runtime anterior el módulo de ingesta UDP no bloqueante. Requisitos:
+- Socket AF_INET, SOCK_DGRAM, IPPROTO_UDP.
+- FIONBIO para no bloqueante.
+- recvfrom() escribiendo directamente en el buffer circular (zero-copy).
+- Compatible Windows (winsock2) y Linux (POSIX).
+- ≤ 150 líneas.
+- Compilable con g++ -O3 -std=c++20 -pthread.
+Solo el código y un comentario de cómo medir paquetes/s.</pre>
+  <button class="copy-btn" onclick="copy('p2b')">Copiar prompt</button>
+</div>
+
+<div class="card">
+  <h3>Prompt Fase 2 — Motor Grafcet</h3>
+  <pre id="p2c">Añade al runtime el motor Grafcet branchless. Requisitos:
+- 3 etapas (X0, X1, X2) en one-hot.
+- Máscara de existencia EXISTENCE_MASK = X0|X1|X2.
+- Colapso por LSB: state & (-state).
+- Ecuaciones: X_n(t+1) = (X_n & ~T_n) | (X_{n-1} & T_{n-1}).
+- Cero if/else en el bucle crítico.
+- ≤ 150 líneas.
+- Compilable con g++ -O3 -std=c++20 -pthread.
+Solo el código y un comentario de cómo verificar la autocuración inyectando un estado corrupto.</pre>
+  <button class="copy-btn" onclick="copy('p2c')">Copiar prompt</button>
+</div>
+
+<h2>Fase 3 — Benchmark</h2>
+<span class="tag f3">FASE 3</span>
+<div class="card">
+  <h3>Entregable</h3>
+  <p>Dos programas: arquitectura clásica vs. AntiPC. Mismas métricas.</p>
+  <h3>Experimentoss</h3>
+  <table>
+    <tr><th>Exp</th><th>Arquitectura</th><th>Mide</th></tr>
+    <tr><td>1</td><td>Red → SO → memcpy → cola → proceso</td><td>CPU, latencia</td></tr>
+    <tr><td>2</td><td>Red → buffer circular → worker</td><td>CPU, latencia</td></tr>
+    <tr><td>3</td><td>1, 2, 4, 8 hubs en paralelo</td><td>Throughput, escalabilidad</td></tr>
+    <tr><td>4</td><td>Grafcet clásico vs. branchless</td><td>CPU, energía, temperatura</td></tr>
+  </table>
+  <h3>Prompt exacto</h3>
+  <pre id="p3">Genera dos programas C++20 que midan lo mismo:
+1. arquitectura_clasica.cpp: recibe UDP, copia con memcpy a un vector, procesa con if/else.
+2. antipc_runtime.cpp: recvfrom directo al buffer circular, motor branchless.
+
+Ambos deben:
+- Correr 10 segundos.
+- Imprimir: paquetes procesados, CPU % (con clock()), latencia media en μs.
+- Compilar con g++ -O3 -std=c++20 -pthread.
+
+Al final, un script bash benchmark.sh que compile ambos, los ejecute y compare resultados con perf stat.
+Solo el código y el script. Sin explicaciones largas.</pre>
+  <button class="copy-btn" onclick="copy('p3')">Copiar prompt</button>
+</div>
+
+<h2>Fase 4 — Whitepaper</h2>
+<span class="tag f4">FASE 4</span>
+<div class="card">
+  <h3>Entregable</h3>
+  <p>Documento de 8 páginas con resultados reales del benchmark.</p>
+  <h3>Contenido</h3>
+  <ul>
+    <li>Resumen ejecutivo (1 párrafo).</li>
+    <li>Problema y motivación.</li>
+    <li>Diseño de la arquitectura.</li>
+    <li>Metodología del benchmark.</li>
+    <li>Resultados (tablas + gráficas).</li>
+    <li>Análisis: dónde gana, dónde no.</li>
+    <li>Limitaciones explícitas.</li>
+    <li>Trabajo futuro.</li>
+    <li>Referencias (Shannon, Cover &amp; Thomas, Tanenbaum).</li>
+  </ul>
+  <h3>Prompt exacto</h3>
+  <pre id="p4">Redacta un whitepaper de 8 páginas sobre AntiPC usando los resultados del benchmark adjunto. Secciones: Resumen ejecutivo, Problema, Diseño, Metodología, Resultados, Análisis, Limitaciones, Trabajo futuro, Referencias. Sin exageraciones. Sin decir "revoluciona". Solo hechos medibles. Formato Markdown. En español.</pre>
+  <button class="copy-btn" onclick="copy('p4')">Copiar prompt</button>
+</div>
+
+<h2>Métricas objetivo</h2>
+<div class="card ok">
+  <div class="grid">
+    <div class="stat">
+      <div class="v" style="color: var(--accent2);">-30%</div>
+      <div class="l">CPU mínimo</div>
+    </div>
+    <div class="stat">
+      <div class="v" style="color: var(--accent3);">-50%</div>
+      <div class="l">CPU objetivo</div>
+    </div>
+    <div class="stat">
+      <div class="v" style="color: var(--accent);">+3X</div>
+      <div class="l">Throughput</div>
+    </div>
+    <div class="stat">
+      <div class="v" style="color: var(--accent4);">-20°C</div>
+      <div class="l">Temperatura</div>
+    </div>
+  </div>
+  <p style="margin-top: 14px; color: var(--muted); font-size: 0.85em;">
+    Si no se alcanzan estos umbrales, el proyecto no tiene valor comercial. Documentar el resultado real aunque sea peor.
+  </p>
+</div>
+
+<h2>Lo que NO pedirle a Grok</h2>
+<div class="card warn">
+  <ul>
+    <li>❌ "Hazlo todo" → genera basura plausible.</li>
+    <li>❌ "Demuestra que revoluciona" → te dirá que sí sin pruebas.</li>
+    <li>❌ "Sin métricas" → no vale nada.</li>
+    <li>❌ "Con frameworks" → dependencias inventadas.</li>
+    <li>❌ "Más de 500 líneas de golpe" → errores acumulados.</li>
+    <li>❌ "En inglés y español mezclado" → inconsistente.</li>
+  </ul>
+</div>
+
+<h2>Lo que SÍ pedirle a Grok</h2>
+<div class="card ok">
+  <ul>
+    <li>✅ Un módulo por vez.</li>
+    <li>✅ Con métricas.</li>
+    <li>✅ Compilable.</li>
+    <li>✅ Sin dependencias externas.</li>
+    <li>✅ Con comparación contra alternativa clásica.</li>
+    <li>✅ Con limitaciones explícitas.</li>
+    <li>✅ En español, formato Markdown.</li>
+  </ul>
+</div>
+
+<h2>Presupuesto estimado</h2>
+<table>
+  <tr><th>Fase</th><th>Tokens</th><th>Coste</th><th>Tiempo revisión</th></tr>
+  <tr><td>1 — Documento</td><td>20.000</td><td>0,20 €</td><td>2 h</td></tr>
+  <tr><td>2 — Runtime</td><td>100.000</td><td>1,00 €</td><td>8 h</td></tr>
+  <tr><td>3 — Benchmark</td><td>50.000</td><td>0,50 €</td><td>4 h</td></tr>
+  <tr><td>4 — Whitepaper</td><td>30.000</td><td>0,30 €</td><td>3 h</td></tr>
+  <tr><td><strong>Total</strong></td><td><strong>200.000</strong></td><td><strong>~2 €</strong></td><td><strong>17 h</strong></td></tr>
+</table>
+
+<div class="footer">
+  Brief generado para Grok · AntiPC Runtime · v1.0<br>
+  Regla final: |imagen| ≤ |dominio| = 2^(bits reales). Shannon no se inmuta.
+</div>
+
+<script>
+function copy(id) {
+  const el = document.getElementById(id);
+  const text = el.innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = event.target;
+    const orig = btn.innerText;
+    btn.innerText = "✓ Copiado";
+    setTimeout(() => { btn.innerText = orig; }, 1500);
+  }).catch(() => {
+    // Fallback para navegadores viejos
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    event.target.innerText = "✓ Copiado";
+  });
+}
+</script>
+
+</body>
+</html>

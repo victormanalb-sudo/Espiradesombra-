@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Laboratorio g^a mod p · precomputación sin p</title>
+<style>
+:root{--bg:#0a0a15;--card:#12122a;--border:#272747;--text:#e5e7eb;--muted:#94a3b8;--blue:#60a5fa;--green:#34d399;--gold:#fbbf24;--pink:#f472b6;--red:#ef4444}
+*{box-sizing:border-box}body{margin:0 auto;max-width:1450px;padding:16px;background:var(--bg);color:var(--text);font:14px/1.45 Segoe UI,Arial,sans-serif}
+h1{font-size:1.35rem;color:var(--blue)}h2{font-size:1rem;color:var(--gold);border-bottom:1px solid var(--border);padding-bottom:5px;margin-top:18px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:9px;padding:12px;margin:9px 0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+label{display:block;color:var(--muted);font-size:.72rem;margin-bottom:3px}input{width:100%;padding:7px;background:#0d0d1f;color:var(--text);border:1px solid var(--border);border-radius:6px;font-family:monospace}
+button{border:0;border-radius:6px;padding:8px 13px;margin:5px 4px 0 0;font-weight:700;cursor:pointer;background:var(--blue);color:#06101d}button.green{background:var(--green)}button.gold{background:var(--gold)}button.pink{background:var(--pink)}button.gray{background:#334155;color:white}
+table{width:100%;border-collapse:collapse;font-size:.76rem}th,td{border:1px solid var(--border);padding:4px 6px}th{background:#0d0d1f;color:var(--gold);position:sticky;top:0}.scroll{max-height:390px;overflow:auto}
+.stat{background:#0d0d1f;border:1px solid var(--border);padding:8px;border-radius:6px;text-align:center}.v{font-family:monospace;font-weight:bold;color:var(--green)}.l{font-size:.62rem;color:var(--muted)}
+pre{background:#0d0d1f;border:1px solid var(--border);padding:10px;overflow:auto;color:#b8f7d4}.ok{color:var(--green)}.warn{color:var(--gold)}.bad{color:var(--red)}
+canvas{width:100%;height:280px;background:#0d0d1f;border:1px solid var(--border);border-radius:6px}
+.small{font-size:.76rem;color:var(--muted)}
+</style>
+</head>
+<body>
+<h1>Laboratorio: precomputar g^a y después consultar p</h1>
+<p class="small">
+La tabla base NO contiene p. Primero se precomputan las potencias de g. Después se elige p,
+se calcula g^a mod p, se localizan las posiciones que producen A y se expande con exponentes a·k.
+</p>
+
+<h2>1. Parámetros</h2>
+<div class="card">
+<div class="grid">
+<div><label>g</label><input id="g" type="number" value="59" min="2"></div>
+<div><label>a máximo precomputado</label><input id="amax" type="number" value="500" min="1" max="5000"></div>
+<div><label>p mínimo</label><input id="pmin" type="number" value="101" min="3"></div>
+<div><label>p máximo</label><input id="pmax" type="number" value="997" min="3"></div>
+<div><label>paso de p</label><input id="pstep" type="number" value="2" min="1"></div>
+<div><label>A objetivo (0 = todos)</label><input id="targetA" type="number" value="0" min="0"></div>
+<div><label>k máximo en expansión a·k</label><input id="kmax" type="number" value="20" min="1" max="500"></div>
+</div>
+<button class="gold" onclick="precompute()">FASE 1 · Precomputar g^a</button>
+<button class="green" onclick="runExperiment()">FASE 2 · Recorrer p y medir</button>
+<button class="pink" onclick="runSelected()">FASE 3 · Ver detalle p</button>
+<button class="gray" onclick="clearAll()">Limpiar</button>
+</div>
+
+<h2>2. Estado</h2>
+<div class="grid">
+<div class="stat"><div class="v" id="sBase">—</div><div class="l">potencias precomputadas</div></div>
+<div class="stat"><div class="v" id="sTime">—</div><div class="l">tiempo precompute</div></div>
+<div class="stat"><div class="v" id="sP">—</div><div class="l">p procesados</div></div>
+<div class="stat"><div class="v" id="sMatches">—</div><div class="l">coincidencias</div></div>
+<div class="stat"><div class="v" id="sExpanded">—</div><div class="l">exponentes expandidos</div></div>
+</div>
+<pre id="log">Esperando.</pre>
+
+<h2>3. Tabla de resultados por p</h2>
+<div class="card"><div class="scroll"><table id="results">
+<thead><tr>
+<th>p</th><th>ord_p(g)</th><th>A distintos</th><th>coincidencias</th>
+<th>fracción a</th><th>expansiones únicas</th><th>reducción bruta</th>
+</tr></thead><tbody></tbody>
+</table></div></div>
+
+<h2>4. Detalle de un p</h2>
+<div class="card">
+<div class="grid">
+<div><label>p para detalle</label><input id="detailP" type="number" value="101" min="3"></div>
+<div><label>A para detalle (0 = primer A)</label><input id="detailA" type="number" value="0" min="0"></div>
+</div>
+<pre id="detail">—</pre>
+<div class="scroll"><table id="detailTable"><thead>
+<tr><th>a</th><th>g^a mod p</th><th>¿A?</th><th>a·k</th><th>g^(a·k) mod p</th></tr>
+</thead><tbody></tbody></table></div>
+</div>
+
+<h2>5. Gráficas</h2>
+<div class="card"><p class="small">Cada punto: p → número de exponentes a≤amax que producen A. No se presupone ninguna correlación.</p><canvas id="plot" width="1200" height="300"></canvas></div>
+
+<h2>6. Comprobación matemática</h2>
+<div class="card">
+<pre id="math">
+Para p primo y p ∤ g, si g^a ≡ A (mod p), todos los exponentes que producen A
+pertenecen a una clase módulo ord_p(g).
+
+La expansión usa:
+    g^(a·k) mod p = (g^a)^k mod p = A^k mod p
+
+El experimento separa:
+    PRECOMPUTACIÓN: g^a
+    CONSULTA: p
+    FILTRO: g^a mod p = A
+    EXPANSIÓN: a·k
+    MEDICIÓN: candidatos conservados / candidatos examinados
+</pre>
+</div>
+
+<script>
+let S={g:59,amax:0,pows:[],results:[],selected:null};
+
+function gcd(a,b){while(b){let t=a%b;a=b;b=t}return a}
+function modPow(a,e,m){let r=1n;a=BigInt(a)%BigInt(m);let M=BigInt(m);while(e>0){if(e&1)r=r*a%M;a=a*a%M;e>>=1}return Number(r)}
+function orderMod(g,p,limit=1000000){
+  if(g%p===0)return 0;
+  let x=1;
+  for(let d=1;d<=limit;d++){x=(x*g)%p;if(x===1)return d}
+  return 0;
+}
+function isPrime(n){
+ if(n<2)return false;if(n%2===0)return n===2;
+ for(let d=3;d*d<=n;d+=2)if(n%d===0)return false;
+ return true;
+}
+function fmt(x){return Number(x).toLocaleString('es-ES')}
+
+function precompute(){
+ const g=Number(document.getElementById('g').value);
+ const amax=Number(document.getElementById('amax').value);
+ if(!Number.isInteger(g)||g<2||!Number.isInteger(amax)||amax<1){alert('Parámetros inválidos');return}
+ const t=performance.now(),pows=new Array(amax+1);
+ let x=1n, G=BigInt(g);
+ for(let a=1;a<=amax;a++){x*=G;pows[a]=x}
+ S={g,amax,pows,results:[],selected:null};
+ document.getElementById('sBase').textContent=fmt(amax);
+ document.getElementById('sTime').textContent=((performance.now()-t)/1000).toFixed(4)+' s';
+ document.getElementById('sP').textContent='—';
+ document.getElementById('sMatches').textContent='—';
+ document.getElementById('sExpanded').textContent='—';
+ document.getElementById('log').textContent=
+  `OK: precomputadas ${fmt(amax)} potencias de ${g}.\\n`+
+  `La tabla base no contiene p. Ahora p se aplica como consulta.`;
+}
+
+function runExperiment(){
+ if(!S.pows.length){alert('Primero FASE 1');return}
+ const pmin=Number(document.getElementById('pmin').value);
+ const pmax=Number(document.getElementById('pmax').value);
+ const step=Number(document.getElementById('pstep').value);
+ const target=Number(document.getElementById('targetA').value);
+ const kmax=Number(document.getElementById('kmax').value);
+ const rows=[];let totalM=0,totalE=0;
+ for(let p=pmin;p<=pmax;p+=step){
+   if(!isPrime(p))continue;
+   const ord=orderMod(S.g,p);
+   const map=new Map();
+   for(let a=1;a<=S.amax;a++){
+     const r=modPow(S.g,a,p);
+     if(target===0||r===target){
+       if(!map.has(r))map.set(r,[]);
+       map.get(r).push(a);
+     }
+   }
+   let expSet=new Set(),matches=0;
+   for(const [A,arr] of map){
+     matches+=arr.length;
+     for(const a of arr)for(let k=1;k<=kmax;k++)expSet.add(a*k);
+   }
+   totalM+=matches;totalE+=expSet.size;
+   rows.push({p,ord,Acount:map.size,matches,frac:matches/S.amax,expanded:expSet.size,red:expSet.size?S.amax/expSet.size:Infinity,map});
+ }
+ S.results=rows;
+ document.querySelector('#results tbody').innerHTML=rows.map(r=>`<tr>
+ <td>${r.p}</td><td>${r.ord}</td><td>${r.Acount}</td><td>${fmt(r.matches)}</td>
+ <td>${(100*r.frac).toFixed(3)}%</td><td>${fmt(r.expanded)}</td>
+ <td>${r.red===Infinity?'∞':r.red.toFixed(3)+'×'}</td></tr>`).join('');
+ document.getElementById('sP').textContent=fmt(rows.length);
+ document.getElementById('sMatches').textContent=fmt(totalM);
+ document.getElementById('sExpanded').textContent=fmt(totalE);
+ document.getElementById('log').textContent=
+ `Experimento terminado.\\n`+
+ `g=${S.g}, amax=${S.amax}, kmax=${kmax}\\n`+
+ `p procesados=${rows.length}\\n`+
+ `coincidencias g^a mod p con el objetivo=${fmt(totalM)}\\n`+
+ `exponentes únicos tras expansión a·k=${fmt(totalE)}.\\n\\n`+
+ `NOTA: la reducción mostrada es una reducción del conjunto de exponentes generado, no una afirmación de reducción de AES.`;
+ draw(rows);
+}
+
+function runSelected(){
+ if(!S.pows.length){alert('Primero FASE 1');return}
+ const p=Number(document.getElementById('detailP').value);
+ const target=Number(document.getElementById('detailA').value);
+ const kmax=Number(document.getElementById('kmax').value);
+ if(!isPrime(p)){alert('p debe ser primo');return}
+ const groups=new Map();
+ for(let a=1;a<=S.amax;a++){
+   const r=modPow(S.g,a,p);
+   if(target===0||r===target){if(!groups.has(r))groups.set(r,[]);groups.get(r).push(a)}
+ }
+ if(!groups.size){document.getElementById('detail').textContent='No hay coincidencias.';return}
+ const [A,arr]=groups.entries().next().value;
+ const lines=[
+ `g=${S.g}, p=${p}, A=${A}`,
+ `ord_p(g)=${orderMod(S.g,p)}`,
+ `exponentes a que producen A: ${arr.join(', ')}`,
+ `expansión a·k, k=1..${kmax}:`
+ ];
+ const tbody=document.querySelector('#detailTable tbody');tbody.innerHTML='';
+ for(const a of arr){
+   for(let k=1;k<=kmax;k++){
+     const e=a*k,r=modPow(S.g,e,p);
+     const tr=document.createElement('tr');
+     tr.innerHTML=`<td>${a}</td><td>${A}</td><td>✓</td><td>${e}</td><td>${r}</td>`;
+     tbody.appendChild(tr);
+   }
+ }
+ document.getElementById('detail').textContent=lines.join('\\n');
+ S.selected={p,A,arr};
+}
+
+function draw(rows){
+ const c=document.getElementById('plot'),ctx=c.getContext('2d');
+ ctx.clearRect(0,0,c.width,c.height);
+ if(!rows.length)return;
+ const m=45,w=c.width-2*m,h=c.height-2*m;
+ const ymax=Math.max(...rows.map(x=>x.matches),1);
+ ctx.strokeStyle='#334155';ctx.beginPath();ctx.moveTo(m,m);ctx.lineTo(m,c.height-m);ctx.lineTo(c.width-m,c.height-m);ctx.stroke();
+ ctx.strokeStyle='#60a5fa';ctx.beginPath();
+ rows.forEach((r,i)=>{
+   const x=m+i*Math.max(1,m/2); // separación legible
+   const xx=Math.min(c.width-m,x);
+   const y=c.height-m-(r.matches/ymax)*h;
+   if(i===0)ctx.moveTo(xx,y);else ctx.lineTo(xx,y);
+ });ctx.stroke();
+ ctx.fillStyle='#94a3b8';ctx.font='14px Segoe UI';
+ ctx.fillText(`Coincidencias para el filtro seleccionado · g=${S.g}`,m,22);
+ ctx.fillText(`máximo=${ymax}`,m,c.height-10);
+}
+
+function clearAll(){
+ S={g:59,amax:0,pows:[],results:[],selected:null};
+ document.querySelector('#results tbody').innerHTML='';
+ document.querySelector('#detailTable tbody').innerHTML='';
+ document.getElementById('detail').textContent='—';
+ document.getElementById('log').textContent='Limpiado.';
+ ['sBase','sTime','sP','sMatches','sExpanded'].forEach(id=>document.getElementById(id).textContent='—');
+}
+</script>
+</body>
+</html>

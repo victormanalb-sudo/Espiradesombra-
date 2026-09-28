@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Deducción Geométrica · Paquete Mínimo + Clave Cifrada</title>
+<style>
+  :root{
+    --bg:#0a0a15;--card:#12122a;--border:#1f1f3d;--text:#e2e8f0;--muted:#94a3b8;
+    --accent:#fbbf24;--accent2:#34d399;--accent3:#60a5fa;--accent4:#f472b6;
+    --code:#0d0d1f;--danger:#ef4444;
+  }
+  *{box-sizing:border-box}
+  body{font-family:'Segoe UI',Tahoma,sans-serif;max-width:1200px;margin:0 auto;
+    padding:20px;background:var(--bg);color:var(--text);line-height:1.55}
+  h1{font-size:1.7em;background:linear-gradient(90deg,var(--accent),var(--accent2),var(--accent3));
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:4px}
+  h2{color:var(--accent);margin-top:28px;border-bottom:1px solid var(--border);
+    padding-bottom:6px;font-size:1.12em}
+  h3{color:var(--accent2);font-size:.92em;margin-top:16px;margin-bottom:6px}
+  .sub{color:var(--muted);font-size:.85em;margin-bottom:20px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;
+    padding:16px;margin:14px 0}
+  .card.gold{border-color:var(--accent)}.card.ok{border-color:var(--accent2)}
+  .card.info{border-color:var(--accent3)}.card.pink{border-color:var(--accent4)}
+  .card.warn{border-color:var(--danger)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+  .stat{background:var(--code);border:1px solid var(--border);border-radius:8px;
+    padding:9px;text-align:center}
+  .stat .v{font-size:1.05em;font-weight:bold;font-family:'Courier New',monospace;word-break:break-all}
+  .stat .l{font-size:.62em;color:var(--muted);text-transform:uppercase;
+    letter-spacing:.5px;margin-top:3px}
+  label{display:block;font-weight:600;margin-bottom:4px;color:var(--muted);
+    font-size:.72em;text-transform:uppercase;letter-spacing:.5px}
+  input,textarea,select{width:100%;padding:8px 11px;background:rgba(0,0,0,.4);
+    border:1px solid var(--border);border-radius:8px;font-size:.85em;color:var(--text);
+    font-family:'Courier New',monospace}
+  textarea{min-height:70px;resize:vertical}
+  input:focus,textarea:focus{outline:none;border-color:var(--accent)}
+  button{background:linear-gradient(135deg,var(--accent),#f59e0b);color:#0a0a15;
+    border:none;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:.8em;
+    font-weight:700;margin:3px 3px 3px 0;transition:all .2s}
+  button:hover{transform:translateY(-2px);opacity:.9}
+  button.ok{background:linear-gradient(135deg,var(--accent2),#22c55e);color:#fff}
+  button.info{background:linear-gradient(135deg,var(--accent3),#3b82f6);color:#fff}
+  button.pink{background:linear-gradient(135deg,var(--accent4),#ec4899);color:#fff}
+  button.danger{background:linear-gradient(135deg,var(--danger),#dc2626);color:#fff}
+  button.ghost{background:transparent;border:1px solid var(--border);color:var(--text)}
+  pre{background:var(--code);border:1px solid var(--border);border-radius:8px;
+    padding:11px;overflow-x:auto;font-family:'Courier New',monospace;font-size:.75em;
+    color:var(--accent2);white-space:pre-wrap;word-break:break-all;max-height:340px}
+  table{width:100%;border-collapse:collapse;margin:10px 0;font-size:.8em}
+  th,td{border:1px solid var(--border);padding:5px 8px;text-align:left}
+  th{background:var(--code);color:var(--accent);font-size:.7em;text-transform:uppercase}
+  .tag{display:inline-block;padding:2px 9px;border-radius:10px;font-size:.62em;
+    font-weight:bold;letter-spacing:.5px;margin-right:5px}
+  .tag.ok{background:var(--accent2);color:#0a0a15}
+  .tag.gold{background:var(--accent);color:#0a0a15}
+  .tag.info{background:var(--accent3);color:#0a0a15}
+  .tag.pink{background:var(--accent4);color:#0a0a15}
+  .tag.danger{background:var(--danger);color:#fff}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+  .row>div{flex:1;min-width:130px}
+  .hint{font-size:.72em;color:var(--muted);margin-top:4px}
+  .footer{color:var(--muted);font-size:.72em;text-align:center;margin-top:30px;
+    padding-top:16px;border-top:1px solid var(--border)}
+  .step-row{display:grid;grid-template-columns:40px 70px 70px 1fr;gap:6px;
+    padding:3px 8px;border-bottom:1px solid var(--border);font-size:.75em;
+    font-family:'Courier New',monospace;align-items:center}
+  .step-head{font-weight:bold;color:var(--accent);text-transform:uppercase;
+    font-size:.68em;letter-spacing:.5px;border-bottom:1px solid var(--accent)}
+  .wire{border:2px dashed var(--accent3);border-radius:10px;padding:12px;
+    background:rgba(96,165,250,.05);margin:10px 0}
+</style>
+</head>
+<body>
+
+<h1>Deducción Geométrica · Paquete Mínimo</h1>
+<p class="sub">
+  <span class="tag gold">TALES POR LADOS</span>
+  <span class="tag ok">SOLO N POR BYTE</span>
+  <span class="tag info">CLAVE CIFRADA AES-GCM</span>
+  <span class="tag pink">SIN PASOS INTERMEDIOS</span>
+  <span class="tag danger">SIN CLAVE → RUIDO</span>
+</p>
+
+<!-- ============================================================ -->
+<h2>1. Clave geométrica (secreta)</h2>
+
+<div class="card gold">
+  <p style="font-size:.82em;color:var(--muted)">
+    Estos tres parámetros son la clave. No viajan en claro: se cifran con AES-GCM antes de enviarse.
+  </p>
+
+  <div class="row">
+    <div>
+      <label>Nº de figuras</label>
+      <input id="numFiguras" type="number" min="1" max="8" value="4">
+    </div>
+    <div style="flex:2">
+      <label>Secuencia de Tales (lados)</label>
+      <input id="secuenciaTales" value="3,5,4,6">
+      <div class="hint">3=Triángulo, 4=Cuadrado, 5=Pentágono, 6=Hexágono, 7=Heptágono, 8=Octágono</div>
+    </div>
+    <div>
+      <label>Segmento inicial</label>
+      <input id="startValue" value="1.33">
+    </div>
+    <div>
+      <label>Contraseña para cifrar la clave</label>
+      <input id="masterPassword" type="password" value="clave_maestra_2025">
+    </div>
+  </div>
+
+  <div style="margin-top:10px">
+    <button class="gold" onclick="aplicarConfig()">Aplicar configuración</button>
+    <button class="ghost" onclick="autoSecuencia()">Auto-secuencia</button>
+  </div>
+
+  <h3>Figuras activas</h3>
+  <div id="figurasVisual" class="grid"></div>
+</div>
+
+<!-- ============================================================ -->
+<h2>2. Emisor: mensaje → paquete mínimo</h2>
+
+<div class="card">
+  <div class="row">
+    <div style="flex:3">
+      <label>Mensaje</label>
+      <textarea id="plainInput">Hola geometría</textarea>
+    </div>
+  </div>
+
+  <div style="margin-top:8px">
+    <button class="ok" onclick="codificar()">🔒 Generar paquete</button>
+    <button class="ghost" onclick="limpiar()">Limpiar</button>
+  </div>
+
+  <div class="grid" style="margin-top:12px">
+    <div class="stat"><div class="v" id="sBytes" style="color:var(--accent3)">—</div><div class="l">Bytes mensaje</div></div>
+    <div class="stat"><div class="v" id="sN" style="color:var(--accent)">—</div><div class="l">Enteros N</div></div>
+    <div class="stat"><div class="v" id="sBits" style="color:var(--accent2)">—</div><div class="l">Bits por N</div></div>
+    <div class="stat"><div class="v" id="sClave" style="color:var(--accent4)">—</div><div class="l">Clave cifrada</div></div>
+  </div>
+
+  <h3>Proceso interno (NO se transmite)</h3>
+  <div class="step-row step-head">
+    <div>Paso</div><div>Figura</div><div>Trozo</div><div>Segmento restante</div>
+  </div>
+  <div id="stepsOut"></div>
+
+  <!-- ============================================================ -->
+  <h3>📡 Lo que SÍ viaja por el cable</h3>
+
+  <div class="wire">
+    <p style="font-size:.82em;color:var(--muted);margin-top:0">
+      Esto es todo lo que ve un atacante. Sin la clave (que va cifrada), los <code>N</code> son ruido.
+    </p>
+    <pre id="packetOut">—</pre>
+    <div style="margin-top:6px">
+      <button class="info" onclick="copyPacket()">📋 Copiar paquete</button>
+      <button class="ghost" onclick="sendToDecode()">➡️ Enviar al receptor</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2>3. Receptor: paquete mínimo → mensaje</h2>
+
+<div class="card pink">
+  <h3>Cómo funciona la inversión con paquete mínimo</h3>
+  <pre>El paquete solo contiene:
+  { N_i }            ← enteros por byte
+  { clave_cifrada }  ← AES-GCM(secuencia + start + orden)
+
+El receptor:
+  1. Descifra la clave con su contraseña.
+  2. Reconstruye Q_0 = f_0 · f_1 · ... · f_7.
+  3. Calcula start − N_i / Q_0 = resto final.
+  4. Despeja d_7 = N mod f_7, N = (N − d_7) / f_7, ...
+  5. Bits b_i = d_i − 1 → byte.</pre>
+
+  <div class="row">
+    <div style="flex:3">
+      <label>Paquete recibido</label>
+      <textarea id="packetIn" placeholder="Pega aquí el paquete…"></textarea>
+    </div>
+    <div>
+      <label>Contraseña</label>
+      <input id="decPassword" type="password" value="clave_maestra_2025">
+    </div>
+  </div>
+
+  <div style="margin-top:8px">
+    <button class="pink" onclick="decodificar()">🔓 Descifrar</button>
+    <button class="danger" onclick="decodificarMal()">❌ Con contraseña errónea</button>
+    <button class="ghost" onclick="limpiarDecode()">Limpiar</button>
+  </div>
+
+  <h3>Mensaje recuperado</h3>
+  <pre id="decOutput">—</pre>
+  <h3>Diagnóstico</h3>
+  <pre id="decDiag">—</pre>
+</div>
+
+<!-- ============================================================ -->
+<h2>4. Comparación de tamaños</h2>
+
+<div class="card info">
+  <table>
+    <tr><th>Modo</th><th>Qué se transmite</th><th>Por byte</th><th>¿Revela pasos?</th></tr>
+    <tr><td>Original</td><td>Byte puro</td><td>8 bits</td><td>—</td></tr>
+    <tr><td>Fracción completa</td><td><code>num/den</code></td><td>~15 bytes</td><td>Sí</td></tr>
+    <tr><td>Paquete mínimo</td><td><code>N</code> entero</td><td>~6 bytes</td><td><strong>No</strong></td></tr>
+    <tr><td>Paquete mínimo binario</td><td><code>N</code> como uint32</td><td>4 bytes</td><td><strong>No</strong></td></tr>
+  </table>
+  <p class="hint">
+    El paquete mínimo no comprime (expande ~4×), pero <strong>oculta todos los pasos intermedios</strong>.
+    Sin la clave, los <code>N</code> son indistinguibles de números aleatorios.
+  </p>
+</div>
+
+<!-- ============================================================ -->
+<h2>5. Seguridad: por qué no se pueden deducir los parámetros</h2>
+
+<div class="card warn">
+  <h3>Ataque sin clave</h3>
+  <p style="font-size:.85em">
+    El atacante intercepta:
+  </p>
+  <pre>[17809, 24829, 32761, 27889, 33461, 36629, 35641, 35281, ...]
+[base64: salt||iv||ciphertext||tag]</pre>
+  <p style="font-size:.85em">
+    Intenta deducir la secuencia de figuras y el segmento inicial probando combinaciones.
+    Pero <strong>no sabe cuántos bytes hay ni qué figura corresponde a cada paso</strong>.
+    El espacio de claves es:
+  </p>
+  <table>
+    <tr><th>Parámetro</th><th>Espacio</th><th>Bits</th></tr>
+    <tr><td>Secuencia (8 posiciones × 6 figuras)</td><td>6⁸ ≈ 1,68 M</td><td>~21</td></tr>
+    <tr><td>Segmento inicial (decimales)</td><td>~10⁶</td><td>~20</td></tr>
+    <tr><td>Orden de bits (MSB/LSB)</td><td>2</td><td>1</td></tr>
+    <tr><td><strong>Total</strong></td><td></td><td><strong>~42 bits</strong></td></tr>
+  </table>
+
+  <h3>Ataque con clave cifrada</h3>
+  <p style="font-size:.85em">
+    La clave se cifra con <strong>AES-256-GCM</strong> (NIST). El atacante ahora necesita:
+  </p>
+  <ol style="font-size:.85em">
+    <li>Romper AES-256 → <strong>inviable</strong> (~2²⁵⁶).</li>
+    <li>Romper PBKDF2-SHA256 (100.000 iteraciones) → coste alto.</li>
+    <li>Encontrar la contraseña → depende de su fortaleza.</li>
+  </ol>
+
+  <h3>Qué oculta el paquete mínimo</h3>
+  <ul style="font-size:.85em">
+    <li>✅ No revela la secuencia de figuras.</li>
+    <li>✅ No revela el segmento inicial.</li>
+    <li>✅ No revela los dígitos <code>d_i</code> intermedios.</li>
+    <li>✅ No revela el orden de bits.</li>
+    <li>✅ No revela cuántos pasos se dieron.</li>
+    <li>✅ Los <code>N</code> parecen aleatorios sin la clave.</li>
+  </ul>
+
+  <h3>Qué NO oculta</h3>
+  <ul style="font-size:.85em;color:var(--muted)">
+    <li>❌ El número de bytes (longitud del array).</li>
+    <li>❌ El rango de los <code>N</code> (pistas sobre las figuras).</li>
+    <li>❌ La existencia del esquema geométrico (Kerckhoffs).</li>
+    <li>❌ Metadatos del canal (timing, tamaño, etc.).</li>
+  </ul>
+
+  <h3>Recomendaciones</h3>
+  <ul style="font-size:.85em">
+    <li>✅ Rotar la secuencia geométrica por sesión.</li>
+    <li>✅ Usar contraseña fuerte (>16 caracteres, aleatoria).</li>
+    <li>✅ Añadir padding aleatorio a los <code>N</code> para ocultar rango.</li>
+    <li>✅ Verificar el tag GCM antes de decodificar.</li>
+    <li>✅ No reutilizar <code>salt</code> ni <code>iv</code>.</li>
+  </ul>
+</div>
+
+<!-- ============================================================ -->
+<h2>6. Análisis de valor</h2>
+
+<div class="card ok">
+  <h3>Qué es real</h3>
+  <ul style="font-size:.83em">
+    <li><strong>Paquete mínimo:</strong> solo <code>N</code> por byte, sin pasos intermedios.</li>
+    <li><strong>Clave cifrada:</strong> AES-256-GCM sobre la clave geométrica.</li>
+    <li><strong>Sin clave → ruido:</strong> los <code>N</code> no permiten deducir nada útil.</li>
+    <li><strong>BigInt exacto:</strong> sin drift de IEEE.</li>
+    <li><strong>Proceso inverso:</strong> despeje O(8) por byte.</li>
+  </ul>
+
+  <h3>Qué NO es</h3>
+  <ul style="font-size:.83em;color:var(--muted)">
+    <li>No comprime: expande ~4×.</li>
+    <li>No es cifrado por sí solo: necesita AES encima.</li>
+    <li>No supera a Shannon.</li>
+    <li>No oculta la longitud del mensaje.</li>
+  </ul>
+
+  <h3>Dónde puede valer dinero</h3>
+  <table>
+    <tr><th>Aplicación</th><th>Por qué</th><th>Valor orientativo</th></tr>
+    <tr><td>Ofuscación de payloads IoT</td><td>Datos parecen aleatorios + AES real</td><td>20–50 k€</td></tr>
+    <tr><td>SCADA / control industrial</td><td>Trazabilidad exacta + cifrado autenticado</td><td>50–150 k€</td></tr>
+    <tr><td>CAD / geometría computacional</td><td>Racionales exactos + ofuscación</td><td>30–80 k€</td></tr>
+    <tr><td>Auditoría criptográfica</td><td>Representación legible + AES-GCM</td><td>20–60 k€</td></tr>
+  </table>
+  <p class="hint">Sin benchmarks medidos y sin cliente real, el valor es 0.</p>
+</div>
+
+<div class="footer">
+  Deducción Geométrica · Paquete Mínimo + AES-GCM · v3.0<br>
+  Shannon no se inmuta: |imagen| ≤ |dominio| = 2^(bits reales)
+</div>
+
+<script>
+// ============================================================
+//  ESTADO
+// ============================================================
+const state = {
+  figureSeq: [3,5,4,6],
+  startNum: 133n,
+  startDen: 100n,
+  lastBytes: [],
+  lastEncoded: []
+};
+
+const FIG_NAMES = {3:'Triángulo',4:'Cuadrado',5:'Pentágono',6:'Hexágono',7:'Heptágono',8:'Octágono'};
+const FIG_COLORS = {3:'#60a5fa',4:'#34d399',5:'#fbbf24',6:'#f472b6',7:'#a78bfa',8:'#fb923c'};
+
+// ============================================================
+//  CONFIGURACIÓN
+// ============================================================
+function aplicarConfig() {
+  const seqStr = document.getElementById('secuenciaTales').value;
+  const seq = seqStr.split(',').map(s => parseInt(s.trim())).filter(n => n >= 3 && n <= 8);
+  if (seq.length === 0) { alert('Secuencia inválida'); return; }
+  state.figureSeq = seq;
+
+  const sv = document.getElementById('startValue').value;
+  const parts = sv.split('.');
+  if (parts.length === 2) {
+    const ip = parts[0] || '0', dp = parts[1] || '0';
+    const den = 10n ** BigInt(dp.length);
+    state.startNum = BigInt(ip) * den + BigInt(dp);
+    state.startDen = den;
+  } else {
+    state.startNum = BigInt(sv);
+    state.startDen = 1n;
+  }
+
+  renderFiguras();
+  codificar();
+}
+
+function autoSecuencia() {
+  const n = parseInt(document.getElementById('numFiguras').value) || 4;
+  const seq = [];
+  for (let i = 0; i < n; i++) seq.push(3 + (i % 6));
+  document.getElementById('secuenciaTales').value = seq.join(',');
+  aplicarConfig();
+}
+
+function renderFiguras() {
+  const cont = document.getElementById('figurasVisual');
+  cont.innerHTML = '';
+  state.figureSeq.forEach((lados, i) => {
+    const div = document.createElement('div');
+    div.className = 'stat';
+    div.innerHTML = `<div class="v" style="color:${FIG_COLORS[lados]}">${lados} lados</div>
+      <div class="l">${FIG_NAMES[lados] || 'Figura '+lados}</div>
+      <div style="font-size:.62em;color:var(--muted);margin-top:3px">Posición ${i}</div>`;
+    cont.appendChild(div);
+  });
+}
+
+// ============================================================
+//  UTILIDADES
+// ============================================================
+function byteToBits(b) {
+  const bits = [];
+  for (let i = 7; i >= 0; i--) bits.push((b >> i) & 1);
+  return bits;
+}
+function bitsToByte(bits) {
+  let b = 0;
+  for (let i = 0; i < 8; i++) b = (b << 1) | bits[i];
+  return b;
+}
+function gcd(a, b) {
+  a = a < 0n ? -a : a;
+  b = b < 0n ? -b : b;
+  while (b) { const t = a % b; a = b; b = t; }
+  return a;
+}
+
+// ============================================================
+//  ENCODE
+// ============================================================
+function encodeByte(byte) {
+  const bits = byteToBits(byte);
+  const seq8 = [];
+  for (let i = 0; i < 8; i++) seq8.push(BigInt(state.figureSeq[i % state.figureSeq.length]));
+
+  const Q = new Array(9);
+  Q[8] = 1n;
+  for (let i = 7; i >= 0; i--) Q[i] = seq8[i] * Q[i+1];
+
+  let sum = 0n;
+  for (let i = 0; i < 8; i++) sum += BigInt(bits[i] + 1) * Q[i+1];
+
+  const num = state.startNum * Q[0] - state.startDen * sum;
+  const den = state.startDen * Q[0];
+  const g = gcd(num, den);
+
+  return { byte, bits, seq8: seq8.map(Number), Q0: Q[0].toString(),
+           sum: sum.toString(), num: num/g, den: den/g, N: sum };
+}
+
+// ============================================================
+//  DECODE desde N (paquete mínimo)
+//  N = sum d_i · Q[i+1]   con Q[i+1] = f_{i+1}·...·f_7
+//  Despeje inverso: d_7 = N mod f_7, N=(N−d_7)/f_7 ...
+// ============================================================
+function decodeFromN(N, seq) {
+  const seq8 = [];
+  for (let i = 0; i < 8; i++) seq8.push(BigInt(seq[i % seq.length]));
+
+  let n = BigInt(N);
+  const digits = new Array(8).fill(0);
+  const bits = new Array(8).fill(0);
+
+  for (let i = 7; i >= 0; i--) {
+    const f = seq8[i];
+    const d = ((n % f) + f) % f;
+    if (d !== 1n && d !== 2n) {
+      return { error: `Dígito inválido en paso ${i}: d=${d}. Clave incorrecta.` };
+    }
+    digits[i] = Number(d);
+    bits[i] = Number(d) - 1;
+    n = (n - d) / f;
+  }
+
+  if (n !== 0n) {
+    return { error: 'Sobra información tras decodificar: clave incorrecta.' };
+  }
+
+  return { bits, digits, byte: bitsToByte(bits) };
+}
+
+// ============================================================
+//  UI: CODIFICAR → PAQUETE MÍNIMO
+// ============================================================
+async function codificar() {
+  const text = document.getElementById('plainInput').value;
+  const bytes = new TextEncoder().encode(text);
+  const password = document.getElementById('masterPassword').value;
+
+  const encoded = [];
+  for (const b of bytes) encoded.push(encodeByte(b));
+
+  state.lastBytes = bytes;
+  state.lastEncoded = encoded;
+
+  document.getElementById('sBytes').textContent = bytes.length;
+  document.getElementById('sN').textContent = encoded.length;
+
+  // Bits por N (máximo)
+  const maxBits = Math.max(...encoded.map(e => BigInt(e.N).toString(2).length));
+  document.getElementById('sBits').textContent = maxBits;
+
+  // Clave cifrada
+  const clave = {
+    seq: state.figureSeq,
+    startNum: state.startNum.toString(),
+    startDen: state.startDen.toString(),
+    order: 'MSB'
+  };
+  const encryptedKey = await encryptKey(JSON.stringify(clave), password);
+  document.getElementById('sClave').textContent = encryptedKey.length + ' B';
+
+  renderSteps(encoded[0]);
+
+  // Paquete mínimo
+  const packet = {
+    v: 3,
+    n: bytes.length,
+    N: encoded.map(e => e.N.toString()),
+    key: encryptedKey
+  };
+  document.getElementById('packetOut').textContent = JSON.stringify(packet, null, 2);
+}
+
+function renderSteps(e) {
+  const cont = document.getElementById('stepsOut');
+  cont.innerHTML = '';
+
+  const head = document.createElement('div');
+  head.className = 'step-row step-head';
+  head.innerHTML = '<div>Paso</div><div>Figura</div><div>Trozo</div><div>Segmento restante</div>';
+  cont.appendChild(head);
+
+  let curNum = state.startNum;
+  let curDen = state.startDen;
+  let P = 1n;
+
+  for (let i = 0; i < 8; i++) {
+    const f = BigInt(state.figureSeq[i % state.figureSeq.length]);
+    P *= f;
+    const d = BigInt(e.bits[i] + 1);
+    const newNum = curNum * P - d * curDen;
+    const newDen = curDen * P;
+    const g = gcd(newNum < 0n ? -newNum : newNum, newDen);
+    curNum = newNum / g;
+    curDen = newDen / g;
+
+    const row = document.createElement('div');
+    row.className = 'step-row';
+    const val = Number(curNum) / Number(curDen);
+    row.innerHTML = `
+      <div style="color:var(--accent)">${i}</div>
+      <div style="color:${FIG_COLORS[Number(f)]}">${f} lados</div>
+      <div>${d}/${P}</div>
+      <div>${curNum} / ${curDen} ≈ ${val.toFixed(6)}</div>
+    `;
+    cont.appendChild(row);
+  }
+}
+
+// ============================================================
+//  AES-GCM para la clave
+// ============================================================
+async function deriveKey(password, salt) {
+  const enc = new TextEncoder();
+  const km = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey(
+    { name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' },
+    km,
+    { name: 'AES-GCM', length: 256 },
+    false, ['encrypt', 'decrypt']
+  );
+}
+
+async function encryptKey(plaintext, password) {
+  const pt = new TextEncoder().encode(plaintext);
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const key = await deriveKey(password, salt);
+  const buf = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, pt);
+  const cb = new Uint8Array(buf);
+  const packet = new Uint8Array(salt.length + iv.length + cb.length);
+  packet.set(salt, 0);
+  packet.set(iv, salt.length);
+  packet.set(cb, salt.length + iv.length);
+  return btoa(String.fromCharCode(...packet));
+}
+
+async function decryptKey(b64, password) {
+  const p = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+  const salt = p.slice(0, 16), iv = p.slice(16, 28), cb = p.slice(28);
+  const key = await deriveKey(password, salt);
+  const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, cb);
+  return new TextDecoder().decode(pt);
+}
+
+// ============================================================
+//  UI: RECEPTOR
+// ============================================================
+function sendToDecode() {
+  const raw = document.getElementById('packetOut').textContent;
+  if (!raw || raw === '—') { alert('Nada que enviar'); return; }
+  document.getElementById('packetIn').value = raw;
+  window.scrollTo({ top: document.getElementById('packetIn').getBoundingClientRect().top + window.scrollY - 80, behavior: 'smooth' });
+}
+
+async function decodificar() {
+  const raw = document.getElementById('packetIn').value.trim();
+  if (!raw) { alert('Falta el paquete'); return; }
+
+  let packet;
+  try { packet = JSON.parse(raw); }
+  catch (e) { document.getElementById('decOutput').textContent = '✗ JSON inválido'; return; }
+
+  if (!packet.key || !packet.N) {
+    document.getElementById('decOutput').textContent = '✗ Formato inválido';
+    return;
+  }
+
+  const password = document.getElementById('decPassword').value;
+
+  // 1) Descifrar la clave
+  let claveStr;
+  try {
+    claveStr = await decryptKey(packet.key, password);
+  } catch (e) {
+    document.getElementById('decOutput').textContent = '✗ Contraseña incorrecta o clave corrupta (GCM auth falló)';
+    document.getElementById('decDiag').textContent = 'Error: ' + e.message;
+    return;
+  }
+
+  let clave;
+  try { clave = JSON.parse(claveStr); }
+  catch (e) { document.getElementById('decOutput').textContent = '✗ Clave descifrada no es JSON'; return; }
+
+  // 2) Reconstruir bytes desde N
+  const seq = clave.seq;
+  const recovered = [];
+  const diagnostics = [];
+
+  for (let i = 0; i < packet.N.length; i++) {
+    const N = packet.N[i];
+    const res = decodeFromN(N, seq);
+    if (res.error) {
+      diagnostics.push(`Byte ${i}: ${res.error}`);
+      document.getElementById('decOutput').textContent = '✗ Fallo al decodificar byte ' + i;
+      document.getElementById('decDiag').textContent = diagnostics.join('\n');
+      return;
+    }
+    recovered.push(res.byte);
+    diagnostics.push(`Byte ${i}: N=${N} → bits=${res.bits.join('')} → 0x${res.byte.toString(16).padStart(2,'0')} (${res.byte})`);
+  }
+
+  const text = new TextDecoder().decode(new Uint8Array(recovered));
+  document.getElementById('decOutput').textContent = '✓ ' + text;
+  document.getElementById('decDiag').textContent = diagnostics.slice(0, 8).join('\n') +
+    (diagnostics.length > 8 ? `\n… (${diagnostics.length - 8} más)` : '');
+}
+
+async function decodificarMal() {
+  const raw = document.getElementById('packetIn').value.trim();
+  if (!raw) { alert('Falta el paquete'); return; }
+  const orig = document.getElementById('decPassword').value;
+  document.getElementById('decPassword').value = 'contraseña_incorrecta_123';
+  await decodificar();
+  document.getElementById('decPassword').value = orig;
+}
+
+function limpiarDecode() {
+  document.getElementById('decOutput').textContent = '—';
+  document.getElementById('decDiag').textContent = '—';
+}
+
+function limpiar() {
+  document.getElementById('stepsOut').innerHTML = '';
+  document.getElementById('packetOut').textContent = '—';
+  ['sBytes','sN','sBits','sClave'].forEach(id => document.getElementById(id).textContent = '—');
+}
+
+function copyPacket() {
+  const txt = document.getElementById('packetOut').textContent;
+  navigator.clipboard.writeText(txt).then(() => {
+    const btn = event.target;
+    const o = btn.innerText;
+    btn.innerText = '✓ Copiado';
+    setTimeout(() => btn.innerText = o, 1200);
+  });
+}
+
+// ============================================================
+//  INIT
+// ============================================================
+window.addEventListener('load', () => {
+  renderFiguras();
+  codificar();
+});
+</script>
+
+</body>
+</html>

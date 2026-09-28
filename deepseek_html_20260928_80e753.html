@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Laboratorio · Ataque a hipótesis de primalidad</title>
+<style>
+  :root{
+    --bg:#0a0a15;--card:#12122a;--border:#1f1f3d;--text:#e2e8f0;--muted:#94a3b8;
+    --accent:#fbbf24;--accent2:#34d399;--accent3:#60a5fa;--accent4:#f472b6;
+    --code:#0d0d1f;--danger:#ef4444;
+  }
+  *{box-sizing:border-box}
+  body{font-family:'Segoe UI',Tahoma,sans-serif;max-width:1500px;margin:0 auto;
+    padding:14px;background:var(--bg);color:var(--text);line-height:1.5;font-size:13px}
+  h1{font-size:1.4em;background:linear-gradient(90deg,var(--accent3),var(--accent),var(--accent4));
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:2px}
+  h2{color:var(--accent);margin-top:16px;border-bottom:1px solid var(--border);
+    padding-bottom:3px;font-size:1em}
+  h3{color:var(--accent2);font-size:.88em;margin-top:10px;margin-bottom:4px}
+  .sub{color:var(--muted);font-size:.78em;margin-bottom:10px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:9px;
+    padding:11px;margin:8px 0}
+  .card.info{border-color:var(--accent3)}
+  .card.gold{border-color:var(--accent)}
+  .card.ok{border-color:var(--accent2)}
+  .card.pink{border-color:var(--accent4)}
+  .card.warn{border-color:var(--danger)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:6px}
+  .stat{background:var(--code);border:1px solid var(--border);border-radius:6px;
+    padding:6px;text-align:center}
+  .stat .v{font-size:.88em;font-weight:bold;font-family:'Courier New',monospace;word-break:break-all}
+  .stat .l{font-size:.56em;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+  label{display:block;font-weight:600;margin-bottom:2px;color:var(--muted);
+    font-size:.66em;text-transform:uppercase;letter-spacing:.5px}
+  input,textarea,select{width:100%;padding:5px 8px;background:rgba(0,0,0,.4);
+    border:1px solid var(--border);border-radius:6px;font-size:.82em;color:var(--text);
+    font-family:'Courier New',monospace}
+  textarea{min-height:55px;resize:vertical}
+  input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
+  button{background:linear-gradient(135deg,var(--accent3),#3b82f6);color:#fff;
+    border:none;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:.74em;
+    font-weight:700;margin:2px 2px 2px 0;transition:all .15s}
+  button:hover{transform:translateY(-1px);opacity:.9}
+  button:disabled{opacity:.4;cursor:not-allowed;transform:none}
+  button.ok{background:linear-gradient(135deg,var(--accent2),#22c55e)}
+  button.gold{background:linear-gradient(135deg,var(--accent),#f59e0b);color:#0a0a15}
+  button.pink{background:linear-gradient(135deg,var(--accent4),#ec4899)}
+  button.danger{background:linear-gradient(135deg,var(--danger),#dc2626)}
+  button.ghost{background:transparent;border:1px solid var(--border);color:var(--text)}
+  pre{background:var(--code);border:1px solid var(--border);border-radius:6px;
+    padding:8px;overflow-x:auto;font-family:'Courier New',monospace;font-size:.7em;
+    color:var(--accent2);white-space:pre-wrap;word-break:break-all;max-height:340px}
+  table{width:100%;border-collapse:collapse;margin:5px 0;font-size:.72em}
+  th,td{border:1px solid var(--border);padding:3px 5px;text-align:left}
+  th{background:var(--code);color:var(--accent);font-size:.66em;text-transform:uppercase;
+    position:sticky;top:0;z-index:1}
+  .row{display:flex;gap:6px;flex-wrap:wrap;align-items:flex-end}
+  .row>div{flex:1;min-width:100px}
+  .hint{font-size:.68em;color:var(--muted);margin-top:2px}
+  .footer{color:var(--muted);font-size:.66em;text-align:center;margin-top:18px;
+    padding-top:8px;border-top:1px solid var(--border)}
+  .log{padding:3px 7px;border-left:3px solid var(--muted);background:rgba(0,0,0,.2);
+    margin:2px 0;border-radius:0 4px 4px 0;font-size:.68em;font-family:'Courier New',monospace}
+  .log.ok{border-color:var(--accent2);color:var(--accent2)}
+  .log.err{border-color:var(--danger);color:var(--danger)}
+  .log.info{border-color:var(--accent3);color:var(--accent3)}
+  .log.warn{border-color:var(--accent);color:var(--accent)}
+  .badge{display:inline-block;padding:1px 7px;border-radius:8px;font-size:.58em;
+    font-weight:bold;letter-spacing:.5px;margin-right:3px}
+  .b-blue{background:var(--accent3);color:#fff}
+  .b-green{background:var(--accent2);color:#0a0a15}
+  .b-gold{background:var(--accent);color:#0a0a15}
+  .b-pink{background:var(--accent4);color:#fff}
+  .b-red{background:var(--danger);color:#fff}
+  .scroll-y{max-height:400px;overflow-y:auto;border:1px solid var(--border);border-radius:6px}
+  .collision{color:var(--danger);font-weight:bold}
+  .tabs{display:flex;gap:3px;flex-wrap:wrap;margin-bottom:6px}
+  .tab{padding:5px 10px;border-radius:6px 6px 0 0;border:1px solid var(--border);
+    border-bottom:none;background:var(--code);color:var(--muted);cursor:pointer;font-size:.72em}
+  .tab.active{background:var(--accent3);color:#fff;border-color:var(--accent3)}
+  .tab-content{display:none}
+  .tab-content.active{display:block}
+</style>
+</head>
+<body>
+
+<h1>Laboratorio · Ataque a hipótesis de primalidad</h1>
+<p class="sub">
+  <span class="badge b-blue">8 ATAQUES</span>
+  <span class="badge b-gold">COLISIONES</span>
+  <span class="badge b-green">MULTI-A</span>
+  <span class="badge b-pink">TRAIN/TEST</span>
+  <span class="badge b-red">CONTRAEJEMPLOS</span>
+  Este laboratorio busca activamente fallos en hipótesis sobre primalidad. No confirma, ataca.
+</p>
+
+<!-- ============================================================ -->
+<h2>0. Configuración global</h2>
+<div class="card">
+  <div class="row">
+    <div>
+      <label>N max (rango de ataque)</label>
+      <input id="Nmax" type="number" value="2000">
+    </div>
+    <div>
+      <label>A (para A^k mod p)</label>
+      <input id="Aglobal" type="number" value="5">
+    </div>
+    <div>
+      <label>Split train/test (%)</label>
+      <input id="split" type="number" value="50">
+    </div>
+  </div>
+  <div class="hint">El rango se divide en train (mitad inferior) y test (mitad superior) para ataque estadístico.</div>
+</div>
+
+<!-- ============================================================ -->
+<h2>1. Ataques</h2>
+<div class="tabs">
+  <div class="tab active" onclick="showTab('t1', this)">1. Exhaustivo</div>
+  <div class="tab" onclick="showTab('t2', this)">2. Métrica</div>
+  <div class="tab" onclick="showTab('t3', this)">3. Multi-A</div>
+  <div class="tab" onclick="showTab('t4', this)">4. gcd(A,p)</div>
+  <div class="tab" onclick="showTab('t5', this)">5. Invariancia</div>
+  <div class="tab" onclick="showTab('t6', this)">6. Colisiones</div>
+  <div class="tab" onclick="showTab('t7', this)">7. Distribución</div>
+  <div class="tab" onclick="showTab('t8', this)">8. Train/Test</div>
+</div>
+
+<!-- =================== 1. EXHAUSTIVO =================== -->
+<div id="t1" class="tab-content active">
+  <div class="card gold">
+    <h3>Ataque 1 · Exhaustivo por rangos</h3>
+    <p class="hint">Prueba todos los N de 2 a Nmax. Clasifica en primos, semiprimos, potencias de primo y compuestos con muchos factores. Registra el primer contraejemplo de cada hipótesis.</p>
+    <button class="gold" onclick="ataqueExhaustivo()">▶️ Ejecutar ataque exhaustivo</button>
+    <div class="grid" style="margin-top:8px">
+      <div class="stat"><div class="v" id="ePrimos" style="color:var(--accent2)">—</div><div class="l">Primos</div></div>
+      <div class="stat"><div class="v" id="eSemis" style="color:var(--accent3)">—</div><div class="l">Semiprimos</div></div>
+      <div class="stat"><div class="v" id="ePotPrim" style="color:var(--accent4)">—</div><div class="l">Potencias primo</div></div>
+      <div class="stat"><div class="v" id="eCompuestos" style="color:var(--accent)">—</div><div class="l">Compuestos</div></div>
+    </div>
+    <h3>Primeros contraejemplos encontrados</h3>
+    <pre id="exhOut">—</pre>
+  </div>
+</div>
+
+<!-- =================== 2. MÉTRICA =================== -->
+<div id="t2" class="tab-content">
+  <div class="card info">
+    <h3>Ataque 2 · Contra la métrica</h3>
+    <p class="hint">Busca automáticamente: ¿existe un compuesto con el mismo patrón que un primo? Compara cada métrica individualmente.</p>
+    <button class="info" onclick="ataqueMetrica()">▶️ Atacar métricas</button>
+    <h3>Resultado por métrica</h3>
+    <div class="scroll-y">
+      <table id="tablaMetrica">
+        <thead><tr><th>Métrica</th><th>Valor</th><th>Primos con ese valor</th><th>Compuestos con ese valor</th><th>¿Colisión?</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <h3>Resumen</h3>
+    <pre id="metricaOut">—</pre>
+  </div>
+</div>
+
+<!-- =================== 3. MULTI-A =================== -->
+<div id="t3" class="tab-content">
+  <div class="card pink">
+    <h3>Ataque 3 · Múltiples A</h3>
+    <p class="hint">Ejecuta el análisis con A = 2, 3, 5, 7, 11, 13. Compara si las métricas de A^k mod p distinguen primos o dependen de gcd(A,p).</p>
+    <button class="pink" onclick="ataqueMultiA()">▶️ Atacar con múltiples A</button>
+    <h3>Matriz de resultados</h3>
+    <div class="scroll-y">
+      <table id="tablaMultiA">
+        <thead><tr><th>Métrica</th><th>A=2</th><th>A=3</th><th>A=5</th><th>A=7</th><th>A=11</th><th>A=13</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <h3>Análisis</h3>
+    <pre id="multiAOut">—</pre>
+  </div>
+</div>
+
+<!-- =================== 4. GCD =================== -->
+<div id="t4" class="tab-content">
+  <div class="card ok">
+    <h3>Ataque 4 · Separación gcd(A,p)=1 vs gcd(A,p)>1</h3>
+    <p class="hint">Separa los casos donde A y p son coprimos de los que no. El orden multiplicativo solo está definido cuando gcd(A,p)=1.</p>
+    <button class="ok" onclick="ataqueGCD()">▶️ Atacar por gcd</button>
+    <div class="grid" style="margin-top:8px">
+      <div class="stat"><div class="v" id="gCoprimosPrimos" style="color:var(--accent2)">—</div><div class="l">Coprimos primos</div></div>
+      <div class="stat"><div class="v" id="gCoprimosComp" style="color:var(--accent3)">—</div><div class="l">Coprimos compuestos</div></div>
+      <div class="stat"><div class="v" id="gNoCoprimos" style="color:var(--accent4)">—</div><div class="l">No coprimos</div></div>
+      <div class="stat"><div class="v" id="gOrdenMedio" style="color:var(--accent)">—</div><div class="l">Orden medio</div></div>
+    </div>
+    <h3>Análisis</h3>
+    <pre id="gcdOut">—</pre>
+  </div>
+</div>
+
+<!-- =================== 5. INVARIANCIA =================== -->
+<div id="t5" class="tab-content">
+  <div class="card warn">
+    <h3>Ataque 5 · Invariancia</h3>
+    <p class="hint">Prueba si la hipótesis se mantiene bajo transformaciones: N+c, qN, N², pq. Si falla, la señal no distingue primalidad, solo tamaño/divisibilidad.</p>
+    <div class="row">
+      <div style="flex:3">
+        <label>Hipótesis (JS). Variables: N, esPrimo, nDiv, nTramos, longMax, nMin, longCiclo</label>
+        <textarea id="hipInv" spellcheck="false">return nDiv === 2;</textarea>
+      </div>
+    </div>
+    <button class="danger" onclick="ataqueInvariancia()">▶️ Atacar invariancia</button>
+    <h3>Resultado</h3>
+    <pre id="invOut">—</pre>
+  </div>
+</div>
+
+<!-- =================== 6. COLISIONES =================== -->
+<div id="t6" class="tab-content">
+  <div class="card warn">
+    <h3>Ataque 6 · Colisiones (el más duro)</h3>
+    <p class="hint">Busca p primo y c compuesto con el mismo vector de características. Si aparece una colisión, esa métrica no sirve como criterio de primalidad.</p>
+    <div class="row">
+      <div style="flex:3">
+        <label>Vector de características (JS array). Recibe: N, nDiv, nTramos, longMax, nMin, longCiclo, tramosAk</label>
+        <textarea id="vecCode" spellcheck="false">// Ejemplo: [nDiv, nTramos, longMax]
+return [nDiv, nTramos, longMax];</textarea>
+      </div>
+    </div>
+    <button class="danger" onclick="ataqueColisiones()">▶️ Buscar colisiones</button>
+    <h3>Colisiones encontradas</h3>
+    <div class="scroll-y">
+      <pre id="colOut">—</pre>
+    </div>
+  </div>
+</div>
+
+<!-- =================== 7. DISTRIBUCIÓN =================== -->
+<div id="t7" class="tab-content">
+  <div class="card info">
+    <h3>Ataque 7 · Distribución (no solo medias)</h3>
+    <p class="hint">Para cada métrica: mínimo, máximo, mediana, desviación estándar, y solapamiento entre primos y compuestos.</p>
+    <button class="info" onclick="ataqueDistribucion()">▶️ Analizar distribución</button>
+    <div class="scroll-y">
+      <table id="tablaDist">
+        <thead><tr><th>Métrica</th><th>Primos (min/max/med/σ)</th><th>Compuestos (min/max/med/σ)</th><th>Solapamiento</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <h3>Interpretación</h3>
+    <pre id="distOut">—</pre>
+  </div>
+</div>
+
+<!-- =================== 8. TRAIN/TEST =================== -->
+<div id="t8" class="tab-content">
+  <div class="card ok">
+    <h3>Ataque 8 · Train/Test</h3>
+    <p class="hint">Entrena una hipótesis en la mitad inferior y pruébala en la superior. Evita ajustar la hipótesis a los datos.</p>
+    <div class="row">
+      <div style="flex:3">
+        <label>Hipótesis (JS). Variables: N, esPrimo, nDiv, nTramos, longMax, nMin, longCiclo, tramosAk</label>
+        <textarea id="hipTT" spellcheck="false">return nDiv === 2;</textarea>
+      </div>
+    </div>
+    <button class="ok" onclick="ataqueTrainTest()">▶️ Ejecutar train/test</button>
+    <div class="grid" style="margin-top:8px">
+      <div class="stat"><div class="v" id="ttTrainAcc" style="color:var(--accent3)">—</div><div class="l">Accuracy train</div></div>
+      <div class="stat"><div class="v" id="ttTestAcc" style="color:var(--accent2)">—</div><div class="l">Accuracy test</div></div>
+      <div class="stat"><div class="v" id="ttFP" style="color:var(--danger)">—</div><div class="l">Falsos positivos test</div></div>
+      <div class="stat"><div class="v" id="ttFN" style="color:var(--danger)">—</div><div class="l">Falsos negativos test</div></div>
+    </div>
+    <h3>Resultado detallado</h3>
+    <pre id="ttOut">—</pre>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2>9. Marcadores estructurales</h2>
+<div class="card pink">
+  <p class="hint">Marcadores explícitos: r(i)=0 (divisores exactos), A^k mod p = 1, 0, A, y orden multiplicativo cuando gcd(A,p)=1.</p>
+  <div class="row">
+    <div>
+      <label>N específico</label>
+      <input id="markN" type="number" value="60">
+    </div>
+    <div>
+      <label>A</label>
+      <input id="markA" type="number" value="5">
+    </div>
+  </div>
+  <div style="margin-top:6px">
+    <button class="pink" onclick="marcadores()">🔍 Mostrar marcadores</button>
+  </div>
+  <pre id="markOut">—</pre>
+</div>
+
+<div class="footer">
+  Laboratorio de ataque · v1.0 · Este código busca fallos. No confirma. Shannon no se inmuta.
+</div>
+
+<script>
+// ============================================================
+//  UTILIDADES BASE
+// ============================================================
+function esPrimo(n){
+  if(n<2) return false;
+  if(n<4) return true;
+  if(n%2===0) return false;
+  for(let i=3;i*i<=n;i+=2) if(n%i===0) return false;
+  return true;
+}
+function divisores(n){
+  const d=[];
+  for(let i=1;i*i<=n;i++){
+    if(n%i===0){d.push(i); if(i!==n/i) d.push(n/i);}
+  }
+  return d.sort((a,b)=>a-b);
+}
+function gcd(a,b){a=Math.abs(a);b=Math.abs(b);while(b){[a,b]=[b,a%b];}return a;}
+
+function clasificarN(n){
+  if(esPrimo(n)) return 'primo';
+  const d=divisores(n);
+  // potencia de primo
+  if(d.length===3) return 'pot-primo';
+  // semiprimo (producto de dos primos, contando multiplicidad)
+  const factores=[]; let x=n;
+  for(let p=2;p*p<=x;p++){while(x%p===0){factores.push(p); x/=p;}}
+  if(x>1) factores.push(x);
+  if(factores.length===2) return 'semiprimo';
+  return 'compuesto';
+}
+
+function detectarTramos(vals,tol=0){
+  const tramos=[];
+  if(vals.length<2) return tramos;
+  let inicio=0, dif=vals[1]-vals[0];
+  for(let i=1;i<vals.length-1;i++){
+    const d=vals[i+1]-vals[i];
+    if(Math.abs(d-dif)>tol){
+      tramos.push({inicio,fin:i,longitud:i-inicio+1,diferencia:dif});
+      inicio=i; dif=d;
+    }
+  }
+  tramos.push({inicio,fin:vals.length-1,longitud:vals.length-inicio,diferencia:dif});
+  return tramos;
+}
+
+function minimosLocales(vals){
+  const mins=[];
+  for(let i=1;i<vals.length-1;i++)
+    if(vals[i]<vals[i-1] && vals[i]<vals[i+1]) mins.push({indice:i,valor:vals[i]});
+  return mins;
+}
+
+function cicloAk(A,p){
+  const vistos=new Map();
+  let cur=A%p, k=1;
+  while(!vistos.has(cur) && k<=p*2){
+    vistos.set(cur,k);
+    cur=(cur*A)%p;
+    k++;
+  }
+  return {longitud: k-vistos.get(cur), preperiodo: vistos.get(cur)-1};
+}
+
+function ordenMultiplicativo(A,p){
+  if(gcd(A,p)!==1) return null;
+  let cur=A%p, k=1;
+  while(cur!==1 && k<=p){
+    cur=(cur*A)%p;
+    k++;
+  }
+  return cur===1?k:null;
+}
+
+// ============================================================
+//  VECTOR DE CARACTERÍSTICAS
+// ============================================================
+function featureVector(N, A){
+  const divs = divisores(N);
+  const rVals=[];
+  for(let i=1;i<=N;i++) rVals.push(N%i);
+  const tramos = detectarTramos(rVals,0);
+  const longMax = Math.max(...tramos.map(t=>t.longitud));
+  const mins = minimosLocales(rVals);
+
+  const g = gcd(A,N);
+  const coprimo = g===1;
+  const orden = coprimo ? ordenMultiplicativo(A,N) : null;
+
+  const {longitud: longCiclo} = cicloAk(A,N);
+
+  const akVals=[];
+  let cur=A%N;
+  for(let k=1;k<=N;k++){ akVals.push(cur); cur=(cur*A)%N; }
+  const tramosAk = detectarTramos(akVals,0).length;
+
+  return {
+    N, esPrimo: esPrimo(N), clasif: clasificarN(N),
+    nDiv: divs.length,
+    nTramos: tramos.length,
+    longMax,
+    nMin: mins.length,
+    gcd: g, coprimo, orden,
+    longCiclo, tramosAk
+  };
+}
+
+// ============================================================
+//  TABS
+// ============================================================
+function showTab(id, el){
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  el.classList.add('active');
+}
+
+// ============================================================
+//  ATAQUE 1 · EXHAUSTIVO
+// ============================================================
+function ataqueExhaustivo(){
+  const Nmax = parseInt(document.getElementById('Nmax').value) || 1000;
+  const A = parseInt(document.getElementById('Aglobal').value) || 5;
+
+  const conteo = {primo:0,'semiprimo':0,'pot-primo':0,'compuesto':0};
+  const contraejemplos = {
+    'nDiv=2': null,
+    'nTramos par': null,
+    'longMax impar': null,
+    'nMin impar': null
+  };
+
+  for(let N=2; N<=Nmax; N++){
+    const f = featureVector(N, A);
+    conteo[f.clasif] = (conteo[f.clasif] || 0) + 1;
+
+    if(!f.esPrimo){
+      if(contraejemplos['nDiv=2']===null && f.nDiv===2) contraejemplos['nDiv=2']=N;
+      if(contraejemplos['nTramos par']===null && f.nTramos%2===0) contraejemplos['nTramos par']=N;
+      if(contraejemplos['longMax impar']===null && f.longMax%2===1) contraejemplos['longMax impar']=N;
+      if(contraejemplos['nMin impar']===null && f.nMin%2===1) contraejemplos['nMin impar']=N;
+    }
+  }
+
+  document.getElementById('ePrimos').textContent = conteo['primo'];
+  document.getElementById('eSemis').textContent = conteo['semiprimo'];
+  document.getElementById('ePotPrim').textContent = conteo['pot-primo'];
+  document.getElementById('eCompuestos').textContent = conteo['compuesto'];
+
+  let out = `Rango atacado: 2..${Nmax}\n\n`;
+  out += `Primer contraejemplo por hipótesis:\n`;
+  for(const [k,v] of Object.entries(contraejemplos)){
+    out += `  ${k}: ${v===null ? 'sin contraejemplo' : 'N='+v}\n`;
+  }
+  out += `\nDistribución:\n`;
+  for(const [k,v] of Object.entries(conteo)){
+    out += `  ${k}: ${v}\n`;
+  }
+  document.getElementById('exhOut').textContent = out;
+}
+
+// ============================================================
+//  ATAQUE 2 · MÉTRICA
+// ============================================================
+function ataqueMetrica(){
+  const Nmax = parseInt(document.getElementById('Nmax').value) || 1000;
+  const A = parseInt(document.getElementById('Aglobal').value) || 5;
+
+  const metricas = ['nDiv','nTramos','longMax','nMin','longCiclo','tramosAk'];
+  const tbody = document.querySelector('#tablaMetrica tbody');
+  tbody.innerHTML = '';
+
+  const resumen = {};
+
+  for(const m of metricas){
+    const primos = new Map(), comps = new Map();
+    for(let N=2;N<=Nmax;N++){
+      const f = featureVector(N,A);
+      const val = f[m];
+      const map = f.esPrimo ? primos : comps;
+      map.set(val, (map.get(val)||0) + 1);
+    }
+    // Buscar valores compartidos
+    const compartidos = [];
+    for(const [v,c] of primos){
+      if(comps.has(v)) compartidos.push({valor:v, primos:c, comps:comps.get(v)});
+    }
+
+    // Fila resumen
+    const valoresComunes = compartidos.length;
+    const totalValores = new Set([...primos.keys(), ...comps.keys()]).size;
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${m}</td>
+      <td>${totalValores}</td>
+      <td>${primos.size}</td>
+      <td>${comps.size}</td>
+      <td class="${valoresComunes>0?'collision':''}">${valoresComunes} solapados</td>`;
+    tbody.appendChild(tr);
+
+    resumen[m] = {compartidos: compartidos.length, ejemplos: compartidos.slice(0,3)};
+  }
+
+  let out = '';
+  for(const [m,r] of Object.entries(resumen)){
+    out += `${m}: ${r.compartidos} valores compartidos\n`;
+    for(const e of r.ejemplos){
+      out += `  valor=${e.valor} → ${e.primos} primos, ${e.comps} compuestos\n`;
+    }
+  }
+  document.getElementById('metricaOut').textContent = out;
+}
+
+// ============================================================
+//  ATAQUE 3 · MULTI-A
+// ============================================================
+function ataqueMultiA(){
+  const Nmax = Math.min(parseInt(document.getElementById('Nmax').value) || 1000, 1000);
+  const As = [2,3,5,7,11,13];
+  const metricas = ['longCiclo','tramosAk','nMin'];
+
+  const tbody = document.querySelector('#tablaMultiA tbody');
+  tbody.innerHTML = '';
+
+  const resultados = {};
+
+  for(const A of As){
+    resultados[A] = {primos:{}, comps:{}};
+    for(let N=2;N<=Nmax;N++){
+      const f = featureVector(N,A);
+      const key = `${f.longCiclo}|${f.tramosAk}|${f.nMin}`;
+      if(f.esPrimo) resultados[A].primos[key] = (resultados[A].primos[key]||0)+1;
+      else resultados[A].comps[key] = (resultados[A].comps[key]||0)+1;
+    }
+  }
+
+  let out = 'Comparativa de patrones entre primos y compuestos según A:\n\n';
+  for(const A of As){
+    const p = resultados[A].primos, c = resultados[A].comps;
+    const compartidos = Object.keys(p).filter(k=>c[k]).length;
+    const totalP = Object.keys(p).length;
+    const totalC = Object.keys(c).length;
+    out += `A=${A}: ${compartidos} patrones compartidos (${totalP} primos, ${totalC} compuestos)\n`;
+  }
+  document.getElementById('multiAOut').textContent = out;
+}
+
+// ============================================================
+//  ATAQUE 4 · GCD
+// ============================================================
+function ataqueGCD(){
+  const Nmax = parseInt(document.getElementById('Nmax').value) || 1000;
+  const A = parseInt(document.getElementById('Aglobal').value) || 5;
+
+  let copPrimos=0, copComps=0, noCop=0;
+  const ordenes = [];
+
+  for(let N=2;N<=Nmax;N++){
+    const g = gcd(A,N);
+    if(g===1){
+      if(esPrimo(N)) copPrimos++; else copComps++;
+      const o = ordenMultiplicativo(A,N);
+      if(o) ordenes.push(o);
+    } else {
+      noCop++;
+    }
+  }
+
+  const media = ordenes.length ? (ordenes.reduce((a,b)=>a+b,0)/ordenes.length).toFixed(2) : '—';
+
+  document.getElementById('gCoprimosPrimos').textContent = copPrimos;
+  document.getElementById('gCoprimosComp').textContent = copComps;
+  document.getElementById('gNoCoprimos').textContent = noCop;
+  document.getElementById('gOrdenMedio').textContent = media;
+
+  let out = `A = ${A}, Nmax = ${Nmax}\n\n`;
+  out += `Coprimos primos: ${copPrimos}\n`;
+  out += `Coprimos compuestos: ${copComps}\n`;
+  out += `No coprimos (gcd>1): ${noCop}\n\n`;
+  out += `Orden multiplicativo medio (solo coprimos): ${media}\n`;
+  out += `\nInterpretación: si el orden multiplicativo distingue primos, debería haber una diferencia clara entre coprimos primos y coprimos compuestos.`;
+  document.getElementById('gcdOut').textContent = out;
+}
+
+// ============================================================
+//  ATAQUE 5 · INVARIANCIA
+// ============================================================
+function ataqueInvariancia(){
+  const Nmax = Math.min(parseInt(document.getElementById('Nmax').value) || 1000, 2000);
+  const A = parseInt(document.getElementById('Aglobal').value) || 5;
+  const code = document.getElementById('hipInv').value;
+
+  let fn;
+  try { fn = new Function('N','esPrimo','nDiv','nTramos','longMax','nMin','longCiclo', code); }
+  catch(e){ document.getElementById('invOut').textContent = '✗ Error: '+e.message; return; }
+
+  function evalHip(N){
+    const f = featureVector(N,A);
+    try { return fn(N, f.esPrimo, f.nDiv, f.nTramos, f.longMax, f.nMin, f.longCiclo); }
+    catch(e){ return false; }
+  }
+
+  // Test base
+  let baseOk=0, baseTotal=0, baseFalsos=0;
+  for(let N=2;N<=Nmax;N++){
+    if(evalHip(N)){
+      baseTotal++;
+      if(esPrimo(N)) baseOk++; else baseFalsos++;
+    }
+  }
+
+  // Invariancia por desplazamiento
+  const c = 1;
+  let shiftFalsos=0, shiftTotal=0;
+  for(let N=2;N<=Nmax;N++){
+    if(evalHip(N) && evalHip(N+c) && !esPrimo(N+c)) shiftFalsos++;
+    if(evalHip(N) && evalHip(N+c)) shiftTotal++;
+  }
+
+  // Invariancia por cuadrado
+  let sqFalsos=0, sqTotal=0;
+  for(let N=2;N<=Math.sqrt(Nmax);N++){
+    if(evalHip(N) && evalHip(N*N) && !esPrimo(N*N)) sqFalsos++;
+    if(evalHip(N) && evalHip(N*N)) sqTotal++;
+  }
+
+  let out = `Hipótesis base:\n`;
+  out += `  Cumplen: ${baseTotal}\n`;
+  out += `  Primos entre los que cumplen: ${baseOk}\n`;
+  out += `  NO primos entre los que cumplen (falsos positivos): ${baseFalsos}\n\n`;
+  out += `Invariancia por N+c (c=${c}):\n`;
+  out += `  Pares (N, N+c) que cumplen: ${shiftTotal}\n`;
+  out += `  De ellos, N+c NO primo: ${shiftFalsos}\n\n`;
+  out += `Invariancia por N²:\n`;
+  out += `  Pares (N, N²) que cumplen: ${sqTotal}\n`;
+  out += `  De ellos, N² NO primo: ${sqFalsos}\n\n`;
+  out += `Interpretación: si la hipótesis se mantiene bajo estas transformaciones y produce falsos positivos, no distingue primalidad.`;
+  document.getElementById('invOut').textContent = out;
+}
+
+// ============================================================
+//  ATAQUE 6 · COLISIONES
+// ============================================================
+function ataqueColisiones(){
+  const Nmax = Math.min(parseInt(document.getElementById('Nmax').value) || 1000, 3000);
+  const A = parseInt(document.getElementById('Aglobal').value) || 5;
+  const vecCode = document.getElementById('vecCode').value;
+
+  let vecFn;
+  try { vecFn = new Function('N','nDiv','nTramos','longMax','nMin','longCiclo','tramosAk', vecCode); }
+  catch(e){ document.getElementById('colOut').textContent = '✗ Error: '+e.message; return; }
+
+  const grupos = new Map();
+
+  for(let N=2;N<=Nmax;N++){
+    const f = featureVector(N,A);
+    let vec;
+    try { vec = vecFn(N, f.nDiv, f.nTramos, f.longMax, f.nMin, f.longCiclo, f.tramosAk); }
+    catch(e){ continue; }
+    const key = JSON.stringify(vec);
+    if(!grupos.has(key)) grupos.set(key, {primos:[], comps:[]});
+    if(f.esPrimo) grupos.get(key).primos.push(N);
+    else grupos.get(key).comps.push(N);
+  }
+
+  // Buscar grupos mixtos
+  const mixtos = [];
+  for(const [key, g] of grupos){
+    if(g.primos.length > 0 && g.comps.length > 0){
+      mixtos.push({key, primos:g.primos, comps:g.comps});
+    }
+  }
+
+  let out = `Nmax: ${Nmax}, A: ${A}\n`;
+  out += `Grupos totales: ${grupos.size}\n`;
+  out += `Grupos mixtos (con primos y compuestos): ${mixtos.length}\n\n`;
+
+  if(mixtos.length === 0){
+    out += `Sin colisiones: el vector separa completamente primos de compuestos en este rango.\n`;
+    out += `⚠️  Esto NO demuestra que sea un criterio válido. Solo indica que no falla aquí.`;
+  } else {
+    out += `Primeras colisiones:\n`;
+    for(const m of mixtos.slice(0, 20)){
+      out += `  Vector ${m.key}:\n`;
+      out += `    Primos: ${m.primos.slice(0,5).join(', ')}${m.primos.length>5?'…':''}\n`;
+      out += `    Compuestos: ${m.comps.slice(0,5).join(', ')}${m.comps.length>5?'…':''}\n`;
+    }
+    if(mixtos.length > 20) out += `\n… (${mixtos.length-20} colisiones más)`;
+  }
+
+  document.getElementById('colOut').textContent = out;
+}
+
+// ============================================================
+//  ATAQUE 7 · DISTRIBUCIÓN
+// ============================================================
+function ataqueDistribucion(){
+  const Nmax = Math.min(parseInt(document.getElementById('Nmax').value) || 2000, 3000);
+  const A = parseInt(document.getElementById('Aglobal').value) || 5;
+  const metricas = ['nDiv','nTramos','longMax','nMin','longCiclo','tramosAk'];
+
+  const data = {primos:{}, comps:{}};
+  for(const m of metricas){ data.primos[m]=[]; data.comps[m]=[]; }
+
+  for(let N=2;N<=Nmax;N++){
+    const f = featureVector(N,A);
+    for(const m of metricas){
+      if(f.esPrimo) data.primos[m].push(f[m]);
+      else data.comps[m].push(f[m]);
+    }
+  }
+
+  function stats(arr){
+    if(!arr.length) return {min:'—',max:'—',med:'—',sd:'—'};
+    const s = [...arr].sort((a,b)=>a-b);
+    const min = s[0], max = s[s.length-1];
+    const med = s[Math.floor(s.length/2)];
+    const mean = s.reduce((a,b)=>a+b,0)/s.length;
+    const varr = s.reduce((a,b)=>a+(b-mean)**2,0)/s.length;
+    return {min, max, med, sd: Math.sqrt(varr).toFixed(2)};
+  }
+
+  const tbody = document.querySelector('#tablaDist tbody');
+  tbody.innerHTML = '';
+
+  let out = '';
+  for(const m of metricas){
+    const sp = stats(data.primos[m]);
+    const sc = stats(data.comps[m]);
+    // Solapamiento: rangos que se cruzan
+    const overlap = !(sp.max < sc.min || sc.max < sp.min);
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${m}</td>
+      <td>${sp.min}/${sp.max}/${sp.med}/${sp.sd}</td>
+      <td>${sc.min}/${sc.max}/${sc.med}/${sc.sd}</td>
+      <td class="${overlap?'collision':''}">${overlap?'SÍ':'NO'}</td>`;
+    tbody.appendChild(tr);
+    if(overlap) out += `${m}: solapamiento detectado. No distingue primalidad por sí sola.\n`;
+  }
+  document.getElementById('distOut').textContent = out || 'Sin solapamientos detectados.';
+}
+
+// ============================================================
+//  ATAQUE 8 · TRAIN/TEST
+// ============================================================
+function ataqueTrainTest(){
+  const Nmax = Math.min(parseInt(document.getElementById('Nmax').value) || 4000, 5000);
+  const A = parseInt(document.getElementById('Aglobal').value) || 5;
+  const splitPct = parseInt(document.getElementById('split').value) || 50;
+  const corte = Math.floor(Nmax * splitPct / 100);
+  const code = document.getElementById('hipTT').value;
+
+  let fn;
+  try { fn = new Function('N','esPrimo','nDiv','nTramos','longMax','nMin','longCiclo','tramosAk', code); }
+  catch(e){ document.getElementById('ttOut').textContent = '✗ Error: '+e.message; return; }
+
+  let tTP=0, tFP=0, tTN=0, tFN=0;
+  let eTP=0, eFP=0, eTN=0, eFN=0;
+
+  for(let N=2;N<=Nmax;N++){
+    const f = featureVector(N,A);
+    let pred;
+    try { pred = fn(N, f.esPrimo, f.nDiv, f.nTramos, f.longMax, f.nMin, f.longCiclo, f.tramosAk); }
+    catch(e){ pred = false; }
+
+    const real = f.esPrimo;
+    const enTrain = N <= corte;
+
+    if(pred && real)  { if(enTrain) tTP++; else eTP++; }
+    if(pred && !real) { if(enTrain) tFP++; else eFP++; }
+    if(!pred && real) { if(enTrain) tFN++; else eFN++; }
+    if(!pred && !real){ if(enTrain) tTN++; else eTN++; }
+  }
+
+  const trainAcc = ((tTP+tTN)/(tTP+tTN+tFP+tFN)*100).toFixed(2);
+  const testAcc  = ((eTP+eTN)/(eTP+eTN+eFP+eFN)*100).toFixed(2);
+
+  document.getElementById('ttTrainAcc').textContent = trainAcc + '%';
+  document.getElementById('ttTestAcc').textContent = testAcc + '%';
+  document.getElementById('ttFP').textContent = eFP;
+  document.getElementById('ttFN').textContent = eFN;
+
+  let out = `Corte train/test: N ≤ ${corte} (train), N > ${corte} (test)\n\n`;
+  out += `TRAIN:\n  TP=${tTP} FP=${tFP} TN=${tTN} FN=${tFN}\n  Accuracy: ${trainAcc}%\n\n`;
+  out += `TEST:\n  TP=${eTP} FP=${eFP} TN=${eTN} FN=${eFN}\n  Accuracy: ${testAcc}%\n\n`;
+  if(Math.abs(trainAcc - testAcc) > 5){
+    out += `⚠️  Diferencia grande entre train y test. Posible sobreajuste.\n`;
+  } else {
+    out += `Diferencia pequeña. La hipótesis generaliza en este rango.\n`;
+  }
+  document.getElementById('ttOut').textContent = out;
+}
+
+// ============================================================
+//  MARCADORES ESTRUCTURALES
+// ============================================================
+function marcadores(){
+  const N = parseInt(document.getElementById('markN').value);
+  const A = parseInt(document.getElementById('markA').value);
+
+  if(!N || !A){ document.getElementById('markOut').textContent = '✗ Parámetros inválidos'; return; }
+
+  const divs = divisores(N);
+  const rVals = [];
+  for(let i=1;i<=N;i++) rVals.push(N%i);
+
+  // Divisores exactos (r=0)
+  const indicesR0 = [];
+  for(let i=0;i<rVals.length;i++) if(rVals[i]===0) indicesR0.push(i+1);
+
+  // A^k mod N
+  const ak = [];
+  let cur = A % N;
+  for(let k=1;k<=Math.min(N,60);k++){ ak.push(cur); cur = (cur*A)%N; }
+
+  const indicesAk1 = [], indicesAk0 = [], indicesAkA = [];
+  for(let k=0;k<ak.length;k++){
+    if(ak[k]===1) indicesAk1.push(k+1);
+    if(ak[k]===0) indicesAk0.push(k+1);
+    if(ak[k]===A%N) indicesAkA.push(k+1);
+  }
+
+  const g = gcd(A,N);
+  const orden = g===1 ? ordenMultiplicativo(A,N) : null;
+
+  let out = `N = ${N}, A = ${A}\n`;
+  out += `¿N primo? ${esPrimo(N)?'SÍ':'NO'}\n`;
+  out += `Divisores de N: ${divs.join(', ')}\n\n`;
+  out += `r(i) = 0 en i = ${indicesR0.join(', ')}\n\n`;
+  out += `A^k mod N = 1 en k = ${indicesAk1.slice(0,10).join(', ')}\n`;
+  out += `A^k mod N = 0 en k = ${indicesAk0.slice(0,10).join(', ')}\n`;
+  out += `A^k mod N = A en k = ${indicesAkA.slice(0,10).join(', ')}\n\n`;
+  out += `gcd(A,N) = ${g}\n`;
+  out += `Orden multiplicativo de A mod N: ${orden===null?'no definido (gcd>1)':orden}\n`;
+
+  document.getElementById('markOut').textContent = out;
+}
+
+// ============================================================
+//  INIT
+// ============================================================
+window.addEventListener('load', () => {
+  // Ejecutar ataque exhaustivo por defecto con un Nmax pequeño
+  document.getElementById('Nmax').value = 500;
+  ataqueExhaustivo();
+});
+</script>
+
+</body>
+</html>

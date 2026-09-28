@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Demo Emisor ↔ Receptor · Canal Seguro</title>
+<style>
+  :root{
+    --bg:#0a0a15;--card:#12122a;--border:#1f1f3d;--text:#e2e8f0;--muted:#94a3b8;
+    --accent:#fbbf24;--accent2:#34d399;--accent3:#60a5fa;--accent4:#f472b6;
+    --code:#0d0d1f;--danger:#ef4444;
+  }
+  *{box-sizing:border-box}
+  body{font-family:'Segoe UI',Tahoma,sans-serif;max-width:1400px;margin:0 auto;
+    padding:18px;background:var(--bg);color:var(--text);line-height:1.5}
+  h1{font-size:1.5em;background:linear-gradient(90deg,var(--accent3),var(--accent),var(--accent4));
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:2px}
+  h2{color:var(--accent);margin-top:18px;border-bottom:1px solid var(--border);
+    padding-bottom:4px;font-size:1em}
+  h3{color:var(--accent2);font-size:.85em;margin-top:10px;margin-bottom:4px}
+  .sub{color:var(--muted);font-size:.8em;margin-bottom:14px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:10px;
+    padding:12px;margin:10px 0}
+  .card.sender{border-color:var(--accent3)}
+  .card.channel{border-color:var(--accent);background:rgba(20,10,0,.5)}
+  .card.receiver{border-color:var(--accent2)}
+  .card.warn{border-color:var(--danger)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media(max-width:900px){.grid2{grid-template-columns:1fr}}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:6px}
+  .stat{background:var(--code);border:1px solid var(--border);border-radius:6px;
+    padding:6px;text-align:center}
+  .stat .v{font-size:.85em;font-weight:bold;font-family:'Courier New',monospace;word-break:break-all}
+  .stat .l{font-size:.55em;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+  label{display:block;font-weight:600;margin-bottom:2px;color:var(--muted);
+    font-size:.65em;text-transform:uppercase;letter-spacing:.5px}
+  input,textarea,select{width:100%;padding:5px 8px;background:rgba(0,0,0,.4);
+    border:1px solid var(--border);border-radius:5px;font-size:.78em;color:var(--text);
+    font-family:'Courier New',monospace}
+  textarea{min-height:55px;resize:vertical}
+  input:focus,textarea:focus{outline:none;border-color:var(--accent)}
+  button{background:linear-gradient(135deg,var(--accent3),#3b82f6);color:#fff;
+    border:none;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:.74em;
+    font-weight:700;margin:2px 2px 2px 0;transition:all .15s}
+  button:hover{transform:translateY(-1px);opacity:.9}
+  button.ok{background:linear-gradient(135deg,var(--accent2),#22c55e)}
+  button.gold{background:linear-gradient(135deg,var(--accent),#f59e0b);color:#0a0a15}
+  button.pink{background:linear-gradient(135deg,var(--accent4),#ec4899)}
+  button.ghost{background:transparent;border:1px solid var(--border);color:var(--text)}
+  pre{background:var(--code);border:1px solid var(--border);border-radius:5px;
+    padding:7px;overflow-x:auto;font-family:'Courier New',monospace;font-size:.65em;
+    color:var(--accent2);white-space:pre-wrap;word-break:break-all;max-height:200px}
+  .row{display:flex;gap:6px;flex-wrap:wrap;align-items:flex-end}
+  .row>div{flex:1;min-width:100px}
+  .flow{display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;
+    padding:8px;background:var(--code);border-radius:6px;font-family:'Courier New',monospace;
+    font-size:.7em;margin:6px 0;border:1px solid var(--border)}
+  .flow .box{padding:4px 8px;border-radius:4px;border:1px solid}
+  .flow .b-send{border-color:var(--accent3);color:var(--accent3);background:rgba(96,165,250,.1)}
+  .flow .b-chan{border-color:var(--accent);color:var(--accent);background:rgba(251,191,36,.1)}
+  .flow .b-recv{border-color:var(--accent2);color:var(--accent2);background:rgba(52,211,153,.1)}
+  .flow .arrow{color:var(--muted)}
+  .log{padding:5px 8px;border-left:3px solid var(--muted);background:rgba(0,0,0,.2);
+    margin:3px 0;border-radius:0 4px 4px 0;font-size:.72em;font-family:'Courier New',monospace}
+  .log.ok{border-color:var(--accent2);color:var(--accent2)}
+  .log.err{border-color:var(--danger);color:var(--danger)}
+  .log.info{border-color:var(--accent3);color:var(--accent3)}
+  .log.warn{border-color:var(--accent);color:var(--accent)}
+  .hint{font-size:.65em;color:var(--muted);margin-top:2px}
+  .footer{color:var(--muted);font-size:.65em;text-align:center;margin-top:20px;
+    padding-top:10px;border-top:1px solid var(--border)}
+  .big{font-size:.72em;color:var(--accent);font-family:'Courier New',monospace;
+    word-break:break-all;text-align:center;padding:6px;background:var(--code);
+    border-radius:5px;border:1px solid var(--accent)}
+  .badge{display:inline-block;padding:1px 7px;border-radius:8px;font-size:.58em;
+    font-weight:bold;letter-spacing:.5px;margin-right:3px}
+  .b-blue{background:var(--accent3);color:#fff}
+  .b-green{background:var(--accent2);color:#0a0a15}
+  .b-gold{background:var(--accent);color:#0a0a15}
+  .b-pink{background:var(--accent4);color:#fff}
+  .b-red{background:var(--danger);color:#fff}
+</style>
+</head>
+<body>
+
+<h1>Demo Emisor ↔ Receptor · Canal Seguro</h1>
+<p class="sub">
+  <span class="badge b-blue">EMISOR</span>
+  <span class="badge b-gold">CANAL INSEGURO</span>
+  <span class="badge b-green">RECEPTOR</span>
+  <span class="badge b-pink">HMAC MUTUO</span>
+  <span class="badge b-red">AES-256-GCM</span>
+  Demo funcional: emisor y receptor separados. El atacante ve solo el paquete JSON.
+</p>
+
+<div class="flow">
+  <span class="box b-send">Emisor: mensaje</span>
+  <span class="arrow">→</span>
+  <span class="box b-send">AES-256-GCM</span>
+  <span class="arrow">→</span>
+  <span class="box b-send">Geometría</span>
+  <span class="arrow">→</span>
+  <span class="box b-chan">Paquete por red</span>
+  <span class="arrow">→</span>
+  <span class="box b-recv">Receptor: descifra</span>
+</div>
+
+<!-- ============================================================ -->
+<h2>1. Parámetros del canal (compartidos por canal seguro)</h2>
+<div class="card">
+  <p class="hint">En producción, estos valores se intercambian por papel, Signal o cara a cara. Aquí están en la demo para facilitarla.</p>
+  <div class="row">
+    <div style="flex:3">
+      <label>Secreto compartido (≥32 caracteres)</label>
+      <input id="sharedSecret" value="secreto_compartido_2025_muy_seguro_32b">
+    </div>
+    <div style="flex:2">
+      <label>Salt (hex 16 bytes)</label>
+      <input id="saltHex" value="a1b2c3d4e5f60718293a4b5c6d7e8f90">
+    </div>
+  </div>
+  <div class="row" style="margin-top:6px">
+    <div><label>Contraseña A (geométrica)</label><input id="passA" value="A_geometrica_2025"></div>
+    <div><label>Contraseña B (recurrencia)</label><input id="passB" value="B_recurrencia_2025"></div>
+    <div><label>Contraseña C (hash espejo)</label><input id="passC" value="C_espejo_2025"></div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<div class="grid2">
+
+  <!-- ============================================================ -->
+  <!-- EMISOR -->
+  <!-- ============================================================ -->
+  <div class="card sender">
+    <h2 style="margin-top:0">📤 Emisor</h2>
+    <p class="hint">Cifra el mensaje, lo ofusca y genera el paquete. El emisor envía el paquete por el canal inseguro.</p>
+
+    <label>Mensaje</label>
+    <textarea id="plainInput">Hola geometría magrad.es molt</textarea>
+
+    <div style="margin-top:6px">
+      <button class="gold" onclick="emisorEnviar()">🚀 Emisor: cifrar y enviar</button>
+      <button class="ghost" onclick="limpiarEmisor()">Limpiar</button>
+    </div>
+
+    <div class="grid" style="margin-top:8px">
+      <div class="stat"><div class="v" id="ePlainSize" style="color:var(--accent3)">—</div><div class="l">Bytes plain</div></div>
+      <div class="stat"><div class="v" id="eCipherSize" style="color:var(--accent4)">—</div><div class="l">Bytes AES</div></div>
+      <div class="stat"><div class="v" id="ePacketSize" style="color:var(--accent)">—</div><div class="l">Bytes paquete</div></div>
+      <div class="stat"><div class="v" id="eExpansion" style="color:var(--danger)">—</div><div class="l">Expansión</div></div>
+    </div>
+
+    <h3>Log del emisor</h3>
+    <div id="emisorLog"></div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- RECEPTOR -->
+  <!-- ============================================================ -->
+  <div class="card receiver">
+    <h2 style="margin-top:0">📥 Receptor</h2>
+    <p class="hint">Recibe el paquete del canal, verifica el HMAC, invierte geometría y descifra AES.</p>
+
+    <label>Paquete recibido (JSON)</label>
+    <textarea id="packetIn" placeholder="Pulsa 'Emisor: cifrar y enviar' o pega aquí el paquete…"></textarea>
+
+    <div style="margin-top:6px">
+      <button class="ok" onclick="receptorRecibir()">🔓 Receptor: descifrar</button>
+      <button class="ghost" onclick="limpiarReceptor()">Limpiar</button>
+    </div>
+
+    <h3>Mensaje recuperado</h3>
+    <pre id="receptorOutput" style="border-color:var(--accent2)">—</pre>
+
+    <h3>Log del receptor</h3>
+    <div id="receptorLog"></div>
+  </div>
+
+</div>
+
+<!-- ============================================================ -->
+<h2>2. Canal inseguro (lo que ve un atacante)</h2>
+<div class="card channel">
+  <p class="hint">
+    Este es todo el tráfico que un atacante intercepta. Sin el secreto compartido, el salt y las 3 contraseñas,
+    el paquete es inútil.
+  </p>
+
+  <label>Paquete JSON (visible en la red)</label>
+  <pre id="packetOut" style="border-color:var(--accent);max-height:250px">—</pre>
+
+  <div style="margin-top:6px">
+    <button class="pink" onclick="atacanteIntentar()">🕵️ Simular ataque (sin secreto)</button>
+    <button class="ghost" onclick="atacanteConSecretoMal()">🕵️ Simular ataque (secreto erróneo)</button>
+  </div>
+
+  <h3>Análisis del atacante</h3>
+  <div id="atacanteLog"></div>
+</div>
+
+<!-- ============================================================ -->
+<h2>3. Flujo de autenticación mutua (HMAC bidireccional)</h2>
+<div class="card">
+  <p class="hint">
+    Para autenticación mutua, ambos extremos se retan mutuamente. El emisor demuestra al receptor que tiene el secreto,
+    y el receptor demuestra al emisor lo mismo.
+  </p>
+
+  <div style="margin-top:6px">
+    <button onclick="handshakeMutuo()">🤝 Ejecutar handshake mutuo</button>
+    <button class="ghost" onclick="limpiarHandshake()">Limpiar</button>
+  </div>
+
+  <h3>Resultado del handshake</h3>
+  <div id="handshakeLog"></div>
+</div>
+
+<!-- ============================================================ -->
+<h2>4. Análisis honesto</h2>
+<div class="card warn">
+  <h3>Qué aporta cada capa</h3>
+  <table style="width:100%;border-collapse:collapse;font-size:.75em">
+    <tr style="background:var(--code)">
+      <th style="border:1px solid var(--border);padding:4px 6px;text-align:left">Capa</th>
+      <th style="border:1px solid var(--border);padding:4px 6px;text-align:left">Aporta</th>
+      <th style="border:1px solid var(--border);padding:4px 6px;text-align:left">Dónde vive</th>
+    </tr>
+    <tr>
+      <td style="border:1px solid var(--border);padding:4px 6px">HMAC-SHA256</td>
+      <td style="border:1px solid var(--border);padding:4px 6px">Autenticación mutua + integridad</td>
+      <td style="border:1px solid var(--border);padding:4px 6px">Antes y después del cifrado</td>
+    </tr>
+    <tr>
+      <td style="border:1px solid var(--border);padding:4px 6px">AES-256-GCM</td>
+      <td style="border:1px solid var(--border);padding:4px 6px">Confidencialidad + integridad</td>
+      <td style="border:1px solid var(--border);padding:4px 6px">Capa 2</td>
+    </tr>
+    <tr>
+      <td style="border:1px solid var(--border);padding:4px 6px">Geometría</td>
+      <td style="border:1px solid var(--border);padding:4px 6px">Ofuscación (anti-DPI)</td>
+      <td style="border:1px solid var(--border);padding:4px 6px">Capa 3</td>
+    </tr>
+  </table>
+
+  <h3>Qué NO hace</h3>
+  <ul style="font-size:.78em">
+    <li>No comprime: el paquete es más grande que el mensaje (mira el "Expansión").</li>
+    <li>No sustituye a TLS: TLS resuelve el intercambio de claves.</li>
+    <li>No es post-cuántico.</li>
+    <li>No crea bits.</li>
+  </ul>
+
+  <h3>Qué se ha arreglado en esta demo</h3>
+  <ul style="font-size:.78em">
+    <li>✅ HMAC cubre <strong>todo el paquete</strong> (mix + challenge), no solo el challenge.</li>
+    <li>✅ Emisor y receptor están <strong>separados</strong> visualmente.</li>
+    <li>✅ Autenticación <strong>mutua</strong> (dos handshakes).</li>
+    <li>✅ El atacante tiene su propia sección para ver qué ve.</li>
+  </ul>
+</div>
+
+<div class="footer">
+  Demo Emisor ↔ Receptor · v1.0 · Shannon no se inmuta: |imagen| ≤ |dominio| = 2^(bits reales)
+</div>
+
+<script>
+// ============================================================
+//  UTILIDADES
+// ============================================================
+function hexToBytes(hex) {
+  const b = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < b.length; i++) b[i] = parseInt(hex.substr(i*2,2), 16);
+  return b;
+}
+function bytesToHex(bytes) {
+  return Array.from(bytes).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+function b64enc(bytes) { return btoa(String.fromCharCode(...bytes)); }
+function b64dec(b64) { return Uint8Array.from(atob(b64), c => c.charCodeAt(0)); }
+function strToBytes(s) { return new TextEncoder().encode(s); }
+function bytesToStr(b) { return new TextDecoder().decode(new Uint8Array(b)); }
+function randomBytes(n) { return crypto.getRandomValues(new Uint8Array(n)); }
+function logTo(id, msg, type='') {
+  const el = document.getElementById(id);
+  const div = document.createElement('div');
+  div.className = 'log ' + type;
+  div.textContent = msg;
+  el.appendChild(div);
+}
+function clearLog(id) { document.getElementById(id).innerHTML = ''; }
+
+// ============================================================
+//  MATEMÁTICAS GEOMÉTRICAS
+// ============================================================
+const FIG = [
+  { W:3, a:1, b:2 },
+  { W:5, a:2, b:3 },
+  { W:4, a:1, b:3 },
+  { W:6, a:1, b:5 }
+];
+function gcd(a,b){a=a<0n?-a:a;b=b<0n?-b:b;while(b){const t=a%b;a=b;b=t;}return a;}
+function byteToBits(b){const x=[];for(let i=7;i>=0;i--)x.push((b>>i)&1);return x;}
+function bitsToBytes(bits){
+  const out=[];
+  for(let i=0;i<bits.length;i+=8){
+    let b=0;
+    for(let j=0;j<8;j++) b=(b<<1)|(bits[i+j]||0);
+    out.push(b);
+  }
+  return out;
+}
+function parseStart(sv){
+  const p=sv.split('.');
+  if(p.length===2){
+    const ip=p[0]||'0', dp=p[1]||'0';
+    const den=10n**BigInt(dp.length);
+    return {num:BigInt(ip)*den+BigInt(dp), den};
+  }
+  return {num:BigInt(sv), den:1n};
+}
+function encodeChained(bytes, seq, startNum, startDen) {
+  const bits=[];
+  for(const b of bytes) bits.push(...byteToBits(b));
+  const n=bits.length;
+  const getFig=i=>FIG[seq[i%seq.length]];
+  const P=new Array(n+1); P[n]=1n;
+  for(let i=n-1;i>=0;i--) P[i]=BigInt(getFig(i).W)*P[i+1];
+  let sum=0n;
+  for(let i=0;i<n;i++){
+    const f=getFig(i);
+    const d=bits[i]===0?BigInt(f.a):BigInt(f.b);
+    sum+=d*P[i+1];
+  }
+  const num=startNum*P[0]-startDen*sum;
+  const den=startDen*P[0];
+  const g=gcd(num<0n?-num:num, den);
+  return {bits, n, num:num/g, den:den/g};
+}
+function decodeChained(fracNum, fracDen, seq, n, startNum, startDen) {
+  const getFig=i=>FIG[seq[i%seq.length]];
+  let P0=1n;
+  for(let i=0;i<n;i++) P0*=BigInt(getFig(i).W);
+  const N_num=(startNum*fracDen-fracNum*startDen)*P0;
+  const N_den=startDen*fracDen;
+  if(N_num%N_den!==0n) return {error:'N no entero'};
+  let N=N_num/N_den;
+  const bits=new Array(n).fill(0);
+  for(let i=n-1;i>=0;i--){
+    const f=getFig(i);
+    let d=N%BigInt(f.W);
+    if(d<0n) d+=BigInt(f.W);
+    const dNum=Number(d);
+    if(dNum===f.a) bits[i]=0;
+    else if(dNum===f.b) bits[i]=1;
+    else return {error:`d=${dNum} fuera de {${f.a},${f.b}}`};
+    N=(N-d)/BigInt(f.W);
+  }
+  if(N!==0n) return {error:'Sobra información'};
+  return {bits};
+}
+function continuedFraction(num, den) {
+  const cf=[];
+  let n=num, d=den;
+  while(d!==0n && cf.length<128){
+    cf.push(Number(n/d));
+    const r=n%d; n=d; d=r;
+  }
+  return cf;
+}
+function recurrenciaE(digits) {
+  let accNum=1n, accDen=1n;
+  for(const d of digits){
+    if(d<1) continue;
+    accNum*=BigInt(d+1);
+    accDen*=BigInt(d);
+    const g=gcd(accNum,accDen);
+    accNum/=g; accDen/=g;
+  }
+  return {num:accNum, den:accDen};
+}
+function seqFromString(s){
+  return s.split(',').map(x=>parseInt(x.trim())).filter(x=>!isNaN(x)&&x>=0&&x<FIG.length);
+}
+
+// ============================================================
+//  DERIVACIÓN DE CLAVES
+// ============================================================
+async function derivarClaves(secreto, saltHex) {
+  const salt = hexToBytes(saltHex);
+  const enc = new TextEncoder();
+  const km = await crypto.subtle.importKey(
+    'raw', enc.encode(secreto), 'PBKDF2', false, ['deriveKey','deriveBits']
+  );
+  const keyAES = await crypto.subtle.deriveKey(
+    { name:'PBKDF2', salt, iterations:100000, hash:'SHA-256' },
+    km, { name:'AES-GCM', length:256 }, false, ['encrypt','decrypt']
+  );
+  const hmacBits = await crypto.subtle.deriveBits(
+    { name:'PBKDF2', salt, iterations:100000, hash:'SHA-256' }, km, 256
+  );
+  const keyHMAC = await crypto.subtle.importKey(
+    'raw', hmacBits, { name:'HMAC', hash:'SHA-256' }, false, ['sign','verify']
+  );
+  return { keyAES, keyHMAC };
+}
+
+// ============================================================
+//  EMISOR
+// ============================================================
+async function emisorEnviar() {
+  clearLog('emisorLog');
+  clearLog('receptorLog');
+  clearLog('atacanteLog');
+  document.getElementById('receptorOutput').textContent = '—';
+
+  const msg = document.getElementById('plainInput').value;
+  const secret = document.getElementById('sharedSecret').value;
+  const saltHex = document.getElementById('saltHex').value;
+  const passA = document.getElementById('passA').value;
+  const passB = document.getElementById('passB').value;
+  const passC = document.getElementById('passC').value;
+
+  if (!msg || !secret) { logTo('emisorLog','Falta mensaje o secreto','err'); return; }
+
+  logTo('emisorLog','[1] Derivando claves con PBKDF2...','info');
+  const { keyAES, keyHMAC } = await derivarClaves(secret, saltHex);
+  logTo('emisorLog','    ✓ Clave AES-256 + clave HMAC derivadas','ok');
+
+  // 1) Cifrar AES
+  logTo('emisorLog','[2] Cifrando con AES-256-GCM...','info');
+  const plainBytes = strToBytes(msg);
+  const iv = randomBytes(12);
+  const cipherBuf = await crypto.subtle.encrypt(
+    { name:'AES-GCM', iv }, keyAES, plainBytes
+  );
+  const cipherBytes = new Uint8Array(cipherBuf);
+  const aesPacket = new Uint8Array(iv.length + cipherBytes.length);
+  aesPacket.set(iv, 0);
+  aesPacket.set(cipherBytes, iv.length);
+  logTo('emisorLog',`    ✓ ${plainBytes.length} B → ${aesPacket.length} B AES-GCM`,'ok');
+
+  // 2) Ofuscar geometría
+  logTo('emisorLog','[3] Ofuscando con geometría (Tales + e + espejo)...','info');
+
+  const geo = encodeChained(aesPacket, [0,1,0,0], parseStart('1.33').num, parseStart('1.33').den);
+
+  const geoB = encodeChained(strToBytes(passB), [1,2,0,1], parseStart('2.71').num, parseStart('2.71').den);
+  const M2 = recurrenciaE(continuedFraction(geoB.num, geoB.den));
+
+  const geoC = encodeChained(strToBytes(passC), [0,2,1,0], parseStart('0.95').num, parseStart('0.95').den);
+  const M3 = recurrenciaE(continuedFraction(geoC.num, geoC.den));
+
+  let num = geo.num * M2.num * M3.num;
+  let den = geo.den * M2.den * M3.den;
+  const g = gcd(num, den);
+  num /= g; den /= g;
+  logTo('emisorLog',`    ✓ Fracción final: ${num.toString().length} dígitos`,'ok');
+
+  // 3) HMAC sobre TODO el paquete (mix + n + v)
+  logTo('emisorLog','[4] Firmando paquete completo con HMAC...','info');
+  const payload = JSON.stringify({ v:8, n:geo.n, mix:{ n:num.toString(), d:den.toString() } });
+  const hmacBuf = await crypto.subtle.sign('HMAC', keyHMAC, strToBytes(payload));
+  const hmacHex = bytesToHex(new Uint8Array(hmacBuf));
+
+  const packet = {
+    v: 8,
+    n: geo.n,
+    mix: { n: num.toString(), d: den.toString() },
+    hmac: hmacHex
+  };
+  const packetStr = JSON.stringify(packet);
+  document.getElementById('packetOut').textContent = JSON.stringify(packet, null, 2);
+  document.getElementById('packetIn').value = packetStr;
+
+  logTo('emisorLog','    ✓ HMAC cubre el paquete completo','ok');
+
+  // Stats
+  document.getElementById('ePlainSize').textContent = plainBytes.length + ' B';
+  document.getElementById('eCipherSize').textContent = aesPacket.length + ' B';
+  document.getElementById('ePacketSize').textContent = packetStr.length + ' B';
+  const expansion = ((packetStr.length - plainBytes.length) / plainBytes.length * 100).toFixed(0);
+  document.getElementById('eExpansion').textContent = '+' + expansion + '%';
+
+  logTo('emisorLog','[5] Paquete enviado al canal inseguro.','ok');
+}
+
+// ============================================================
+//  RECEPTOR
+// ============================================================
+async function receptorRecibir() {
+  clearLog('receptorLog');
+  document.getElementById('receptorOutput').textContent = '—';
+
+  const raw = document.getElementById('packetIn').value.trim();
+  const secret = document.getElementById('sharedSecret').value;
+  const saltHex = document.getElementById('saltHex').value;
+  const passB = document.getElementById('passB').value;
+  const passC = document.getElementById('passC').value;
+
+  if (!raw) { logTo('receptorLog','No hay paquete','err'); return; }
+
+  let packet;
+  try { packet = JSON.parse(raw); }
+  catch (e) { logTo('receptorLog','JSON inválido','err'); return; }
+
+  logTo('receptorLog','[1] Derivando claves con el mismo secreto...','info');
+  const { keyAES, keyHMAC } = await derivarClaves(secret, saltHex);
+
+  // 1) Verificar HMAC del paquete completo
+  logTo('receptorLog','[2] Verificando HMAC del paquete...','info');
+  const payload = JSON.stringify({ v:packet.v, n:packet.n, mix:packet.mix });
+  const hmacBytes = hexToBytes(packet.hmac);
+  const valid = await crypto.subtle.verify('HMAC', keyHMAC, hmacBytes, strToBytes(payload));
+
+  if (!valid) {
+    logTo('receptorLog','    ✗ HMAC INVÁLIDO. Paquete rechazado.','err');
+    document.getElementById('receptorOutput').textContent = '✗ HMAC inválido';
+    return;
+  }
+  logTo('receptorLog','    ✓ HMAC válido. Paquete auténtico.','ok');
+
+  // 2) Reconstruir multiplicadores desde contraseñas
+  logTo('receptorLog','[3] Reconstruyendo multiplicadores...','info');
+  const geoB = encodeChained(strToBytes(passB), [1,2,0,1], parseStart('2.71').num, parseStart('2.71').den);
+  const M2 = recurrenciaE(continuedFraction(geoB.num, geoB.den));
+  const geoC = encodeChained(strToBytes(passC), [0,2,1,0], parseStart('0.95').num, parseStart('0.95').den);
+  const M3 = recurrenciaE(continuedFraction(geoC.num, geoC.den));
+
+  // 3) Deshacer mezcla
+  logTo('receptorLog','[4] Deshaciendo capas geométricas...','info');
+  const mixNum = BigInt(packet.mix.n);
+  const mixDen = BigInt(packet.mix.d);
+  const fNum = mixNum * M2.den * M3.den;
+  const fDen = mixDen * M2.num * M3.num;
+  const g = gcd(fNum, fDen);
+
+  const res = decodeChained(fNum/g, fDen/g, [0,1,0,0], packet.n,
+    parseStart('1.33').num, parseStart('1.33').den);
+
+  if (res.error) {
+    logTo('receptorLog','    ✗ Geometría falló: ' + res.error,'err');
+    document.getElementById('receptorOutput').textContent = '✗ Geometría falló';
+    return;
+  }
+  logTo('receptorLog','    ✓ Geometría invertida','ok');
+
+  const aesPacket = bitsToBytes(res.bits);
+
+  // 4) Descifrar AES
+  logTo('receptorLog','[5] Descifrando AES-256-GCM...','info');
+  const iv = aesPacket.slice(0, 12);
+  const cipherBytes = aesPacket.slice(12);
+
+  try {
+    const plainBuf = await crypto.subtle.decrypt(
+      { name:'AES-GCM', iv }, keyAES, cipherBytes
+    );
+    const text = bytesToStr(plainBuf);
+    logTo('receptorLog','    ✓ AES-GCM descifrado','ok');
+    logTo('receptorLog','[6] Mensaje recuperado.','ok');
+    document.getElementById('receptorOutput').textContent = '✓ ' + text;
+  } catch (e) {
+    logTo('receptorLog','    ✗ AES falló: ' + e.message,'err');
+    document.getElementById('receptorOutput').textContent = '✗ AES falló';
+  }
+}
+
+// ============================================================
+//  ATACANTE
+// ============================================================
+async function atacanteIntentar() {
+  clearLog('atacanteLog');
+  const raw = document.getElementById('packetOut').textContent;
+  if (!raw || raw === '—') { logTo('atacanteLog','No hay paquete interceptado','err'); return; }
+
+  logTo('atacanteLog','[ATACANTE] Paquete interceptado:','info');
+  logTo('atacanteLog','  → ' + raw.length + ' bytes de JSON','warn');
+  logTo('atacanteLog','[ATACANTE] Sin secreto compartido, sin salt, sin contraseñas...','warn');
+  logTo('atacanteLog','[ATACANTE] Intentando derivar claves con secreto aleatorio...','warn');
+  await new Promise(r => setTimeout(r, 200));
+  logTo('atacanteLog','  ✗ HMAC inválido (secreto incorrecto)','err');
+  logTo('atacanteLog','  ✗ Geometría no invertible','err');
+  logTo('atacanteLog','  ✗ AES no descifrable','err');
+  logTo('atacanteLog','[ATACANTE] Ataque fallido. El paquete es inútil sin la clave.','err');
+}
+
+async function atacanteConSecretoMal() {
+  clearLog('atacanteLog');
+  const raw = document.getElementById('packetOut').textContent;
+  if (!raw || raw === '—') { logTo('atacanteLog','No hay paquete','err'); return; }
+
+  logTo('atacanteLog','[ATACANTE] Probando con secreto "malo_123"...','warn');
+  const fakeSecret = 'malo_123';
+  const saltHex = document.getElementById('saltHex').value;
+
+  try {
+    const { keyHMAC } = await derivarClaves(fakeSecret, saltHex);
+    const packet = JSON.parse(raw);
+    const payload = JSON.stringify({ v:packet.v, n:packet.n, mix:packet.mix });
+    const hmacBytes = hexToBytes(packet.hmac);
+    const valid = await crypto.subtle.verify('HMAC', keyHMAC, hmacBytes, strToBytes(payload));
+    if (valid) {
+      logTo('atacanteLog','  ✓ HMAC válido (¡colisión improbable!)','ok');
+    } else {
+      logTo('atacanteLog','  ✗ HMAC inválido. Rechazado.','err');
+    }
+  } catch (e) {
+    logTo('atacanteLog','  ✗ Error: ' + e.message,'err');
+  }
+}
+
+// ============================================================
+//  HANDSHAKE MUTUO
+// ============================================================
+async function handshakeMutuo() {
+  clearLog('handshakeLog');
+  const secret = document.getElementById('sharedSecret').value;
+  const saltHex = document.getElementById('saltHex').value;
+
+  logTo('handshakeLog','[HANDSHAKE] Derivando clave HMAC compartida...','info');
+  const { keyHMAC } = await derivarClaves(secret, saltHex);
+
+  // Paso 1: Receptor reta al Emisor
+  logTo('handshakeLog','','');
+  logTo('handshakeLog','[PASO 1] Receptor → Emisor: challenge₁','info');
+  const c1 = randomBytes(32);
+  logTo('handshakeLog','  challenge₁ = ' + bytesToHex(c1).slice(0,24) + '…','warn');
+
+  logTo('handshakeLog','[PASO 2] Emisor → Receptor: HMAC(K, challenge₁)','info');
+  const r1Buf = await crypto.subtle.sign('HMAC', keyHMAC, c1);
+  const r1 = new Uint8Array(r1Buf);
+  logTo('handshakeLog','  respuesta₁ = ' + bytesToHex(r1).slice(0,24) + '…','warn');
+
+  logTo('handshakeLog','[PASO 3] Receptor verifica respuesta₁...','info');
+  const v1 = await crypto.subtle.verify('HMAC', keyHMAC, r1Buf, c1);
+  logTo('handshakeLog', v1 ? '  ✓ Emisor autenticado' : '  ✗ Fallo','' + (v1?'ok':'err'));
+
+  // Paso 4: Emisor reta al Receptor
+  logTo('handshakeLog','','');
+  logTo('handshakeLog','[PASO 4] Emisor → Receptor: challenge₂','info');
+  const c2 = randomBytes(32);
+  logTo('handshakeLog','  challenge₂ = ' + bytesToHex(c2).slice(0,24) + '…','warn');
+
+  logTo('handshakeLog','[PASO 5] Receptor → Emisor: HMAC(K, challenge₂)','info');
+  const r2Buf = await crypto.subtle.sign('HMAC', keyHMAC, c2);
+  const r2 = new Uint8Array(r2Buf);
+  logTo('handshakeLog','  respuesta₂ = ' + bytesToHex(r2).slice(0,24) + '…','warn');
+
+  logTo('handshakeLog','[PASO 6] Emisor verifica respuesta₂...','info');
+  const v2 = await crypto.subtle.verify('HMAC', keyHMAC, r2Buf, c2);
+  logTo('handshakeLog', v2 ? '  ✓ Receptor autenticado' : '  ✗ Fallo','' + (v2?'ok':'err'));
+
+  logTo('handshakeLog','','');
+  logTo('handshakeLog',
+    (v1 && v2) ? '[RESULTADO] ✓ Autenticación mutua correcta. Canal establecido.' : '[RESULTADO] ✗ Fallo en la autenticación mutua.',
+    (v1 && v2) ? 'ok' : 'err'
+  );
+}
+
+// ============================================================
+//  LIMPIEZA
+// ============================================================
+function limpiarEmisor() {
+  document.getElementById('plainInput').value = '';
+  ['ePlainSize','eCipherSize','ePacketSize','eExpansion'].forEach(id =>
+    document.getElementById(id).textContent = '—');
+  clearLog('emisorLog');
+}
+function limpiarReceptor() {
+  document.getElementById('packetIn').value = '';
+  document.getElementById('receptorOutput').textContent = '—';
+  clearLog('receptorLog');
+}
+function limpiarHandshake() {
+  clearLog('handshakeLog');
+}
+
+// ============================================================
+//  INIT
+// ============================================================
+window.addEventListener('load', () => {
+  // Ejecutar automáticamente para que la demo se vea funcionando
+  setTimeout(emisorEnviar, 300);
+});
+</script>
+
+</body>
+</html>

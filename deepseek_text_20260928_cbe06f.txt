@@ -1,0 +1,7 @@
+- Header
+- Section 1: Config (k_min, k_max, entry cap)
+- Section 2: Precompute button + status
+- Section 3: Per-k summary (table)
+- Section 4: Detail view of one k (selectable)
+- Section 5: Test batteries
+- Section 6: Analysis

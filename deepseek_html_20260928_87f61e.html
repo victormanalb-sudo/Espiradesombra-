@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Canal Seguro Completo · K3 + AES-256-GCM + Geometría</title>
+<style>
+  :root{
+    --bg:#0a0a15;--card:#12122a;--border:#1f1f3d;--text:#e2e8f0;--muted:#94a3b8;
+    --accent:#fbbf24;--accent2:#34d399;--accent3:#60a5fa;--accent4:#f472b6;
+    --code:#0d0d1f;--danger:#ef4444;
+  }
+  *{box-sizing:border-box}
+  body{font-family:'Segoe UI',Tahoma,sans-serif;max-width:1300px;margin:0 auto;
+    padding:20px;background:var(--bg);color:var(--text);line-height:1.55}
+  h1{font-size:1.65em;background:linear-gradient(90deg,var(--accent),var(--accent2),var(--accent3));
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:4px}
+  h2{color:var(--accent);margin-top:24px;border-bottom:1px solid var(--border);
+    padding-bottom:5px;font-size:1.05em}
+  h3{color:var(--accent2);font-size:.88em;margin-top:12px;margin-bottom:5px}
+  .sub{color:var(--muted);font-size:.82em;margin-bottom:16px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;
+    padding:14px;margin:10px 0}
+  .card.gold{border-color:var(--accent)}.card.ok{border-color:var(--accent2)}
+  .card.info{border-color:var(--accent3)}.card.pink{border-color:var(--accent4)}
+  .card.warn{border-color:var(--danger)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:7px}
+  .stat{background:var(--code);border:1px solid var(--border);border-radius:7px;
+    padding:7px;text-align:center}
+  .stat .v{font-size:.9em;font-weight:bold;font-family:'Courier New',monospace;word-break:break-all}
+  .stat .l{font-size:.58em;color:var(--muted);text-transform:uppercase;
+    letter-spacing:.5px;margin-top:2px}
+  label{display:block;font-weight:600;margin-bottom:3px;color:var(--muted);
+    font-size:.68em;text-transform:uppercase;letter-spacing:.5px}
+  input,textarea,select{width:100%;padding:6px 9px;background:rgba(0,0,0,.4);
+    border:1px solid var(--border);border-radius:6px;font-size:.8em;color:var(--text);
+    font-family:'Courier New',monospace}
+  textarea{min-height:60px;resize:vertical}
+  input:focus,textarea:focus{outline:none;border-color:var(--accent)}
+  button{background:linear-gradient(135deg,var(--accent),#f59e0b);color:#0a0a15;
+    border:none;padding:7px 13px;border-radius:6px;cursor:pointer;font-size:.76em;
+    font-weight:700;margin:3px 3px 3px 0;transition:all .2s}
+  button:hover{transform:translateY(-1px);opacity:.9}
+  button.ok{background:linear-gradient(135deg,var(--accent2),#22c55e);color:#fff}
+  button.info{background:linear-gradient(135deg,var(--accent3),#3b82f6);color:#fff}
+  button.pink{background:linear-gradient(135deg,var(--accent4),#ec4899);color:#fff}
+  button.danger{background:linear-gradient(135deg,var(--danger),#dc2626);color:#fff}
+  button.ghost{background:transparent;border:1px solid var(--border);color:var(--text)}
+  pre{background:var(--code);border:1px solid var(--border);border-radius:6px;
+    padding:9px;overflow-x:auto;font-family:'Courier New',monospace;font-size:.7em;
+    color:var(--accent2);white-space:pre-wrap;word-break:break-all;max-height:280px}
+  table{width:100%;border-collapse:collapse;margin:6px 0;font-size:.76em}
+  th,td{border:1px solid var(--border);padding:4px 6px;text-align:left}
+  th{background:var(--code);color:var(--accent);font-size:.66em;text-transform:uppercase}
+  .tag{display:inline-block;padding:2px 8px;border-radius:9px;font-size:.58em;
+    font-weight:bold;letter-spacing:.5px;margin-right:4px}
+  .tag.ok{background:var(--accent2);color:#0a0a15}
+  .tag.gold{background:var(--accent);color:#0a0a15}
+  .tag.info{background:var(--accent3);color:#0a0a15}
+  .tag.pink{background:var(--accent4);color:#0a0a15}
+  .tag.danger{background:var(--danger);color:#fff}
+  .row{display:flex;gap:7px;flex-wrap:wrap;align-items:flex-end}
+  .row>div{flex:1;min-width:110px}
+  .hint{font-size:.68em;color:var(--muted);margin-top:3px}
+  .footer{color:var(--muted);font-size:.68em;text-align:center;margin-top:24px;
+    padding-top:12px;border-top:1px solid var(--border)}
+  .big{font-size:.85em;color:var(--accent);font-family:'Courier New',monospace;
+    word-break:break-all;text-align:center;padding:8px;background:var(--code);
+    border-radius:6px;border:1px solid var(--accent)}
+  .flow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;
+    padding:8px;background:var(--code);border-radius:6px;border:1px solid var(--border);
+    font-family:'Courier New',monospace;font-size:.72em;margin:6px 0}
+  .flow .box{padding:5px 9px;border-radius:5px;background:rgba(96,165,250,.12);
+    border:1px solid var(--accent3);color:var(--accent3)}
+  .flow .box.a{border-color:var(--accent);color:var(--accent);background:rgba(251,191,36,.12)}
+  .flow .box.b{border-color:var(--accent4);color:var(--accent4);background:rgba(244,114,182,.12)}
+  .flow .box.c{border-color:var(--accent2);color:var(--accent2);background:rgba(52,211,153,.12)}
+  .flow .arrow{color:var(--muted)}
+  .step{padding:8px 12px;border-left:3px solid var(--accent);background:rgba(251,191,36,.05);
+    margin:6px 0;border-radius:0 6px 6px 0;font-size:.8em}
+  .step.ok{border-color:var(--accent2);background:rgba(52,211,153,.05)}
+  .step.info{border-color:var(--accent3);background:rgba(96,165,250,.05)}
+  .step.pink{border-color:var(--accent4);background:rgba(244,114,182,.05)}
+  .step.danger{border-color:var(--danger);background:rgba(239,68,68,.05)}
+  .step code{background:rgba(0,0,0,.3);padding:1px 4px;border-radius:3px;color:var(--accent2)}
+</style>
+</head>
+<body>
+
+<h1>Canal Seguro Completo · K3 + AES + Geometría</h1>
+<p class="sub">
+  <span class="tag gold">CAPA 1: HMAC K3</span>
+  <span class="tag info">CAPA 2: AES-256-GCM</span>
+  <span class="tag pink">CAPA 3: GEOMÉTRICA</span>
+  <span class="tag ok">AUTENTICACIÓN MUTUA</span>
+  <span class="tag danger">SHANNON NO SE INMUTA</span>
+</p>
+
+<!-- ============================================================ -->
+<h2>0. Arquitectura del canal</h2>
+
+<div class="card info">
+  <div class="flow">
+    <span class="box a">Secreto compartido</span>
+    <span class="arrow">→</span>
+    <span class="box a">HMAC-SHA256 (challenge)</span>
+    <span class="arrow">→</span>
+    <span class="box">✓ Identidad</span>
+  </div>
+  <div class="flow">
+    <span class="box" style="border-color:var(--accent3);color:var(--accent3);background:rgba(96,165,250,.12)">Mensaje</span>
+    <span class="arrow">→</span>
+    <span class="box" style="border-color:var(--accent3);color:var(--accent3);background:rgba(96,165,250,.12)">AES-256-GCM</span>
+    <span class="arrow">→</span>
+    <span class="box" style="border-color:var(--accent3);color:var(--accent3);background:rgba(96,165,250,.12)">Criptograma + tag</span>
+  </div>
+  <div class="flow">
+    <span class="box b">Criptograma</span>
+    <span class="arrow">→</span>
+    <span class="box b">Triple capa geométrica</span>
+    <span class="arrow">→</span>
+    <span class="box" style="border-color:var(--accent2);color:var(--accent2);background:rgba(52,211,153,.12)">Paquete final</span>
+  </div>
+  <div class="step">
+    <strong>Flujo completo:</strong> 1) Autenticación HMAC → 2) Cifrado AES-GCM → 3) Ofuscación geométrica → 4) Transmisión.
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2>1. Secreto compartido (canal seguro out-of-band)</h2>
+
+<div class="card gold">
+  <div class="row">
+    <div style="flex:2">
+      <label>Secreto compartido (papel, Signal, cara a cara)</label>
+      <input id="sharedSecret" type="password" value="secreto_compartido_2025_seguro_32b">
+      <div class="hint">Mínimo 32 caracteres. Se deriva la clave AES-256 y el secreto HMAC.</div>
+    </div>
+    <div>
+      <label>Salt (16 bytes hex)</label>
+      <input id="salt" value="a1b2c3d4e5f60718293a4b5c6d7e8f90">
+    </div>
+  </div>
+  <div style="margin-top:8px">
+    <button class="gold" onclick="derivarClaves()">🔑 Derivar claves</button>
+  </div>
+
+  <div class="grid" style="margin-top:10px">
+    <div class="stat"><div class="v" id="sKeyAES" style="color:var(--accent3)">—</div><div class="l">Clave AES-256</div></div>
+    <div class="stat"><div class="v" id="sKeyHMAC" style="color:var(--accent4)">—</div><div class="l">Clave HMAC</div></div>
+    <div class="stat"><div class="v" id="sBits" style="color:var(--accent)">—</div><div class="l">Entropía estimada</div></div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2>2. Capa 1 · Autenticación HMAC (K3)</h2>
+
+<div class="card info">
+  <div class="step info">
+    <strong>Challenge-response:</strong> el receptor envía un <code>challenge</code> (nonce aleatorio). El emisor responde con <code>HMAC(clave_HMAC, challenge)</code>. El receptor verifica. Sin el secreto, no hay respuesta válida.
+  </div>
+
+  <div style="margin-top:8px">
+    <button class="info" onclick="simularHandshake()">🤝 Simular handshake K3</button>
+  </div>
+
+  <h3>Challenge</h3>
+  <pre id="challengeOut">—</pre>
+  <h3>Respuesta HMAC</h3>
+  <pre id="hmacOut">—</pre>
+  <h3>Verificación</h3>
+  <pre id="verifyOut">—</pre>
+</div>
+
+<!-- ============================================================ -->
+<h2>3. Capa 2 · Cifrado AES-256-GCM</h2>
+
+<div class="card">
+  <div class="row">
+    <div style="flex:3">
+      <label>Mensaje a cifrar</label>
+      <textarea id="plainInput">Hola geometría magrad.es molt</textarea>
+    </div>
+  </div>
+  <div style="margin-top:6px">
+    <button class="ok" onclick="cifrarAES()">🔐 Cifrar AES-256-GCM</button>
+    <button class="ghost" onclick="limpiarAES()">Limpiar</button>
+  </div>
+
+  <div class="grid" style="margin-top:10px">
+    <div class="stat"><div class="v" id="aesPlainSize" style="color:var(--accent3)">—</div><div class="l">Bytes plain</div></div>
+    <div class="stat"><div class="v" id="aesCipherSize" style="color:var(--accent4)">—</div><div class="l">Bytes cipher</div></div>
+    <div class="stat"><div class="v" id="aesOver" style="color:var(--accent)">—</div><div class="l">Overhead</div></div>
+    <div class="stat"><div class="v" id="aesAuth" style="color:var(--accent2)">—</div><div class="l">Tag GCM</div></div>
+  </div>
+
+  <h3>Criptograma (Base64: IV + ciphertext + tag)</h3>
+  <pre id="aesOut">—</pre>
+</div>
+
+<!-- ============================================================ -->
+<h2>4. Capa 3 · Ofuscación geométrica</h2>
+
+<div class="card pink">
+  <div class="step pink">
+    <strong>Triple capa geométrica:</strong> el criptograma AES se transforma en una fracción gigante usando geometría de Tales + recurrencia tipo <code>e</code> + hash espejo. Solo se transmite una fracción. El atacante ve un número, no un paquete AES.
+  </div>
+
+  <div class="row" style="margin-top:8px">
+    <div>
+      <label>Contraseña A (geométrica)</label>
+      <input id="passA" type="password" value="A_geometrica_2025">
+    </div>
+    <div>
+      <label>Contraseña B (recurrencia e)</label>
+      <input id="passB" type="password" value="B_recurrencia_2025">
+    </div>
+    <div>
+      <label>Contraseña C (hash espejo)</label>
+      <input id="passC" type="password" value="C_espejo_2025">
+    </div>
+  </div>
+
+  <div style="margin-top:8px">
+    <button class="pink" onclick="ofuscarGeometrico()">🌀 Ofuscar geométricamente</button>
+    <button class="ghost" onclick="limpiarGeo()">Limpiar</button>
+  </div>
+
+  <h3>Fracción ofuscada (lo único que viaja)</h3>
+  <div class="big" id="geoFrac">—</div>
+
+  <h3>Paquete final JSON</h3>
+  <pre id="packetFinal">—</pre>
+
+  <div style="margin-top:6px">
+    <button class="info" onclick="copyFinal()">📋 Copiar paquete</button>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2>5. Flujo completo (emisor → receptor)</h2>
+
+<div class="card ok">
+  <div style="margin-top:6px">
+    <button class="ok" onclick="flujoCompleto()">🚀 Ejecutar flujo completo</button>
+    <button class="danger" onclick="flujoCompletoMal()">❌ Con secreto erróneo</button>
+  </div>
+
+  <h3>Resultado</h3>
+  <pre id="flowOut">—</pre>
+
+  <h3>Mensaje recuperado</h3>
+  <pre id="flowDecrypted">—</pre>
+</div>
+
+<!-- ============================================================ -->
+<h2>6. Receptor: descifrado completo</h2>
+
+<div class="card pink">
+  <div class="row">
+    <div style="flex:3">
+      <label>Paquete recibido</label>
+      <textarea id="packetIn" placeholder="Pega aquí el paquete final…"></textarea>
+    </div>
+  </div>
+
+  <div class="row" style="margin-top:6px">
+    <div style="flex:2">
+      <label>Secreto compartido</label>
+      <input id="decSecret" type="password" value="secreto_compartido_2025_seguro_32b">
+    </div>
+    <div>
+      <label>Salt</label>
+      <input id="decSalt" value="a1b2c3d4e5f60718293a4b5c6d7e8f90">
+    </div>
+  </div>
+
+  <div class="row" style="margin-top:6px">
+    <div><label>Pass A</label><input id="decPassA" type="password" value="A_geometrica_2025"></div>
+    <div><label>Pass B</label><input id="decPassB" type="password" value="B_recurrencia_2025"></div>
+    <div><label>Pass C</label><input id="decPassC" type="password" value="C_espejo_2025"></div>
+  </div>
+
+  <div style="margin-top:8px">
+    <button class="pink" onclick="descifradoCompleto()">🔓 Descifrar todo</button>
+    <button class="ghost" onclick="limpiarReceptor()">Limpiar</button>
+  </div>
+
+  <h3>Mensaje recuperado</h3>
+  <pre id="finalDecrypted">—</pre>
+  <h3>Diagnóstico</h3>
+  <pre id="finalDiag">—</pre>
+</div>
+
+<!-- ============================================================ -->
+<h2>7. Análisis honesto</h2>
+
+<div class="card warn">
+  <h3>Qué aporta cada capa</h3>
+  <table>
+    <tr><th>Capa</th><th>Aporta</th><th>Función real</th></tr>
+    <tr><td>K3 (HMAC)</td><td>Autenticación de identidad</td><td>Verifica posesión del secreto</td></tr>
+    <tr><td>AES-256-GCM</td><td>Confidencialidad + integridad</td><td>Cifrado autenticado estándar</td></tr>
+    <tr><td>Geométrica</td><td>Ofuscación</td><td>Representación alternativa anti-DPI</td></tr>
+  </table>
+
+  <h3>Lo que NO hace</h3>
+  <ul style="font-size:.8em">
+    <li>No comprime: el paquete es mayor que el mensaje.</li>
+    <li>No sustituye a TLS: TLS resuelve el intercambio de claves.</li>
+    <li>No es post-cuántico: AES-256 resiste parcialmente, HMAC-SHA256 también, pero el esquema no está analizado.</li>
+    <li>No crea bits: Shannon no se inmuta.</li>
+  </ul>
+
+  <h3>Uso recomendado</h3>
+  <ol style="font-size:.8em">
+    <li><strong>Intercambia el secreto</strong> por canal seguro (papel, Signal, cara a cara).</li>
+    <li><strong>Deriva claves</strong> con PBKDF2-SHA256 (100.000 iteraciones).</li>
+    <li><strong>Autentica</strong> con HMAC challenge-response.</li>
+    <li><strong>Cifra</strong> con AES-256-GCM.</li>
+    <li><strong>Ofusca</strong> con triple capa geométrica (opcional).</li>
+    <li><strong>Envía</strong> el paquete.</li>
+    <li><strong>Receptor</strong> invierte geometría → descifra AES → verifica HMAC.</li>
+  </ol>
+
+  <h3>Valor comercial orientativo</h3>
+  <table>
+    <tr><th>Aplicación</th><th>Por qué</th><th>Valor</th></tr>
+    <tr><td>IoT industrial</td><td>Autenticación sin PKI + cifrado ligero</td><td>30–80 k€</td></tr>
+    <tr><td>SCADA</td><td>Challenge-response + trazabilidad</td><td>50–150 k€</td></tr>
+    <tr><td>Mensajería DPI-resistente</td><td>AES + ofuscación geométrica</td><td>20–60 k€</td></tr>
+    <tr><td>Almacenamiento local</td><td>AES + HMAC + representación exacta</td><td>15–40 k€</td></tr>
+  </table>
+  <p class="hint">Sin benchmarks medidos y sin cliente real, el valor es 0.</p>
+</div>
+
+<div class="footer">
+  Canal Seguro Completo · K3 + AES-256-GCM + Geometría · v7.0<br>
+  Shannon no se inmuta: |imagen| ≤ |dominio| = 2^(bits reales)
+</div>
+
+<script>
+// ============================================================
+//  ESTADO
+// ============================================================
+const state = {
+  keyAES: null,
+  keyHMAC: null,
+  salt: null,
+  aesPacket: null,
+  geoPacket: null,
+  challenge: null,
+  hmacResp: null
+};
+
+// ============================================================
+//  UTILIDADES
+// ============================================================
+function hexToBytes(hex) {
+  const bytes = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < bytes.length; i++) {
+    bytes[i] = parseInt(hex.substr(i*2, 2), 16);
+  }
+  return bytes;
+}
+function bytesToHex(bytes) {
+  return Array.from(bytes).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+function b64enc(bytes) {
+  return btoa(String.fromCharCode(...bytes));
+}
+function b64dec(b64) {
+  return Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+}
+function strToBytes(s) { return new TextEncoder().encode(s); }
+function bytesToStr(b) { return new TextDecoder().decode(new Uint8Array(b)); }
+function randomBytes(n) { return crypto.getRandomValues(new Uint8Array(n)); }
+
+// ============================================================
+//  DERIVACIÓN DE CLAVES (PBKDF2)
+// ============================================================
+async function derivarClaves() {
+  const secret = document.getElementById('sharedSecret').value;
+  const saltHex = document.getElementById('salt').value;
+  if (!secret || !saltHex) { alert('Falta secreto o salt'); return; }
+
+  let salt;
+  try { salt = hexToBytes(saltHex); }
+  catch (e) { alert('Salt inválido'); return; }
+
+  const enc = new TextEncoder();
+  const km = await crypto.subtle.importKey(
+    'raw', enc.encode(secret), 'PBKDF2', false, ['deriveBits', 'deriveKey']
+  );
+
+  // Clave AES-256
+  state.keyAES = await crypto.subtle.deriveKey(
+    { name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' },
+    km,
+    { name: 'AES-GCM', length: 256 },
+    false, ['encrypt', 'decrypt']
+  );
+
+  // Clave HMAC (256 bits)
+  const hmacBits = await crypto.subtle.deriveBits(
+    { name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' },
+    km,
+    256
+  );
+  state.keyHMAC = await crypto.subtle.importKey(
+    'raw', hmacBits, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign', 'verify']
+  );
+  state.salt = salt;
+
+  // Mostrar
+  const aesRaw = await crypto.subtle.exportKey('raw', state.keyAES);
+  document.getElementById('sKeyAES').textContent = bytesToHex(new Uint8Array(aesRaw)).slice(0, 16) + '…';
+  document.getElementById('sKeyHMAC').textContent = bytesToHex(new Uint8Array(hmacBits)).slice(0, 16) + '…';
+
+  const entropy = Math.min(secret.length * 6, 512);
+  document.getElementById('sBits').textContent = entropy + ' bits';
+
+  return true;
+}
+
+// ============================================================
+//  CAPA 1: HMAC (K3)
+// ============================================================
+async function simularHandshake() {
+  if (!state.keyHMAC) {
+    const ok = await derivarClaves();
+    if (!ok) return;
+  }
+
+  // Receptor genera challenge
+  const challenge = randomBytes(32);
+  state.challenge = challenge;
+  document.getElementById('challengeOut').textContent = bytesToHex(challenge);
+
+  // Emisor calcula HMAC
+  const hmacBuf = await crypto.subtle.sign('HMAC', state.keyHMAC, challenge);
+  const hmac = new Uint8Array(hmacBuf);
+  state.hmacResp = hmac;
+  document.getElementById('hmacOut').textContent = bytesToHex(hmac);
+
+  // Receptor verifica
+  const valid = await crypto.subtle.verify('HMAC', state.keyHMAC, hmacBuf, challenge);
+  document.getElementById('verifyOut').textContent = valid
+    ? '✓ HMAC válido. Identidad verificada.'
+    : '✗ HMAC inválido. Autenticación fallida.';
+}
+
+// ============================================================
+//  CAPA 2: AES-256-GCM
+// ============================================================
+async function cifrarAES() {
+  if (!state.keyAES) {
+    const ok = await derivarClaves();
+    if (!ok) return;
+  }
+
+  const plain = document.getElementById('plainInput').value;
+  if (!plain) { alert('Falta mensaje'); return; }
+
+  const plainBytes = strToBytes(plain);
+  const iv = randomBytes(12);
+
+  const cipherBuf = await crypto.subtle.encrypt(
+    { name: 'AES-GCM', iv },
+    state.keyAES,
+    plainBytes
+  );
+  const cipherBytes = new Uint8Array(cipherBuf);
+
+  // Paquete: IV || ciphertext+tag
+  const packet = new Uint8Array(iv.length + cipherBytes.length);
+  packet.set(iv, 0);
+  packet.set(cipherBytes, iv.length);
+
+  state.aesPacket = packet;
+
+  document.getElementById('aesOut').textContent = b64enc(packet);
+  document.getElementById('aesPlainSize').textContent = plainBytes.length + ' B';
+  document.getElementById('aesCipherSize').textContent = packet.length + ' B';
+  document.getElementById('aesOver').textContent = '+' + ((packet.length - plainBytes.length) / plainBytes.length * 100).toFixed(1) + '%';
+  document.getElementById('aesAuth').textContent = '✓ 16 B';
+}
+
+// ============================================================
+//  CAPA 3: OFUSCACIÓN GEOMÉTRICA
+//  Simplificada: convierte bytes a fracciones usando Tales + recurrencia
+// ============================================================
+const FIG = [
+  { W: 3, a: 1, b: 2 },
+  { W: 5, a: 2, b: 3 },
+  { W: 4, a: 1, b: 3 },
+  { W: 6, a: 1, b: 5 }
+];
+
+function gcd(a, b) {
+  a = a < 0n ? -a : a; b = b < 0n ? -b : b;
+  while (b) { const t = a % b; a = b; b = t; }
+  return a;
+}
+function byteToBits(b) {
+  const bits = [];
+  for (let i = 7; i >= 0; i--) bits.push((b >> i) & 1);
+  return bits;
+}
+function bitsToBytes(bits) {
+  const bytes = [];
+  for (let i = 0; i < bits.length; i += 8) {
+    let b = 0;
+    for (let j = 0; j < 8; j++) b = (b << 1) | (bits[i+j] || 0);
+    bytes.push(b);
+  }
+  return bytes;
+}
+function parseStart(sv) {
+  const parts = sv.split('.');
+  if (parts.length === 2) {
+    const ip = parts[0] || '0', dp = parts[1] || '0';
+    const den = 10n ** BigInt(dp.length);
+    return { num: BigInt(ip) * den + BigInt(dp), den };
+  }
+  return { num: BigInt(sv), den: 1n };
+}
+
+function encodeChained(bytes, seq, startNum, startDen) {
+  const bits = [];
+  for (const b of bytes) bits.push(...byteToBits(b));
+  const n = bits.length;
+  const getFig = i => FIG[seq[i % seq.length]];
+
+  const P = new Array(n + 1);
+  P[n] = 1n;
+  for (let i = n - 1; i >= 0; i--) P[i] = BigInt(getFig(i).W) * P[i + 1];
+
+  let sum = 0n;
+  for (let i = 0; i < n; i++) {
+    const f = getFig(i);
+    const d = bits[i] === 0 ? BigInt(f.a) : BigInt(f.b);
+    sum += d * P[i + 1];
+  }
+  const num = startNum * P[0] - startDen * sum;
+  const den = startDen * P[0];
+  const g = gcd(num < 0n ? -num : num, den);
+  return { bits, n, num: num/g, den: den/g };
+}
+
+function decodeChained(fracNum, fracDen, seq, n, startNum, startDen) {
+  const getFig = i => FIG[seq[i % seq.length]];
+  let P0 = 1n;
+  for (let i = 0; i < n; i++) P0 *= BigInt(getFig(i).W);
+
+  const N_num = (startNum * fracDen - fracNum * startDen) * P0;
+  const N_den = startDen * fracDen;
+  if (N_num % N_den !== 0n) return { error: 'N no entero' };
+
+  let N = N_num / N_den;
+  const bits = new Array(n).fill(0);
+  for (let i = n - 1; i >= 0; i--) {
+    const f = getFig(i);
+    let d = N % BigInt(f.W);
+    if (d < 0n) d += BigInt(f.W);
+    const dNum = Number(d);
+    if (dNum === f.a) bits[i] = 0;
+    else if (dNum === f.b) bits[i] = 1;
+    else return { error: `d=${dNum} fuera de rango` };
+    N = (N - d) / BigInt(f.W);
+  }
+  if (N !== 0n) return { error: 'Sobra información' };
+  return { bits };
+}
+
+function continuedFraction(num, den) {
+  const cf = [];
+  let n = num, d = den;
+  while (d !== 0n && cf.length < 128) {
+    cf.push(Number(n / d));
+    const r = n % d;
+    n = d; d = r;
+  }
+  return cf;
+}
+function recurrenciaE(digits) {
+  let accNum = 1n, accDen = 1n;
+  for (const d of digits) {
+    if (d < 1) continue;
+    accNum *= BigInt(d + 1);
+    accDen *= BigInt(d);
+    const g = gcd(accNum, accDen);
+    accNum /= g; accDen /= g;
+  }
+  return { num: accNum, den: accDen };
+}
+
+function seqFromString(s) {
+  return s.split(',').map(x => parseInt(x.trim())).filter(x => !isNaN(x) && x >= 0 && x < FIG.length);
+}
+
+function ofuscarGeometrico() {
+  if (!state.aesPacket) { alert('Primero cifra con AES'); return; }
+
+  const passA = document.getElementById('passA').value;
+  const passB = document.getElementById('passB').value;
+  const passC = document.getElementById('passC').value;
+
+  // Clave A: geometría del criptograma
+  const startMsg = parseStart('1.33');
+  const seqMsg = [0, 1, 0, 0];
+  const geo = encodeChained(state.aesPacket, seqMsg, startMsg.num, startMsg.den);
+
+  // Clave B: recurrencia e
+  const geoB = encodeChained(strToBytes(passB), [1,2,0,1], parseStart('2.71').num, parseStart('2.71').den);
+  const M2 = recurrenciaE(continuedFraction(geoB.num, geoB.den));
+
+  // Clave C: hash espejo
+  const geoC = encodeChained(strToBytes(passC), [0,2,1,0], parseStart('0.95').num, parseStart('0.95').den);
+  const M3 = recurrenciaE(continuedFraction(geoC.num, geoC.den));
+
+  // Mezclar: F × M2 × M3
+  let num = geo.num * M2.num * M3.num;
+  let den = geo.den * M2.den * M3.den;
+  const g = gcd(num, den);
+  num /= g; den /= g;
+
+  state.geoPacket = {
+    n: geo.n,
+    mix: { n: num.toString(), d: den.toString() }
+  };
+
+  document.getElementById('geoFrac').textContent = `${num} / ${den}`;
+
+  const finalPacket = {
+    v: 7,
+    n: geo.n,
+    mix: state.geoPacket.mix,
+    hmac: state.hmacResp ? bytesToHex(state.hmacResp) : null,
+    challenge: state.challenge ? bytesToHex(state.challenge) : null
+  };
+  document.getElementById('packetFinal').textContent = JSON.stringify(finalPacket, null, 2);
+}
+
+// ============================================================
+//  FLUJO COMPLETO
+// ============================================================
+async function flujoCompleto() {
+  const out = [];
+  out.push('=== FLUJO COMPLETO ===');
+  out.push('');
+
+  // 1. Derivar claves
+  out.push('1. Derivando claves desde secreto compartido...');
+  const ok = await derivarClaves();
+  if (!ok) { document.getElementById('flowOut').textContent = '✗ Faltan datos'; return; }
+  out.push('   ✓ Clave AES-256 derivada');
+  out.push('   ✓ Clave HMAC derivada');
+  out.push('');
+
+  // 2. Handshake HMAC
+  out.push('2. Handshake K3 (challenge-response)...');
+  await simularHandshake();
+  out.push('   ✓ Challenge: ' + bytesToHex(state.challenge).slice(0, 16) + '…');
+  out.push('   ✓ HMAC verificado');
+  out.push('');
+
+  // 3. Cifrar AES
+  out.push('3. Cifrando con AES-256-GCM...');
+  await cifrarAES();
+  out.push('   ✓ Criptograma: ' + state.aesPacket.length + ' bytes');
+  out.push('');
+
+  // 4. Ofuscar geometría
+  out.push('4. Ofuscando con triple capa geométrica...');
+  ofuscarGeometrico();
+  out.push('   ✓ Fracción final: ' + state.geoPacket.mix.n.toString().length + ' dígitos');
+  out.push('');
+
+  // 5. Descifrar
+  out.push('5. Descifrando en el receptor...');
+  const dec = await descifrarInterno();
+  out.push('   ✓ Mensaje: ' + dec);
+
+  document.getElementById('flowOut').textContent = out.join('\n');
+  document.getElementById('flowDecrypted').textContent = '✓ ' + dec;
+}
+
+async function descifrarInterno() {
+  if (!state.geoPacket || !state.aesPacket) return '✗ Faltan datos';
+
+  const passB = document.getElementById('passB').value;
+  const passC = document.getElementById('passC').value;
+
+  // Reconstruir M2 y M3
+  const geoB = encodeChained(strToBytes(passB), [1,2,0,1], parseStart('2.71').num, parseStart('2.71').den);
+  const M2 = recurrenciaE(continuedFraction(geoB.num, geoB.den));
+  const geoC = encodeChained(strToBytes(passC), [0,2,1,0], parseStart('0.95').num, parseStart('0.95').den);
+  const M3 = recurrenciaE(continuedFraction(geoC.num, geoC.den));
+
+  // Deshacer mezcla
+  const mixNum = BigInt(state.geoPacket.mix.n);
+  const mixDen = BigInt(state.geoPacket.mix.d);
+  const fNum = mixNum * M2.den * M3.den;
+  const fDen = mixDen * M2.num * M3.num;
+  const g = gcd(fNum, fDen);
+
+  // Invertir geometría
+  const res = decodeChained(fNum/g, fDen/g, [0,1,0,0], state.geoPacket.n, parseStart('1.33').num, parseStart('1.33').den);
+  if (res.error) return '✗ ' + res.error;
+
+  const aesPacket = bitsToBytes(res.bits);
+
+  // Descifrar AES
+  const iv = aesPacket.slice(0, 12);
+  const cipherBytes = aesPacket.slice(12);
+  try {
+    const plainBuf = await crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv },
+      state.keyAES,
+      cipherBytes
+    );
+    return bytesToStr(plainBuf);
+  } catch (e) {
+    return '✗ AES-GCM falló: ' + e.message;
+  }
+}
+
+async function flujoCompletoMal() {
+  // Cambiar secreto y contraseñas
+  const orig = document.getElementById('sharedSecret').value;
+  document.getElementById('sharedSecret').value = 'secreto_erroneo_123';
+  await flujoCompleto();
+  document.getElementById('sharedSecret').value = orig;
+}
+
+// ============================================================
+//  RECEPTOR
+// ============================================================
+async function descifradoCompleto() {
+  const raw = document.getElementById('packetIn').value.trim();
+  if (!raw) { alert('Falta el paquete'); return; }
+
+  let packet;
+  try { packet = JSON.parse(raw); }
+  catch (e) { document.getElementById('finalDecrypted').textContent = '✗ JSON inválido'; return; }
+
+  // Derivar claves del secreto
+  const secret = document.getElementById('decSecret').value;
+  const saltHex = document.getElementById('decSalt').value;
+  let salt;
+  try { salt = hexToBytes(saltHex); }
+  catch (e) { document.getElementById('finalDecrypted').textContent = '✗ Salt inválido'; return; }
+
+  const enc = new TextEncoder();
+  const km = await crypto.subtle.importKey(
+    'raw', enc.encode(secret), 'PBKDF2', false, ['deriveKey', 'deriveBits']
+  );
+  const keyAES = await crypto.subtle.deriveKey(
+    { name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' },
+    km, { name: 'AES-GCM', length: 256 }, false, ['decrypt']
+  );
+  const hmacBits = await crypto.subtle.deriveBits(
+    { name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' },
+    km, 256
+  );
+  const keyHMAC = await crypto.subtle.importKey(
+    'raw', hmacBits, { name: 'HMAC', hash: 'SHA-256' }, false, ['verify']
+  );
+
+  const diag = [];
+
+  // 1. Verificar HMAC (si está en el paquete)
+  if (packet.hmac && packet.challenge) {
+    const challenge = hexToBytes(packet.challenge);
+    const hmac = hexToBytes(packet.hmac);
+    const valid = await crypto.subtle.verify('HMAC', keyHMAC, hmac, challenge);
+    diag.push(valid ? '✓ HMAC válido' : '✗ HMAC inválido');
+    if (!valid) {
+      document.getElementById('finalDecrypted').textContent = '✗ Autenticación HMAC fallida';
+      document.getElementById('finalDiag').textContent = diag.join('\n');
+      return;
+    }
+  }
+
+  // 2. Deshacer geometría
+  const passB = document.getElementById('decPassB').value;
+  const passC = document.getElementById('decPassC').value;
+
+  const geoB = encodeChained(strToBytes(passB), [1,2,0,1], parseStart('2.71').num, parseStart('2.71').den);
+  const M2 = recurrenciaE(continuedFraction(geoB.num, geoB.den));
+  const geoC = encodeChained(strToBytes(passC), [0,2,1,0], parseStart('0.95').num, parseStart('0.95').den);
+  const M3 = recurrenciaE(continuedFraction(geoC.num, geoC.den));
+
+  const mixNum = BigInt(packet.mix.n);
+  const mixDen = BigInt(packet.mix.d);
+  const fNum = mixNum * M2.den * M3.den;
+  const fDen = mixDen * M2.num * M3.num;
+  const g = gcd(fNum, fDen);
+
+  const res = decodeChained(fNum/g, fDen/g, [0,1,0,0], packet.n, parseStart('1.33').num, parseStart('1.33').den);
+  if (res.error) {
+    document.getElementById('finalDecrypted').textContent = '✗ ' + res.error;
+    document.getElementById('finalDiag').textContent = diag.join('\n') + '\nError: geometría falló';
+    return;
+  }
+  diag.push('✓ Geometría invertida');
+
+  const aesPacket = bitsToBytes(res.bits);
+
+  // 3. Descifrar AES
+  const iv = aesPacket.slice(0, 12);
+  const cipherBytes = aesPacket.slice(12);
+  try {
+    const plainBuf = await crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv },
+      keyAES,
+      cipherBytes
+    );
+    const text = bytesToStr(plainBuf);
+    document.getElementById('finalDecrypted').textContent = '✓ ' + text;
+    diag.push('✓ AES-GCM descifrado correctamente');
+  } catch (e) {
+    document.getElementById('finalDecrypted').textContent = '✗ AES-GCM falló: ' + e.message;
+    diag.push('✗ AES-GCM falló (secreto incorrecto o datos corruptos)');
+  }
+
+  document.getElementById('finalDiag').textContent = diag.join('\n');
+}
+
+// ============================================================
+//  UI AUX
+// ============================================================
+function copyFinal() {
+  const t = document.getElementById('packetFinal').textContent;
+  navigator.clipboard.writeText(t).then(() => {
+    const b = event.target, o = b.innerText;
+    b.innerText = '✓';
+    setTimeout(() => b.innerText = o, 1200);
+  });
+}
+function limpiarAES() {
+  document.getElementById('aesOut').textContent = '—';
+  ['aesPlainSize','aesCipherSize','aesOver','aesAuth'].forEach(id => document.getElementById(id).textContent = '—');
+  state.aesPacket = null;
+}
+function limpiarGeo() {
+  document.getElementById('geoFrac').textContent = '—';
+  document.getElementById('packetFinal').textContent = '—';
+  state.geoPacket = null;
+}
+function limpiarReceptor() {
+  document.getElementById('finalDecrypted').textContent = '—';
+  document.getElementById('finalDiag').textContent = '—';
+}
+
+// ============================================================
+//  INIT
+// ============================================================
+window.addEventListener('load', () => {
+  derivarClaves().then(() => {
+    simularHandshake();
+    cifrarAES().then(() => {
+      ofuscarGeometrico();
+    });
+  });
+});
+</script>
+
+</body>
+</html>

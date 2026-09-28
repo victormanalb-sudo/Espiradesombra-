@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Medición · g=59 fijo, candidatos = múltiplos de a₀</title>
+<style>
+  :root{
+    --bg:#0a0a15;--card:#12122a;--border:#1f1f3d;--text:#e2e8f0;--muted:#94a3b8;
+    --accent:#fbbf24;--accent2:#34d399;--accent3:#60a5fa;--accent4:#f472b6;
+    --code:#0d0d1f;--danger:#ef4444;
+  }
+  *{box-sizing:border-box}
+  body{font-family:'Segoe UI',Tahoma,sans-serif;max-width:1500px;margin:0 auto;
+    padding:14px;background:var(--bg);color:var(--text);line-height:1.5;font-size:13px}
+  h1{font-size:1.35em;background:linear-gradient(90deg,var(--accent3),var(--accent),var(--accent4));
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:2px}
+  h2{color:var(--accent);margin-top:16px;border-bottom:1px solid var(--border);
+    padding-bottom:3px;font-size:1em}
+  h3{color:var(--accent2);font-size:.88em;margin-top:10px;margin-bottom:4px}
+  .sub{color:var(--muted);font-size:.78em;margin-bottom:10px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:9px;
+    padding:11px;margin:8px 0}
+  .card.info{border-color:var(--accent3)}
+  .card.gold{border-color:var(--accent)}
+  .card.ok{border-color:var(--accent2)}
+  .card.pink{border-color:var(--accent4)}
+  .card.warn{border-color:var(--danger)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:6px}
+  .stat{background:var(--code);border:1px solid var(--border);border-radius:6px;
+    padding:6px;text-align:center}
+  .stat .v{font-size:.85em;font-weight:bold;font-family:'Courier New',monospace;word-break:break-all}
+  .stat .l{font-size:.55em;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+  label{display:block;font-weight:600;margin-bottom:2px;color:var(--muted);
+    font-size:.66em;text-transform:uppercase;letter-spacing:.5px}
+  input,select{width:100%;padding:5px 8px;background:rgba(0,0,0,.4);
+    border:1px solid var(--border);border-radius:6px;font-size:.82em;color:var(--text);
+    font-family:'Courier New',monospace}
+  input:focus,select:focus{outline:none;border-color:var(--accent)}
+  button{background:linear-gradient(135deg,var(--accent3),#3b82f6);color:#fff;
+    border:none;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:.74em;
+    font-weight:700;margin:2px 2px 2px 0;transition:all .15s}
+  button:hover{transform:translateY(-1px);opacity:.9}
+  button:disabled{opacity:.4;cursor:not-allowed;transform:none}
+  button.ok{background:linear-gradient(135deg,var(--accent2),#22c55e)}
+  button.gold{background:linear-gradient(135deg,var(--accent),#f59e0b);color:#0a0a15}
+  button.pink{background:linear-gradient(135deg,var(--accent4),#ec4899)}
+  button.danger{background:linear-gradient(135deg,var(--danger),#dc2626)}
+  button.ghost{background:transparent;border:1px solid var(--border);color:var(--text)}
+  pre{background:var(--code);border:1px solid var(--border);border-radius:6px;
+    padding:8px;overflow-x:auto;font-family:'Courier New',monospace;font-size:.7em;
+    color:var(--accent2);white-space:pre-wrap;word-break:break-all;max-height:340px}
+  table{width:100%;border-collapse:collapse;margin:5px 0;font-size:.72em}
+  th,td{border:1px solid var(--border);padding:3px 5px;text-align:left}
+  th{background:var(--code);color:var(--accent);font-size:.66em;text-transform:uppercase;
+    position:sticky;top:0;z-index:1}
+  .row{display:flex;gap:6px;flex-wrap:wrap;align-items:flex-end}
+  .row>div{flex:1;min-width:100px}
+  .hint{font-size:.68em;color:var(--muted);margin-top:2px}
+  .footer{color:var(--muted);font-size:.66em;text-align:center;margin-top:18px;
+    padding-top:8px;border-top:1px solid var(--border)}
+  .log{padding:3px 7px;border-left:3px solid var(--muted);background:rgba(0,0,0,.2);
+    margin:2px 0;border-radius:0 4px 4px 0;font-size:.68em;font-family:'Courier New',monospace}
+  .log.ok{border-color:var(--accent2);color:var(--accent2)}
+  .log.err{border-color:var(--danger);color:var(--danger)}
+  .log.info{border-color:var(--accent3);color:var(--accent3)}
+  .log.warn{border-color:var(--accent);color:var(--accent)}
+  .badge{display:inline-block;padding:1px 7px;border-radius:8px;font-size:.58em;
+    font-weight:bold;letter-spacing:.5px;margin-right:3px}
+  .b-blue{background:var(--accent3);color:#fff}
+  .b-green{background:var(--accent2);color:#0a0a15}
+  .b-gold{background:var(--accent);color:#0a0a15}
+  .b-pink{background:var(--accent4);color:#fff}
+  .b-red{background:var(--danger);color:#fff}
+  .scroll-y{max-height:340px;overflow-y:auto;border:1px solid var(--border);border-radius:6px}
+  .meter{height:14px;background:var(--code);border-radius:7px;overflow:hidden;
+    border:1px solid var(--border);margin:4px 0}
+  .meter .fill{height:100%;background:linear-gradient(90deg,var(--accent3),var(--accent));
+    transition:width .1s}
+  .R-good{color:var(--accent2);font-weight:bold}
+  .R-neutral{color:var(--accent);font-weight:bold}
+  .R-bad{color:var(--danger);font-weight:bold}
+  .pipe{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:8px;
+    background:var(--code);border-radius:6px;border:1px solid var(--border);
+    font-family:'Courier New',monospace;font-size:.72em;margin:6px 0}
+  .pipe .box{padding:5px 9px;border-radius:5px;background:rgba(96,165,250,.15);
+    border:1px solid var(--accent3);color:var(--accent3)}
+  .pipe .box.hit{border-color:var(--accent2);color:var(--accent2);background:rgba(52,211,153,.15)}
+  .pipe .box.miss{border-color:var(--danger);color:var(--danger);background:rgba(239,68,68,.15)}
+  .pipe .arrow{color:var(--muted)}
+</style>
+</head>
+<body>
+
+<h1>Medición · g=59 fijo · candidatos = múltiplos de a₀</h1>
+<p class="sub">
+  <span class="badge b-blue">g = 59 FIJO</span>
+  <span class="badge b-gold">A, p, b VARÍAN</span>
+  <span class="badge b-green">CANDIDATOS = MÚLTIPLOS DE a₀</span>
+  <span class="badge b-pink">MEDIR REDUCCIÓN</span>
+  <span class="badge b-red">SIN ASUMIR</span>
+  Precomputa 59^a. Itera sobre p. Mide si los candidatos son exactamente los múltiplos de a₀.
+</p>
+
+<!-- ============================================================ -->
+<h2>1. Configuración</h2>
+<div class="card">
+  <div class="row">
+    <div>
+      <label>g (fijo)</label>
+      <input id="gVal" type="number" value="59" readonly>
+    </div>
+    <div>
+      <label>a máximo (precomputo)</label>
+      <input id="aMax" type="number" value="5000">
+    </div>
+    <div>
+      <label>p desde</label>
+      <input id="pMin" type="number" value="3">
+    </div>
+    <div>
+      <label>p hasta</label>
+      <input id="pMax" type="number" value="100">
+    </div>
+    <div>
+      <label>Nº primos a usar</label>
+      <input id="numPrimos" type="number" value="20">
+    </div>
+  </div>
+  <div class="hint">
+    Precomputa 59^1 hasta 59^aMax. Luego para cada p primo, calcula 59^a mod p para a=1..aMax.
+  </div>
+
+  <div style="margin-top:8px">
+    <button class="gold" onclick="precomputar()">▶️ FASE 1: Precomputar potencias 59^a</button>
+    <button class="pink" onclick="ejecutarMedicion()">▶️ FASE 2: Medir candidatos por p</button>
+    <button class="ghost" onclick="limpiar()">Limpiar</button>
+  </div>
+
+  <div class="meter"><div class="fill" id="progBar" style="width:0%"></div></div>
+
+  <div class="grid" style="margin-top:8px">
+    <div class="stat"><div class="v" id="stFase" style="color:var(--accent)">—</div><div class="l">Fase</div></div>
+    <div class="stat"><div class="v" id="stPotencias" style="color:var(--accent3)">—</div><div class="l">Potencias precomputadas</div></div>
+    <div class="stat"><div class="v" id="stDigitos" style="color:var(--accent4)">—</div><div class="l">Dígitos 59^aMax</div></div>
+    <div class="stat"><div class="v" id="stPrimos" style="color:var(--accent2)">—</div><div class="l">Primos medidos</div></div>
+    <div class="stat"><div class="v" id="stTiempo" style="color:var(--accent)">—</div><div class="l">T. precompute</div></div>
+    <div class="stat"><div class="v" id="stReduccion" style="color:var(--accent3)">—</div><div class="l">Reducción media</div></div>
+  </div>
+
+  <div id="log" style="margin-top:8px"></div>
+</div>
+
+<!-- ============================================================ -->
+<h2>2. Potencias precomputadas (primeras 20)</h2>
+<div class="card info">
+  <div class="scroll-y" style="max-height:220px">
+    <table id="tablaPotencias">
+      <thead><tr><th>a</th><th>59^a (dígitos)</th><th>59^a mod 1000</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2>3. Estructura por p</h2>
+<div class="card gold">
+  <p class="hint">
+    Para cada p, se calcula 59^a mod p para a=1..aMax. Se agrupan los a por valor.
+    Para cada valor v, se comprueba si los a que dan v son exactamente los múltiplos de a₀ = min(a).
+  </p>
+
+  <div class="scroll-y">
+    <table id="tablaPorP">
+      <thead>
+        <tr>
+          <th>p</th>
+          <th>Orden de 59 mod p</th>
+          <th>Valores distintos alcanzados</th>
+          <th>Grupos (valores)</th>
+          <th>Múltiplos de a₀?</th>
+          <th>Reducción media</th>
+          <th>Cobertura</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2>4. Detalle de un p</h2>
+<div class="card">
+  <div class="row">
+    <div>
+      <label>p a visualizar</label>
+      <select id="selP"></select>
+    </div>
+    <div>
+      <label>a₀ (primer a que da valor v)</label>
+      <select id="selA0"></select>
+    </div>
+  </div>
+
+  <h3>Estructura de candidatos para a₀</h3>
+  <div id="pipeView" class="pipe">Selecciona p y a₀.</div>
+
+  <h3>Todos los grupos del p seleccionado</h3>
+  <div class="scroll-y">
+    <table id="tablaGrupos">
+      <thead>
+        <tr>
+          <th>Valor v = 59^a mod p</th>
+          <th>a₀ (min)</th>
+          <th>Nº a's con v</th>
+          <th>Múltiplos esperados de a₀</th>
+          <th>¿Coinciden?</th>
+          <th>Primeros a's</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2>5. Reducción para búsqueda tipo DLP</h2>
+<div class="card pink">
+  <p class="hint">
+    Escenario: queremos encontrar a tal que 59^a ≡ A (mod p). Solo podemos probar a ∈ [1, aMax].
+    ¿Cuántos candidatos quedan si filtramos por múltiplos de a₀?
+  </p>
+
+  <div class="scroll-y">
+    <table id="tablaReduccion">
+      <thead>
+        <tr>
+          <th>p</th>
+          <th>a₀ (objetivo)</th>
+          <th>Candidatos totales [1, aMax]</th>
+          <th>Candidatos tras filtro múltiplos</th>
+          <th>Factor de reducción</th>
+          <th>Bits ganados</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2>6. Análisis honesto</h2>
+<div class="card warn">
+  <pre id="analisisOut">Ejecuta las dos fases para ver el análisis.</pre>
+</div>
+
+<div class="footer">
+  Medición g=59 fijo · Candidatos = múltiplos de a₀ · v1.0<br>
+  Shannon no se inmuta: |imagen| ≤ |dominio| = 2^(bits reales)
+</div>
+
+<script>
+// ============================================================
+//  ESTADO
+// ============================================================
+const state = {
+  g: 59,
+  aMax: 5000,
+  potencias: [],       // [{ a, valor: BigInt }]
+  primos: [],
+  porP: new Map(),     // p → { grupos, orden, ... }
+};
+
+// ============================================================
+//  UTILIDADES
+// ============================================================
+function log(msg, type=''){
+  const el = document.getElementById('log');
+  const div = document.createElement('div');
+  div.className = 'log ' + type;
+  div.textContent = msg;
+  el.appendChild(div);
+  el.scrollTop = el.scrollHeight;
+}
+function fmtNum(n){
+  if (n < 1000) return n.toString();
+  if (n < 1e6) return (n/1e3).toFixed(1) + ' K';
+  if (n < 1e9) return (n/1e6).toFixed(2) + ' M';
+  return n.toExponential(3);
+}
+function fmt(x, d=4){
+  if (x === 0) return '0';
+  if (Math.abs(x) < 0.0001) return x.toExponential(2);
+  if (Math.abs(x) >= 1e6) return x.toExponential(3);
+  return x.toFixed(d);
+}
+function esPrimo(n){
+  if(n<2) return false;
+  if(n<4) return true;
+  if(n%2===0) return false;
+  for(let i=3;i*i<=n;i+=2) if(n%i===0) return false;
+  return true;
+}
+function bigintPow(base, exp){
+  let r = 1n, b = BigInt(base), e = BigInt(exp);
+  while (e > 0n) {
+    if (e & 1n) r *= b;
+    b *= b;
+    e >>= 1n;
+  }
+  return r;
+}
+function ordenMultiplicativo(g, p){
+  // orden de g mod p (asumiendo gcd(g, p) = 1)
+  let cur = g % p, k = 1;
+  if (cur === 0) return null;
+  while (cur !== 1 && k <= p) {
+    cur = (cur * g) % p;
+    k++;
+  }
+  return cur === 1 ? k : null;
+}
+
+// ============================================================
+//  FASE 1 · PRECOMPUTAR POTENCIAS
+// ============================================================
+function precomputar(){
+  const aMax = parseInt(document.getElementById('aMax').value);
+  state.aMax = aMax;
+
+  document.getElementById('log').innerHTML = '';
+  document.getElementById('stFase').textContent = 'Precomputando...';
+  document.getElementById('progBar').style.width = '0%';
+
+  log(`Precomputando ${state.g}^1 .. ${state.g}^${aMax}`, 'info');
+
+  const t0 = performance.now();
+  state.potencias = [];
+  let cur = 1n;
+  for (let a = 1; a <= aMax; a++) {
+    cur *= BigInt(state.g);
+    state.potencias.push({ a, valor: cur });
+  }
+  const t1 = performance.now();
+
+  document.getElementById('progBar').style.width = '100%';
+  document.getElementById('stFase').textContent = 'Precomputación OK';
+  document.getElementById('stPotencias').textContent = aMax;
+  document.getElementById('stDigitos').textContent = state.potencias[aMax-1].valor.toString().length;
+  document.getElementById('stTiempo').textContent = ((t1-t0)/1000).toFixed(3) + ' s';
+  log(`✓ ${aMax} potencias en ${((t1-t0)/1000).toFixed(3)} s`, 'ok');
+
+  renderTablaPotencias();
+}
+
+function renderTablaPotencias(){
+  const tbody = document.querySelector('#tablaPotencias tbody');
+  tbody.innerHTML = '';
+  const limit = Math.min(20, state.potencias.length);
+  for (let i = 0; i < limit; i++) {
+    const { a, valor } = state.potencias[i];
+    const s = valor.toString();
+    const mod1000 = Number(valor % 1000n);
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${a}</td><td>${s.length}</td><td>${mod1000}</td>`;
+    tbody.appendChild(tr);
+  }
+}
+
+// ============================================================
+//  FASE 2 · MEDICIÓN POR PRIMO
+// ============================================================
+async function ejecutarMedicion(){
+  if (state.potencias.length === 0) { alert('Ejecuta FASE 1 primero'); return; }
+
+  const pMin = parseInt(document.getElementById('pMin').value);
+  const pMax = parseInt(document.getElementById('pMax').value);
+  const numPrimos = parseInt(document.getElementById('numPrimos').value);
+  const aMax = state.aMax;
+
+  // Recolectar primos
+  const primos = [];
+  for (let p = pMin; p <= pMax && primos.length < numPrimos; p++) {
+    if (esPrimo(p)) primos.push(p);
+  }
+  state.primos = primos;
+
+  document.getElementById('stFase').textContent = 'Midiendo...';
+  document.getElementById('progBar').style.width = '0%';
+
+  state.porP = new Map();
+  const t0 = performance.now();
+
+  let sumaReducciones = 0;
+  let cuentaGrupos = 0;
+
+  for (let pi = 0; pi < primos.length; pi++) {
+    const p = primos[pi];
+    const ord = ordenMultiplicativo(state.g, p);
+
+    // Calcular 59^a mod p para a=1..aMax y agrupar por valor
+    const grupos = new Map(); // valor → [a's]
+    const bigP = BigInt(p);
+    for (let i = 0; i < state.potencias.length; i++) {
+      const a = state.potencias[i].a;
+      const v = Number(state.potencias[i].valor % bigP);
+      if (!grupos.has(v)) grupos.set(v, []);
+      grupos.get(v).push(a);
+    }
+
+    // Para cada grupo, comprobar si los a's son múltiplos de a₀
+    const analisis = [];
+    let reduccionMedia = 0;
+    let sumaReduccionesP = 0;
+
+    for (const [v, listaA] of grupos) {
+      const a0 = listaA[0];
+      const nMultiplos = Math.floor(aMax / a0);
+      const coincide = (listaA.length === nMultiplos);
+      analisis.push({ v, a0, listaA, nMultiplos, coincide });
+      sumaReduccionesP += aMax / Math.max(1, nMultiplos);
+    }
+
+    if (analisis.length > 0) {
+      reduccionMedia = sumaReduccionesP / analisis.length;
+      sumaReducciones += reduccionMedia;
+      cuentaGrupos += analisis.length;
+    }
+
+    state.porP.set(p, {
+      p, ord,
+      grupos,
+      analisis,
+      reduccionMedia,
+      valoresDistintos: grupos.size
+    });
+
+    document.getElementById('progBar').style.width = ((pi+1)/primos.length*100).toFixed(1) + '%';
+    log(`p=${p}: orden=${ord}, valores distintos=${grupos.size}`, 'ok');
+
+    if (pi % 3 === 0) await new Promise(r => setTimeout(r, 0));
+  }
+
+  const t1 = performance.now();
+  const reduccionGlobal = cuentaGrupos > 0 ? sumaReducciones / cuentaGrupos : 0;
+
+  document.getElementById('progBar').style.width = '100%';
+  document.getElementById('stFase').textContent = 'Medición OK';
+  document.getElementById('stPrimos').textContent = primos.length;
+  document.getElementById('stReduccion').textContent = fmt(reduccionGlobal, 2) + '×';
+
+  log(`✓ Medición completa en ${((t1-t0)/1000).toFixed(2)} s`, 'ok');
+
+  renderTablaPorP();
+  renderReduccion();
+  renderAnalisis();
+
+  // Rellenar selectores
+  const selP = document.getElementById('selP');
+  selP.innerHTML = '';
+  for (const p of primos) {
+    const opt = document.createElement('option');
+    opt.value = p; opt.textContent = 'p = ' + p;
+    selP.appendChild(opt);
+  }
+  if (primos.length > 0) {
+    renderDetalleP(primos[0]);
+  }
+}
+
+// ============================================================
+//  RENDER
+// ============================================================
+function renderTablaPorP(){
+  const tbody = document.querySelector('#tablaPorP tbody');
+  tbody.innerHTML = '';
+
+  for (const [p, datos] of state.porP) {
+    const todosCoinciden = datos.analisis.every(g => g.coincide);
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><strong>${p}</strong></td>
+      <td>${datos.ord || '—'}</td>
+      <td>${datos.valoresDistintos}</td>
+      <td>${datos.grupos.size}</td>
+      <td class="${todosCoinciden ? 'R-good' : 'R-bad'}">${todosCoinciden ? '✓ SÍ' : '✗ NO'}</td>
+      <td>${fmt(datos.reduccionMedia, 2)}×</td>
+      <td>${fmt(datos.valoresDistintos / p * 100, 2)}%</td>
+    `;
+    tbody.appendChild(tr);
+  }
+}
+
+function renderDetalleP(p){
+  const datos = state.porP.get(p);
+  if (!datos) return;
+
+  // Selector de a₀
+  const selA0 = document.getElementById('selA0');
+  selA0.innerHTML = '';
+  for (const g of datos.analisis.slice(0, 30)) {
+    const opt = document.createElement('option');
+    opt.value = g.v;
+    opt.textContent = `v=${g.v} (a₀=${g.a0}, n=${g.listaA.length})`;
+    selA0.appendChild(opt);
+  }
+
+  // Tabla de grupos
+  const tbody = document.querySelector('#tablaGrupos tbody');
+  tbody.innerHTML = '';
+  for (const g of datos.analisis) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${g.v}</td>
+      <td>${g.a0}</td>
+      <td>${g.listaA.length}</td>
+      <td>${g.nMultiplos}</td>
+      <td class="${g.coincide ? 'R-good' : 'R-bad'}">${g.coincide ? '✓' : '✗'}</td>
+      <td style="font-family:monospace;font-size:.85em">${g.listaA.slice(0,8).join(', ')}${g.listaA.length > 8 ? '…' : ''}</td>
+    `;
+    tbody.appendChild(tr);
+  }
+
+  // Pipeline
+  if (datos.analisis.length > 0) {
+    const g = datos.analisis[0];
+    const pipe = document.getElementById('pipeView');
+    pipe.innerHTML = `
+      <span class="box">a ∈ [1, ${state.aMax}]</span>
+      <span class="arrow">→</span>
+      <span class="box hit">v = ${g.v}, a₀ = ${g.a0}</span>
+      <span class="arrow">→</span>
+      <span class="box hit">${g.listaA.length} candidatos</span>
+      <span class="arrow">→</span>
+      <span class="box">múltiplos de ${g.a0}: ${g.nMultiplos}</span>
+      <span class="arrow">→</span>
+      <span class="box ${g.coincide ? 'hit' : 'miss'}">${g.coincide ? '✓ coinciden' : '✗ no coinciden'}</span>
+    `;
+  }
+}
+
+function renderReduccion(){
+  const tbody = document.querySelector('#tablaReduccion tbody');
+  tbody.innerHTML = '';
+
+  const aMax = state.aMax;
+  for (const [p, datos] of state.porP) {
+    // Para cada p, escoger el a₀ más pequeño (el que más candidatos deja)
+    if (datos.analisis.length === 0) continue;
+    const g = datos.analisis.reduce((min, x) => x.a0 < min.a0 ? x : min, datos.analisis[0]);
+
+    const totales = aMax;
+    const trasFiltro = g.nMultiplos;
+    const factor = totales / Math.max(1, trasFiltro);
+    const bits = Math.log2(factor);
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${p}</td>
+      <td>${g.a0}</td>
+      <td>${totales.toLocaleString()}</td>
+      <td>${trasFiltro.toLocaleString()}</td>
+      <td>${fmt(factor, 2)}×</td>
+      <td>${fmt(bits, 3)}</td>
+    `;
+    tbody.appendChild(tr);
+  }
+}
+
+function renderAnalisis(){
+  let out = '';
+  out += `=== ANÁLISIS ===\n\n`;
+  out += `g = ${state.g} (fijo)\n`;
+  out += `a_max = ${state.aMax.toLocaleString()}\n`;
+  out += `Primos medidos: ${state.primos.length}\n\n`;
+
+  out += `Estructura observada:\n`;
+  for (const [p, datos] of state.porP) {
+    const todosCoinciden = datos.analisis.every(g => g.coincide);
+    out += `  p=${p}: orden=${datos.ord}, ${datos.grupos.size} valores distintos, coincidencia múltiplos=${todosCoinciden}\n`;
+  }
+
+  out += `\nInterpretación matemática:\n`;
+  out += `  Si 59^a ≡ A (mod p) y a₀ es el mínimo, entonces 59^(k·a₀) ≡ A^k (mod p).\n`;
+  out += `  Por tanto, los a's que dan el mismo valor v son exactamente los múltiplos de a₀.\n`;
+  out += `  Esto es un TEOREMA, no una observación empírica.\n\n`;
+
+  out += `Reducción de búsqueda:\n`;
+  out += `  Si solo probamos múltiplos de a₀, el número de candidatos es floor(a_max / a₀).\n`;
+  out += `  Para a₀ pequeño, esto es casi a_max (sin reducción).\n`;
+  out += `  Para a₀ grande, hay reducción, pero a₀ grande solo ocurre si A está en el subgrupo\n`;
+  out += `  generado por 59 y su orden es grande.\n\n`;
+
+  out += `Aplicación a criptografía:\n`;
+  out += `  Para p pequeño (< 100), el orden de 59 mod p es pequeño, y todo cabe.\n`;
+  out += `  Para p de 2048 bits, el orden puede ser ~2^2048. Precomputar 59^a para a hasta a_max\n`;
+  out += `  es viable solo si a_max << orden. Pero entonces el subgrupo alcanzado es pequeño,\n`;
+  out += `  y la probabilidad de que A esté en él es baja.\n\n`;
+
+  out += `  Para AES-128: el espacio de claves es 2^128. Precomputar 59^a hasta 2^128 es imposible\n`;
+  out += `  (2^128 operaciones BigInt). Y aunque fuera posible, la reducción por múltiplos de a₀\n`;
+  out += `  no ayuda a atacar AES, porque AES no usa 59^a mod p.\n`;
+
+  document.getElementById('analisisOut').textContent = out;
+}
+
+function limpiar(){
+  state.potencias = [];
+  state.porP = new Map();
+  state.primos = [];
+  document.querySelectorAll('tbody').forEach(t => t.innerHTML = '');
+  ['stFase','stPotencias','stDigitos','stPrimos','stTiempo','stReduccion','analisisOut']
+    .forEach(id => document.getElementById(id).textContent = '—');
+  document.getElementById('log').innerHTML = '';
+  document.getElementById('progBar').style.width = '0%';
+  document.getElementById('pipeView').innerHTML = 'Selecciona p y a₀.';
+}
+
+// ============================================================
+//  EVENTOS
+// ============================================================
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('selP').addEventListener('change', e => {
+    renderDetalleP(parseInt(e.target.value));
+  });
+  document.getElementById('selA0').addEventListener('change', e => {
+    const p = parseInt(document.getElementById('selP').value);
+    const datos = state.porP.get(p);
+    if (!datos) return;
+    const v = parseInt(e.target.value);
+    const g = datos.analisis.find(x => x.v === v);
+    if (!g) return;
+    const pipe = document.getElementById('pipeView');
+    pipe.innerHTML = `
+      <span class="box">a ∈ [1, ${state.aMax}]</span>
+      <span class="arrow">→</span>
+      <span class="box hit">v = ${g.v}, a₀ = ${g.a0}</span>
+      <span class="arrow">→</span>
+      <span class="box hit">${g.listaA.length} candidatos</span>
+      <span class="arrow">→</span>
+      <span class="box">múltiplos de ${g.a0}: ${g.nMultiplos}</span>
+      <span class="arrow">→</span>
+      <span class="box ${g.coincide ? 'hit' : 'miss'}">${g.coincide ? '✓ coinciden' : '✗ no coinciden'}</span>
+    `;
+  });
+});
+</script>
+
+</body>
+</html>
