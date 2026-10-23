@@ -1,0 +1,44 @@
+import math
+
+# Goldbach + criterio de holgura
+
+
+def sieve(n):
+    p=[True]*(n+1)
+    p[0]=p[1]=False
+    for i in range(2,int(n**0.5)+1):
+        if p[i]:
+            for j in range(i*i,n+1,i):
+                p[j]=False
+    primes=[i for i,v in enumerate(p) if v]
+    return primes,set(primes)
+
+
+def delta(n):
+    return (3-math.e)*math.sqrt(n)+7
+
+
+def goldbach(even,pset):
+    total=0
+    for p in pset:
+        if p>even//2:
+            continue
+        if even-p in pset:
+            total+=1
+    return total
+
+
+def estudio(max_even=100000):
+    primes,pset=sieve(max_even)
+
+    for even in range(4,max_even+1,2):
+        g=goldbach(even,pset)
+        d=delta(even//2)
+
+        holgura=g-d
+        ratio=g/d if d>0 else 0
+
+        print(f'{even},{g},{d:.4f},{holgura:.4f},{ratio:.6f}')
+
+if __name__=='__main__':
+    estudio()
