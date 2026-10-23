@@ -18,7 +18,12 @@ Todos los textos están redactados como trabajos cortos de investigación explor
 3. [03_sophie_goldbach_mrauv.md](03_sophie_goldbach_mrauv.md)
 4. [04_libro4_hipotesis_binaria.md](04_libro4_hipotesis_binaria.md)
 5. [05_33x1_paper_historico.md](05_33x1_paper_historico.md)
+6. [06_densidad_de_primos_legendre_mrauv.md](06_densidad_de_primos_legendre_mrauv.md)
+7. [07_densidad_primos_legendre_mrauv.md](07_densidad_primos_legendre_mrauv.md)
+8. [08_estimacion_densidad_primos_metodos.md](08_estimacion_densidad_primos_metodos.md)
+9. [09_criba_modular_iterativa_convergencia.md](09_criba_modular_iterativa_convergencia.md)
+10. [10_criva_racional_iterativa_bilingual.md](10_criva_racional_iterativa_bilingual.md)
 
 ## Nota de uso
 
-Estos trabajos no sustituyen una prueba formal de la teoría de números clásica; son reconstrucciones operativas y documentales de la lógica del corpus VMA, con intención de convertirla en una base de trabajo legible, reutilizable y publicable en formato de mini-paper.
+Estos trabajos no sustituyen una prueba formal de la teoría de números clásica; son reconstrucciones operativas y documentales de la lógica del corpus VMA, con intención de convertirla en una base reproducible para exploración, comparación y desarrollo de prototipos matemáticos y computacionales.
