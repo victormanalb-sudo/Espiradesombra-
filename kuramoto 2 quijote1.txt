@@ -1,0 +1,157 @@
+# zypyzape_5molinos_2centrales.py
+# 2 centrales Quijote + 3 anillo (2 en serie) + ventanas de 60° + Kuramoto
+import numpy as np
+from scipy.integrate import odeint
+import matplotlib.pyplot as plt
+
+TWO_PI = 2*np.pi
+WINDOW = np.pi/3   # 60°
+g = 9.81
+
+class QuijoteMill:
+    def __init__(self, name, R, m, I_gen, r_min, r_max,
+                 omega_rated, K_relax, beta, n_physical):
+        self.name, self.R, self.m, self.I_gen = name, R, m, I_gen
+        self.r_min, self.r_max = r_min, r_max
+        self.omega_rated = omega_rated
+        self.K_relax, self.beta = K_relax, beta
+        self.n_physical = n_physical
+        self.N_blades = 3
+
+    def window_index(self, theta):
+        return int((theta % TWO_PI) / WINDOW) % 6
+
+    def window_mode(self, theta):
+        # impar = consume (extiende), par = feed (retrae)
+        return 'consume' if self.window_index(theta) % 2 == 1 else 'feed'
+
+    def r_target(self, theta):
+        return self.r_max if self.window_mode(theta) == 'consume' else self.r_min
+
+    def inertia(self, r):
+        return self.I_gen + self.m * np.sum(r**2) * self.n_physical
+
+    def gravity_torque(self, theta, r):
+        tau = 0.0
+        for j in range(self.N_blades):
+            th_j = theta + j * TWO_PI / self.N_blades
+            tau += self.m * g * r[j] * np.sin(th_j) * self.n_physical
+        return tau
+
+
+class ZypyZapeNetwork:
+    def __init__(self):
+        # 2 centrales grandes (1 molino físico cada una)
+        self.mills = [
+            QuijoteMill('C1', 40.0, 5000., 5e7, 5., 30., 1.5, 2.0, 0.10, 1),
+            QuijoteMill('C2', 40.0, 5000., 5e7, 5., 30., 1.5, 2.0, 0.10, 1),
+            # 3 anillo, cada uno = 2 pequeños en serie
+            QuijoteMill('A1', 20.0, 1000., 1e7, 2., 15., 2.0, 2.0, 0.15, 2),
+            QuijoteMill('A2', 20.0, 1000., 1e7, 2., 15., 2.0, 2.0, 0.15, 2),
+            QuijoteMill('A3', 20.0, 1000., 1e7, 2., 15., 2.0, 2.0, 0.15, 2),
+        ]
+        # Adyacencia: C1,C2 -> todos; A_i -> C1,C2 y los otros A_j
+        A = np.array([
+            [0,0,1,1,1],
+            [0,0,1,1,1],
+            [1,1,0,1,1],
+            [1,1,1,0,1],
+            [1,1,1,1,0]], dtype=float)
+        self.A = 0.5*(A + A.T)
+        # Tensor antisimétrico U-V-W (120°)
+        self.T = np.array([[0,1,-1],[-1,0,1],[1,-1,0]], dtype=float)
+        self.K = 0.8
+        self.K_bus = 1.2
+        self.v_wind = 12.0
+
+    def rhs(self, s, t):
+        n = 5
+        theta  = s[0:n]
+        omega  = s[n:2*n]
+        r      = s[2*n:2*n+3*n].reshape(n, 3)
+        phi    = s[2*n+3*n:2*n+3*n+n]
+
+        phi_bus = 0.5*(phi[0] + phi[1])   # ancla: centrales
+
+        dtheta = omega.copy()
+        domega = np.zeros(n)
+        dr     = np.zeros((n, 3))
+        dphi   = np.zeros(n)
+
+        for i in range(n):
+            m = self.mills[i]
+            I = m.inertia(r[i])
+            tau_g   = m.gravity_torque(theta[i], r[i])
+            tau_w   = 0.5 * 1.225 * self.v_wind**2 * m.R**3 * 0.3
+            tau_f   = -m.beta * omega[i]
+            tau_k   = self.K * np.sum(self.A[i] * np.sin(phi - phi[i]))
+            domega[i] = (tau_g + tau_w + tau_f + tau_k) / I
+
+            r_tgt = m.r_target(theta[i])
+            dr[i] = np.clip(m.K_relax * (r_tgt - r[i]), -8.0, 8.0)
+
+            coupling = (self.K/n) * np.sum(self.A[i] * np.sin(phi - phi[i]))
+            dphi[i] = omega[i] + coupling + self.K_bus * np.sin(phi_bus - phi[i])
+
+        return np.concatenate([dtheta, domega, dr.flatten(), dphi])
+
+
+def run(duration=30.0, dt=0.01):
+    net = ZypyZapeNetwork()
+    n = 5
+    theta0 = np.zeros(n)
+    omega0 = np.array([1.5, 1.5, 2.0, 2.0, 2.0])
+    r0 = np.array([np.full(3, net.mills[i].r_min) for i in range(n)]).flatten()
+    phi0 = np.array([0.0, 0.1, 0.2, 0.3, 0.4])
+    s0 = np.concatenate([theta0, omega0, r0, phi0])
+
+    t = np.arange(0, duration, dt)
+    sol = odeint(net.rhs, s0, t)
+
+    theta = sol[:, :n]
+    omega = sol[:, n:2*n]
+    r_all = sol[:, 2*n:2*n+3*n].reshape(len(t), n, 3)
+    phi   = sol[:, 2*n+3*n:]
+    r_ord = np.abs(np.mean(np.exp(1j*phi), axis=1))
+
+    # ---- plots ----
+    labels = ['C1','C2','A1','A2','A3']
+    fig, ax = plt.subplots(3, 2, figsize=(15, 11))
+
+    for i in range(n):
+        ax[0,0].plot(t, omega[:, i], label=labels[i])
+    ax[0,0].set_title('ω_i (rad/s)'); ax[0,0].legend(); ax[0,0].grid()
+
+    ax[0,1].plot(t, r_ord, color='purple', label='r(t)')
+    ax[0,1].axhline(0.9, color='red', ls='--', label='sync')
+    ax[0,1].set_title('Parámetro de orden Kuramoto'); ax[0,1].legend(); ax[0,1].grid()
+
+    for j in range(3):
+        ax[1,0].plot(t, r_all[:, 0, j], label=f'C1 aspa {j+1}')
+    ax[1,0].set_title('C1: r(t) por aspa'); ax[1,0].legend(); ax[1,0].grid()
+
+    for j in range(3):
+        ax[1,1].plot(t, r_all[:, 2, j], label=f'A1 aspa {j+1}')
+    ax[1,1].set_title('A1: r(t) por aspa'); ax[1,1].legend(); ax[1,1].grid()
+
+    for i in range(n):
+        ax[2,0].plot(t, np.mod(phi[:, i], TWO_PI), label=labels[i])
+    ax[2,0].set_title('Fases Kuramoto φ_i'); ax[2,0].legend(); ax[2,0].grid()
+
+    # Modo ventana C1
+    modes = np.array([1 if net.mills[0].window_mode(th)=='consume' else 0 for th in theta[:,0]])
+    ax[2,1].fill_between(t, 0, modes, alpha=0.4, color='orange', label='consume')
+    ax[2,1].fill_between(t, 0, 1-modes, alpha=0.4, color='blue', label='feed')
+    ax[2,1].set_yticks([0.25, 0.75]); ax[2,1].set_yticklabels(['feed','consume'])
+    ax[2,1].set_title('Ventana activa C1 (60° alternas)'); ax[2,1].legend()
+
+    plt.tight_layout(); plt.savefig('zypyzape_5molinos.png', dpi=150); plt.show()
+
+    print(f"r final: {r_ord[-1]:.3f}")
+    print(f"ω final: {dict(zip(labels, omega[-1]))}")
+    # Fracción de tiempo con ≥2 aspas en fase favorable en C1
+    fav = np.mean(modes)
+    print(f"Fracción consume en C1: {fav:.2f}")
+
+if __name__ == '__main__':
+    run()

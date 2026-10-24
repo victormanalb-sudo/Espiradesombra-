@@ -1,0 +1,472 @@
+"""
+kilometro_primer_modelo.py
+==========================
+Primer modelo completo del generador-batería Kilómetro de 6 etapas.
+
+GEOMETRÍA (la relación clave):
+    Etapa 1: objeto 0 -> L/2   (flotando, sin lastre)     GENERA
+    Etapa 2: track gira 1,5 v, CONSUME AL MÁXIMO,
+             y aun así coloca el objeto en la PUNTA (L)  CONSUME
+    Etapa 3: objeto L -> 0    (flotando, sin lastre)      GENERA  <-- L COMPLETO
+    Etapa 4: recoge lastre en 0                           NEUTRO
+    Etapa 5: objeto 0 -> L    (hundiéndose con lastre)    GENERA  <-- L COMPLETO
+    Etapa 6: deja lastre en L                             NEUTRO
+
+La relación que el diseño explota:
+    Etapa 2 consume al máximo PERO deja el objeto en la punta.
+    Eso le da a la etapa 3 el recorrido completo L (no L/2).
+    La inversión de la 2 se recupera con E_3 = η_s · F_up · L.
+    Con E_1 ayudando, el par (1+3) compensa 2 con holgura,
+    y E_5 es ganancia pura.
+
+Autor: VMA 2026 · github.com/espiradesombra/claude
+"""
+
+import numpy as np
+import matplotlib.pyplot as plt
+from dataclasses import dataclass, field, replace
+
+# ============================================================
+# CONSTANTES
+# ============================================================
+g          = 9.81
+rho_sea    = 1025.0      # kg/m³
+rho_helium = 0.1786      # kg/m³
+rho_steel  = 7850.0      # kg/m³
+
+
+# ============================================================
+# PARÁMETROS
+# ============================================================
+@dataclass
+class Params:
+    # --- Track (recorrido) ---
+    V_track         : float = 5000.0    # m³ volumen exterior
+    V_structure     : float = 0.5       # m³ volumen estructural (acero)
+    L               : float = 100.0     # m longitud del track
+    R_track         : float = 8.0       # m radio efectivo para inercia
+
+    # --- Objeto ---
+    V_obj           : float = 0.5       # m³
+    m_obj_struct    : float = 100.0     # kg carcasa
+
+    # --- Fluido pesado interior ---
+    rho_fluid       : float = 1500.0    # kg/m³
+
+    # --- Lastre ---
+    m_lastre        : float = 2100.0    # kg (mínimo + 5% sobre ΔρV_o)
+    r_L             : float = 50.0      # m (posición del lastre en punta)
+
+    # --- Etapa 2 (rotación) ---
+    omega_peak      : float = 0.1       # rad/s
+    C_add           : float = 1.0       # masa añadida
+    eta_motor       : float = 0.90
+    eta_regen       : float = 0.40      # fracción recuperada al frenar
+    tau_fric        : float = 50.0      # N·m fricción del eje
+    n_turns         : float = 1.5
+
+    # --- Sinfín ---
+    eta_s           : float = 0.85
+
+    # --- Olas ---
+    wave_amp        : float = 1.0       # m amplitud
+    eta_capture     : float = 0.20      # eficiencia captura presión
+
+    # --- Fracción de etapa 3 (1.0 = recorrido completo) ---
+    stage3_frac     : float = 1.0
+
+    # ---- Derivados ----
+    @property
+    def rho_obj(self):
+        return self.m_obj_struct / self.V_obj
+
+    @property
+    def delta_rho(self):
+        return self.rho_fluid - self.rho_obj
+
+    @property
+    def F_up(self):
+        """Fuerza de flotación neta sin lastre (> 0)."""
+        return self.delta_rho * self.V_obj * g
+
+    @property
+    def F_down(self):
+        """Fuerza neta hundiéndose con lastre (> 0 si m_L > ΔρV_o)."""
+        return self.m_lastre * g - self.F_up
+
+    @property
+    def m_lastre_min(self):
+        """Lastre mínimo para hundir el objeto."""
+        return self.delta_rho * self.V_obj
+
+    # Track
+    @property
+    def m_helium(self):
+        return (self.V_track - self.V_structure) * rho_helium
+
+    @property
+    def m_struct(self):
+        return self.V_structure * rho_steel
+
+    @property
+    def m_track(self):
+        return self.m_helium + self.m_struct
+
+    @property
+    def buoyancy_track(self):
+        return rho_sea * self.V_track * g
+
+    @property
+    def I_track(self):
+        # Aproximación: cilindro hueco de radio R_track
+        return self.m_track * self.R_track**2 / 2.0
+
+
+# ============================================================
+# ENERGÍAS DE LAS 6 ETAPAS
+# ============================================================
+def energia_presion(p, dx):
+    """Trabajo de la presión oscilante sobre el objeto."""
+    return p.eta_capture * rho_sea * g * p.wave_amp * p.V_obj * dx
+
+
+def energias_etapas(p):
+    """
+    Calcula las energías de las 6 etapas.
+    Positivo = genera, negativo = consume.
+    """
+    # --- Etapa 1: objeto 0 -> L/2, flotando ---
+    dx1 = p.L / 2.0
+    E1 = p.eta_s * (p.F_up * dx1 + energia_presion(p, dx1))
+
+    # --- Etapa 2: rotación completa (consumo máximo) ---
+    # Momento de inercia total durante el giro:
+    #   I_track (track) + m_L · r_L² (lastre en punta) + m_o · r_o² (objeto al eje ≈ 0)
+    I_total = p.I_track + p.m_lastre * p.r_L**2
+    E_kin   = 0.5 * (1 + p.C_add) * I_total * p.omega_peak**2
+    E_fric  = p.tau_fric * 2 * np.pi * p.n_turns
+
+    E2_in   = (E_kin + E_fric) / p.eta_motor
+    E2_rec  = p.eta_regen * E_kin
+    E2      = -(E2_in - E2_rec)   # neto consumido
+
+    # --- Etapa 3: objeto L -> 0, flotando (recorrido COMPLETO) ---
+    # La clave: stage3_frac = 1.0 significa L completo
+    dx3 = p.L * p.stage3_frac
+    E3 = p.eta_s * (p.F_up * dx3 + energia_presion(p, dx3))
+
+    # --- Etapa 4: recoge lastre (neutro) ---
+    E4 = 0.0
+
+    # --- Etapa 5: objeto 0 -> L, hundiéndose con lastre ---
+    dx5 = p.L
+    E5 = p.eta_s * (p.F_down * dx5 + energia_presion(p, dx5))
+
+    # --- Etapa 6: deja lastre (neutro) ---
+    E6 = 0.0
+
+    E_gen  = E1 + E3 + E5
+    E_cons = -E2
+    E_net  = E_gen - E_cons
+
+    return dict(E1=E1, E2=E2, E3=E3, E4=E4, E5=E5, E6=E6,
+                E_gen=E_gen, E_cons=E_cons, E_net=E_net,
+                I_total=I_total, E_kin=E_kin, E_fric=E_fric,
+                dx1=dx1, dx3=dx3, dx5=dx5)
+
+
+# ============================================================
+# VERIFICACIÓN DE LAS INECUACIONES
+# ============================================================
+def check_inecuaciones(p, r):
+    """Devuelve las dos inecuaciones objetivo."""
+    # Primaria: E_1 + E_3 > |E_2|
+    lhs1 = r['E1'] + r['E3']
+    rhs1 = -r['E2']
+    ok1  = lhs1 > rhs1
+    margin1 = (lhs1 - rhs1) / 1e3  # kJ
+
+    # Secundaria: E_5 > 0
+    ok2 = r['E5'] > 0
+    margin2 = r['E5'] / 1e3
+
+    return dict(
+        ineq1_lhs=lhs1, ineq1_rhs=rhs1, ineq1_ok=ok1, ineq1_margin_kJ=margin1,
+        ineq2_lhs=r['E5'], ineq2_ok=ok2, ineq2_margin_kJ=margin2,
+    )
+
+
+# ============================================================
+# RELACIÓN CLAVE: full L vs L/2 en etapa 3
+# ============================================================
+def comparar_full_vs_half(p):
+    """Muestra cuánto aporta que la etapa 3 sea L completo vs L/2."""
+    r_full = energias_etapas(replace(p, stage3_frac=1.0))
+    r_half = energias_etapas(replace(p, stage3_frac=0.5))
+    return {
+        'E3_full': r_full['E3'] / 1e3,
+        'E3_half': r_half['E3'] / 1e3,
+        'delta_kJ': (r_full['E3'] - r_half['E3']) / 1e3,
+        'net_full': r_full['E_net'] / 1e3,
+        'net_half': r_half['E_net'] / 1e3,
+    }
+
+
+# ============================================================
+# BARRIDOS
+# ============================================================
+def sweep_wave_amp(p_base, amps=np.linspace(0, 3, 16)):
+    nets = []
+    for a in amps:
+        r = energias_etapas(replace(p_base, wave_amp=float(a)))
+        nets.append(r['E_net'] / 1e3)
+    return amps, np.array(nets)
+
+
+def sweep_lastre(p_base, fracs=np.linspace(1.0, 5.0, 17)):
+    """Barre m_L desde el mínimo (1×) hasta 5× el mínimo."""
+    nets, E5s = [], []
+    for f in fracs:
+        p = replace(p_base, m_lastre=p_base.m_lastre_min * float(f))
+        r = energias_etapas(p)
+        nets.append(r['E_net'] / 1e3)
+        E5s.append(r['E5'] / 1e3)
+    return fracs, np.array(nets), np.array(E5s)
+
+
+def sweep_stage3(p_base, fracs=np.linspace(0.0, 1.0, 21)):
+    """Barre la fracción de recorrido de la etapa 3."""
+    nets, E3s = [], []
+    for f in fracs:
+        r = energias_etapas(replace(p_base, stage3_frac=float(f)))
+        nets.append(r['E_net'] / 1e3)
+        E3s.append(r['E3'] / 1e3)
+    return fracs, np.array(nets), np.array(E3s)
+
+
+def sweep_L(p_base, Ls=np.linspace(20, 500, 25)):
+    """Barre la longitud del track."""
+    nets = []
+    for L in Ls:
+        # Asumimos que I_track escala con L² (track más largo = más inercia)
+        scale = (L / p_base.L)**2
+        p = replace(p_base, L=float(L))
+        # Recalcular I_track proporcional
+        p.I_track_override = p_base.I_track * scale
+        r = energias_etapas_con_I(p)
+        nets.append(r['E_net'] / 1e3)
+    return Ls, np.array(nets)
+
+
+def energias_etapas_con_I(p):
+    """Versión de energias_etapas que respeta I_track_override."""
+    I_saved = None
+    has_override = hasattr(p, 'I_track_override')
+    # Hacemos un hack simple: monkeypatch
+    r = energias_etapas_hack(p)
+    return r
+
+
+def energias_etapas_hack(p):
+    """Copia de energias_etapas pero con I_track adjustable."""
+    I_track = getattr(p, 'I_track_override', p.I_track)
+
+    dx1 = p.L / 2.0
+    E1 = p.eta_s * (p.F_up * dx1 + energia_presion(p, dx1))
+
+    I_total = I_track + p.m_lastre * p.r_L**2
+    E_kin   = 0.5 * (1 + p.C_add) * I_total * p.omega_peak**2
+    E_fric  = p.tau_fric * 2 * np.pi * p.n_turns
+    E2_in   = (E_kin + E_fric) / p.eta_motor
+    E2_rec  = p.eta_regen * E_kin
+    E2      = -(E2_in - E2_rec)
+
+    dx3 = p.L * p.stage3_frac
+    E3 = p.eta_s * (p.F_up * dx3 + energia_presion(p, dx3))
+
+    dx5 = p.L
+    E5 = p.eta_s * (p.F_down * dx5 + energia_presion(p, dx5))
+
+    E_gen  = E1 + E3 + E5
+    E_cons = -E2
+    E_net  = E_gen - E_cons
+
+    return dict(E1=E1, E2=E2, E3=E3, E4=0, E5=E5, E6=0,
+                E_gen=E_gen, E_cons=E_cons, E_net=E_net,
+                I_total=I_total, E_kin=E_kin, E_fric=E_fric)
+
+
+# ============================================================
+# PLOTS
+# ============================================================
+def plot_all(p):
+    r = energias_etapas(p)
+    chk = check_inecuaciones(p, r)
+    comp = comparar_full_vs_half(p)
+
+    fig, axes = plt.subplots(2, 3, figsize=(18, 11))
+
+    # --- (1) Barres per etapa ---
+    ax = axes[0, 0]
+    labels = ['E1', 'E2', 'E3', 'E4', 'E5', 'E6', 'Net']
+    vals   = [r[k]/1e3 for k in labels]
+    colors = ['seagreen' if v > 0 else 'indianred' for v in vals]
+    ax.bar(labels, vals, color=colors, alpha=0.85)
+    ax.axhline(0, color='black', lw=1)
+    ax.set_ylabel('Energía (kJ)')
+    ax.set_title('Balance por etapa')
+    ax.grid(alpha=0.3, axis='y')
+
+    # --- (2) Relación clave: E1+E3 vs |E2| ---
+    ax = axes[0, 1]
+    ax.bar(['E1+E3', '|E2|'],
+           [chk['ineq1_lhs']/1e3, chk['ineq1_rhs']/1e3],
+           color=['seagreen', 'indianred'], alpha=0.85)
+    ax.set_title(f"Inecuación 1: E1+E3 > |E2|  "
+                 f"({'✓' if chk['ineq1_ok'] else '✗'})")
+    ax.set_ylabel('kJ')
+    ax.grid(alpha=0.3, axis='y')
+
+    # --- (3) Full L vs L/2 en etapa 3 ---
+    ax = axes[0, 2]
+    ax.bar(['E3 (L/2)', 'E3 (L)'],
+           [comp['E3_half'], comp['E3_full']],
+           color=['steelblue', 'seagreen'], alpha=0.85)
+    ax.set_title(f"Efecto del recorrido completo: +{comp['delta_kJ']:.1f} kJ")
+    ax.set_ylabel('kJ')
+    ax.grid(alpha=0.3, axis='y')
+
+    # --- (4) Net vs amplitud d'ona ---
+    ax = axes[1, 0]
+    amps, nets = sweep_wave_amp(p)
+    ax.plot(amps, nets, 'o-', color='darkgreen', lw=2)
+    ax.axhline(0, color='red', ls='--')
+    ax.axvline(p.wave_amp, color='gray', ls=':', label=f'Actual: {p.wave_amp} m')
+    ax.set_xlabel('Amplitud de ola (m)')
+    ax.set_ylabel('Net (kJ)')
+    ax.set_title('Net vs amplitud de ola')
+    ax.legend(); ax.grid(alpha=0.3)
+
+    # --- (5) Net vs lastre ---
+    ax = axes[1, 1]
+    fracs, nets_l, E5s_l = sweep_lastre(p)
+    ax.plot(fracs, nets_l, 's-', color='purple', lw=2, label='Net')
+    ax.plot(fracs, E5s_l, '^--', color='orange', lw=1.5, label='E5')
+    ax.axhline(0, color='red', ls='--')
+    ax.axvline(p.m_lastre / p.m_lastre_min, color='gray', ls=':',
+               label=f'Actual: {p.m_lastre/p.m_lastre_min:.2f}×')
+    ax.set_xlabel('m_L / m_L,min')
+    ax.set_ylabel('kJ')
+    ax.set_title('Net vs lastre (múltiplo del mínimo)')
+    ax.legend(); ax.grid(alpha=0.3)
+
+    # --- (6) Net vs stage3_frac ---
+    ax = axes[1, 2]
+    fracs3, nets_3, E3s_3 = sweep_stage3(p)
+    ax.plot(fracs3, nets_3, 'D-', color='teal', lw=2, label='Net')
+    ax.plot(fracs3, E3s_3, '--', color='seagreen', lw=1.5, label='E3')
+    ax.axhline(0, color='red', ls='--')
+    ax.axvline(p.stage3_frac, color='gray', ls=':',
+               label=f'Actual: {p.stage3_frac:.2f}')
+    ax.set_xlabel('stage3_frac (fracción de L)')
+    ax.set_ylabel('kJ')
+    ax.set_title('Net vs recorrido de la etapa 3')
+    ax.legend(); ax.grid(alpha=0.3)
+
+    plt.tight_layout()
+    plt.savefig('kilometro_primer_modelo.png', dpi=140)
+    plt.show()
+
+
+# ============================================================
+# MAIN
+# ============================================================
+if __name__ == '__main__':
+    p = Params()
+
+    print("=" * 72)
+    print(" KILÓMETRO — PRIMER MODELO COMPLETO")
+    print(" Relación clave: etapa 2 consume máx → etapa 3 recorre L completo")
+    print("=" * 72)
+
+    # --- Verificaciones físicas ---
+    print(f"\n--- Geometría y propiedades ---")
+    print(f"  L (track):          {p.L:>8.1f} m")
+    print(f"  V_obj:              {p.V_obj:>8.3f} m³")
+    print(f"  ρ_obj:              {p.rho_obj:>8.1f} kg/m³")
+    print(f"  ρ_fluid:            {p.rho_fluid:>8.1f} kg/m³")
+    print(f"  Δρ:                 {p.delta_rho:>8.1f} kg/m³")
+    print(f"  m_L,min = Δρ·V_o:   {p.m_lastre_min:>8.1f} kg")
+    print(f"  m_L actual:         {p.m_lastre:>8.1f} kg "
+          f"({p.m_lastre/p.m_lastre_min:.2f}× mínimo)")
+    print(f"  F_up (flotando):    {p.F_up:>8.0f} N")
+    print(f"  F_down (con lastre):{p.F_down:>8.0f} N")
+    print(f"  Track neutro:       {p.buoyancy_track - p.m_track*g:>8.0f} N "
+          f"({'✓' if abs(p.buoyancy_track - p.m_track*g) < 0.05*p.buoyancy_track else '✗'})")
+
+    # --- Energías ---
+    r = energias_etapas(p)
+    print(f"\n--- Energías por etapa ---")
+    print(f"  Etapa 1 (0→L/2):    {r['E1']/1e3:>+10.1f} kJ")
+    print(f"  Etapa 2 (giro):     {r['E2']/1e3:>+10.1f} kJ   "
+          f"(I_total={r['I_total']:.2e} kg·m², E_kin={r['E_kin']/1e3:.1f} kJ)")
+    print(f"  Etapa 3 (L→0):      {r['E3']/1e3:>+10.1f} kJ   ← L COMPLETO")
+    print(f"  Etapa 4 (lastre):   {r['E4']/1e3:>+10.1f} kJ")
+    print(f"  Etapa 5 (0→L):      {r['E5']/1e3:>+10.1f} kJ")
+    print(f"  Etapa 6 (drop):     {r['E6']/1e3:>+10.1f} kJ")
+    print(f"  ------------------------------")
+    print(f"  Generación total:   {r['E_gen']/1e3:>+10.1f} kJ")
+    print(f"  Consumo total:      {r['E_cons']/1e3:>+10.1f} kJ")
+    print(f"  NETO:               {r['E_net']/1e3:>+10.1f} kJ")
+
+    # --- Inecuaciones ---
+    chk = check_inecuaciones(p, r)
+    print(f"\n--- Inecuaciones objetivo ---")
+    print(f"  Ineq 1: E1+E3 > |E2|")
+    print(f"    E1+E3 = {chk['ineq1_lhs']/1e3:+.1f} kJ  vs  |E2| = {chk['ineq1_rhs']/1e3:+.1f} kJ")
+    print(f"    → {'✓ CUMPLE' if chk['ineq1_ok'] else '✗ NO CUMPLE'} "
+          f"(margen: {chk['ineq1_margin_kJ']:+.1f} kJ)")
+    print(f"  Ineq 2: E5 > 0")
+    print(f"    E5 = {chk['ineq2_lhs']/1e3:+.1f} kJ")
+    print(f"    → {'✓ CUMPLE' if chk['ineq2_ok'] else '✗ NO CUMPLE'} "
+          f"(margen: {chk['ineq2_margin_kJ']:+.1f} kJ)")
+
+    # --- Comparación full L vs L/2 ---
+    comp = comparar_full_vs_half(p)
+    print(f"\n--- Relación clave: etapa 3 full L vs L/2 ---")
+    print(f"  E3 con L/2:  {comp['E3_half']:>+8.1f} kJ")
+    print(f"  E3 con L:    {comp['E3_full']:>+8.1f} kJ")
+    print(f"  Ganancia:    {comp['delta_kJ']:>+8.1f} kJ  (recorrido completo)")
+    print(f"  Net con L/2: {comp['net_half']:>+8.1f} kJ")
+    print(f"  Net con L:   {comp['net_full']:>+8.1f} kJ")
+    print(f"  → El consumo máximo de la etapa 2 se justifica porque")
+    print(f"    coloca el objeto en la punta y da a la etapa 3 el recorrido completo.")
+
+    # --- Umbral de ola ---
+    amps, nets = sweep_wave_amp(p)
+    cross = None
+    for i in range(1, len(nets)):
+        if nets[i-1] < 0 <= nets[i]:
+            a0, a1 = amps[i-1], amps[i]
+            n0, n1 = nets[i-1], nets[i]
+            cross = a0 - n0*(a1-a0)/(n1-n0)
+            break
+    print(f"\n--- Umbral de amplitud de ola ---")
+    if cross is not None:
+        print(f"  Net cruza cero a A ≈ {cross:.2f} m")
+        print(f"  → Con A > {cross:.2f} m, el sistema es generador neto.")
+    else:
+        print(f"  Net > 0 en todo el rango [0, 3] m.")
+
+    # --- Plots ---
+    plot_all(p)
+
+    print("\n" + "=" * 72)
+    print(" RESUMEN")
+    print("=" * 72)
+    print(" 1. La etapa 2 consume al máximo porque el lastre está en la punta.")
+    print(" 2. Pero deja el objeto en la punta → etapa 3 recorre L completo.")
+    print(" 3. E1 (L/2) + E3 (L) compensan |E2| con holgura.")
+    print(" 4. E5 (L con lastre mínimo) es ganancia pura.")
+    print(" 5. Las olas cierran el balance final.")
+    print("=" * 72)

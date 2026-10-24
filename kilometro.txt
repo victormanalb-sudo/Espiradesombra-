@@ -1,0 +1,353 @@
+"""
+kilometro_wec_helium_track.py
+==============================
+Validació teòrica del generador-bateria Kilòmetre de 6 etapes.
+
+Arquitectura:
+- TRACK (recorregut): heli, flotabilitat neutra, MOLT GRAN.
+  Funció: pujar el lastre.
+- OBJECTE: petit, flota en fluid pesat dins del tub.
+  Sense lastre → flota (puja). Amb lastre → s'enfonsa (baixa).
+- LASTRE: pesat, pujat pel track, baixat per l'objecte.
+- FLUID DEL TUB: pesat (alta densitat) → molta flotabilitat per a l'objecte.
+- FONT EXTERNA: ones (pressió oscil·lant).
+
+Les 6 etapes:
+  1. Objecte puja sense lastre     → GENERA
+  2. Track puja el lastre           → CONSUMEIX
+  3. Objecte puja (canvi sentit)    → GENERA
+  4. Objecte recull lastre          → NEUTRE
+  5. Objecte baixa amb lastre       → GENERA
+  6. Objecte deixa lastre           → NEUTRE
+
+Validació:
+- Sense ones: net ≤ 0 (Noether).
+- Amb ones: net pot ser > 0 (font externa).
+- El track gran redueix pèrdues, NO crea energia.
+
+Autor: VMA 2026 · github.com/espiradesombra/claude
+"""
+
+import numpy as np
+import matplotlib.pyplot as plt
+from dataclasses import dataclass, replace
+
+# ============================================================
+# CONSTANTS
+# ============================================================
+g           = 9.81        # m/s²
+rho_sea     = 1025.0      # kg/m³ (aigua de mar)
+rho_helium  = 0.1786      # kg/m³
+rho_fluid   = 1500.0      # kg/m³ (fluid pesat interior tub)
+rho_steel   = 7850.0      # kg/m³
+
+# ============================================================
+# PARÀMETRES
+# ============================================================
+@dataclass
+class Params:
+    # --- Track ---
+    track_volume        : float = 5000.0    # m³ (MOLT GRAN)
+    track_structure_m3  : float = 0.5       # m³ de volum estructural (acer)
+    # Heli omple la resta
+    @property
+    def track_helium_mass(self):
+        return (self.track_volume - self.track_structure_m3) * rho_helium
+    @property
+    def track_structure_mass(self):
+        return self.track_structure_m3 * rho_steel
+    @property
+    def track_total_mass(self):
+        return self.track_helium_mass + self.track_structure_mass
+    @property
+    def track_buoyancy(self):
+        return rho_sea * self.track_volume * g
+
+    # --- Objecte ---
+    obj_volume          : float = 0.5       # m³
+    obj_structure_mass  : float = 100.0     # kg (carcassa)
+
+    # --- Lastre ---
+    lastre_mass         : float = 2000.0    # kg
+
+    # --- Dimensions del cicle ---
+    h_lift              : float = 100.0     # m (pujada del lastre al track)
+    d1                  : float = 30.0      # m (etapa 1)
+    d3                  : float = 30.0      # m (etapa 3)
+    d5                  : float = 60.0      # m (etapa 5, amb lastre)
+
+    # --- Eficiències ---
+    eta_sinfin          : float = 0.85      # sinfín
+    eta_motor           : float = 0.90      # motor etapa 2
+    eta_track           : float = 1.00      # eficiència del track (1=ideal)
+
+    # --- Ones ---
+    wave_amp            : float = 1.0       # m (amplitud)
+    wave_period         : float = 8.0       # s
+    eta_wave            : float = 0.20      # captura de l'objecte
+
+    # --- Verificació ---
+    def __post_init__(self):
+        # El track ha de ser neutre (o quasi)
+        imbalance = self.track_buoyancy - self.track_total_mass * g
+        if abs(imbalance) > 0.05 * self.track_buoyancy:
+            print(f"⚠️  Track NO neutre: imbalance = {imbalance/1e3:.1f} kN")
+
+
+# ============================================================
+# FÍSICA
+# ============================================================
+def buoyancy_force(obj_mass, obj_volume, rho_ext, m_extra=0.0):
+    """Força vertical neta (positiva = amunt)."""
+    return rho_ext * obj_volume * g - (obj_mass + m_extra) * g
+
+
+def obj_mass_with(p: Params, extra=0.0):
+    return p.obj_structure_mass + extra
+
+
+def energies(p: Params, with_waves: bool):
+    """
+    Energia de cada etapa. Positiu = generat, negatiu = consumit.
+    """
+    # --- Forces netes ---
+    F_alone  = buoyancy_force(p.obj_structure_mass, p.obj_volume,
+                              rho_fluid, 0.0)            # > 0 flota
+    F_lastre = buoyancy_force(p.obj_structure_mass, p.obj_volume,
+                              rho_fluid, p.lastre_mass)  # < 0 s'enfonsa
+
+    # --- Etapa 1: objecte puja sense lastre ---
+    E1 = +p.eta_sinfin * F_alone * p.d1
+
+    # --- Etapa 2: track puja el lastre ---
+    # Cost termodinàmic: m_L · g · h / (eta_motor · eta_track)
+    # NOTA: eta_track = 1.0 significa track neutre IDEAL (sense truc)
+    #       eta_track > 1.0 seria un "truc" (ex: heli compressible)
+    #       que hauria de justificar-se amb física addicional
+    E2 = -(p.lastre_mass * g * p.h_lift) / (p.eta_motor * p.eta_track)
+
+    # --- Etapa 3: objecte puja de nou ---
+    E3 = +p.eta_sinfin * F_alone * p.d3
+
+    # --- Etapa 4: recull lastre (neutre) ---
+    E4 = 0.0
+
+    # --- Etapa 5: objecte baixa amb lastre ---
+    E5 = +p.eta_sinfin * abs(F_lastre) * p.d5
+
+    # --- Etapa 6: deixa lastre (neutre) ---
+    E6 = 0.0
+
+    # --- Ones: font externa ---
+    if with_waves:
+        H = 2.0 * p.wave_amp
+        # Potència d'ona per unitat d'amplada de front
+        P_wave_per_m = (rho_sea * g**2 * H**2 * p.wave_period) / (64.0 * np.pi)
+        # Àrea efectiva de captura (projecció de l'objecte)
+        A_eff = p.obj_volume ** (2.0/3.0)
+        # Energia capturada en un període d'ona
+        E_wave = P_wave_per_m * A_eff * p.wave_period * p.eta_wave
+    else:
+        E_wave = 0.0
+
+    E_gen  = E1 + E3 + E5 + E_wave
+    E_cons = -E2
+    E_net  = E_gen - E_cons
+
+    return dict(E1=E1, E2=E2, E3=E3, E4=E4, E5=E5, E6=E6,
+                E_wave=E_wave, E_gen=E_gen, E_cons=E_cons, E_net=E_net,
+                F_alone=F_alone, F_lastre=F_lastre)
+
+
+# ============================================================
+# VALIDACIÓ: BARRIDES
+# ============================================================
+def sweep_wave_amplitude(p_base, amps=np.linspace(0, 3, 16)):
+    """Com canvia el net amb l'amplitud de l'ona."""
+    nets = []
+    for a in amps:
+        p = replace(p_base, wave_amp=float(a))
+        r = energies(p, with_waves=True)
+        nets.append(r['E_net'] / 1e6)
+    return amps, np.array(nets)
+
+
+def sweep_track_size(p_base, vols=np.logspace(2, 5, 12)):
+    """Com canvia el net amb la mida del track (sense ones)."""
+    nets = []
+    for v in vols:
+        p = replace(p_base, track_volume=float(v))
+        r = energies(p, with_waves=False)
+        nets.append(r['E_net'] / 1e6)
+    return vols, np.array(nets)
+
+
+def sweep_track_efficiency(p_base, etas=np.linspace(0.8, 2.0, 13)):
+    """
+    Quina eficiència del track caldria per net > 0 SENSE ones?
+    (Això mostra que cal un 'truc' no trivial per superar Noether.)
+    """
+    nets = []
+    for e in etas:
+        p = replace(p_base, eta_track=float(e))
+        r = energies(p, with_waves=False)
+        nets.append(r['E_net'] / 1e6)
+    return etas, np.array(nets)
+
+
+# ============================================================
+# VISUALITZACIÓ
+# ============================================================
+def plot_all(p: Params):
+    r_no  = energies(p, with_waves=False)
+    r_yes = energies(p, with_waves=True)
+
+    fig = plt.figure(figsize=(16, 12))
+
+    # --- (1) Barres per etapa ---
+    ax1 = fig.add_subplot(2, 2, 1)
+    labels = ['1', '2', '3', '4', '5', '6', 'Net']
+    keys   = ['E1', 'E2', 'E3', 'E4', 'E5', 'E6', 'E_net']
+    vals_no  = [r_no[k]  / 1e6 for k in keys]
+    vals_yes = [r_yes[k] / 1e6 for k in keys]
+    x = np.arange(len(labels))
+    w = 0.38
+    ax1.bar(x - w/2, vals_no,  w, label='Sense ones', color='steelblue', alpha=0.8)
+    ax1.bar(x + w/2, vals_yes, w, label='Amb ones',   color='seagreen', alpha=0.8)
+    ax1.axhline(0, color='black', lw=1)
+    ax1.set_xticks(x); ax1.set_xticklabels(labels)
+    ax1.set_ylabel('Energia (MJ)')
+    ax1.set_title('Balanç per etapa')
+    ax1.legend(); ax1.grid(alpha=0.3, axis='y')
+
+    # --- (2) Captura d'ona ---
+    ax2 = fig.add_subplot(2, 2, 2)
+    ax2.bar(['E_wave'],
+            [r_yes['E_wave']/1e6], color='darkorange', alpha=0.8)
+    ax2.axhline(0, color='black', lw=1)
+    ax2.set_ylabel('Energia (MJ)')
+    ax2.set_title(f"Captura d'ona (η={p.eta_wave:.0%}, A={p.wave_amp} m)")
+    ax2.grid(alpha=0.3, axis='y')
+
+    # --- (3) Net vs amplitud d'ona ---
+    ax3 = fig.add_subplot(2, 2, 3)
+    amps, nets = sweep_wave_amplitude(p)
+    ax3.plot(amps, nets, 'o-', color='darkgreen', lw=2)
+    ax3.axhline(0, color='red', ls='--', label='Net = 0')
+    ax3.axvline(p.wave_amp, color='gray', ls=':', label=f'Actual: {p.wave_amp} m')
+    ax3.set_xlabel('Amplitud ona (m)')
+    ax3.set_ylabel('Energia neta per cicle (MJ)')
+    ax3.set_title("Net vs amplitud d'ona")
+    ax3.legend(); ax3.grid(alpha=0.3)
+
+    # --- (4) Net vs mida track (sense ones) ---
+    ax4 = fig.add_subplot(2, 2, 4)
+    vols, nets_t = sweep_track_size(p)
+    ax4.semilogx(vols, nets_t, 's-', color='purple', lw=2)
+    ax4.axhline(0, color='red', ls='--', label='Net = 0')
+    ax4.set_xlabel('Volum del track (m³)')
+    ax4.set_ylabel('Energia neta per cicle (MJ)')
+    ax4.set_title('Net vs mida track (SENSE ones)')
+    ax4.legend(); ax4.grid(alpha=0.3)
+
+    plt.tight_layout()
+    plt.savefig('kilometro_validacio.png', dpi=140)
+    plt.show()
+
+
+# ============================================================
+# MAIN
+# ============================================================
+if __name__ == '__main__':
+    p = Params()
+
+    print("=" * 68)
+    print(" VALIDACIÓ TEÒRICA: Kilòmetre de 6 etapes")
+    print(" Track heli neutre + objecte flotant en fluid pesat")
+    print("=" * 68)
+
+    # --- Estat del track ---
+    print(f"\n--- Track ---")
+    print(f"  Volum:              {p.track_volume:>10.0f} m³")
+    print(f"  Massa total:        {p.track_total_mass:>10.1f} kg")
+    print(f"  Flotabilitat:       {p.track_buoyancy:>10.0f} N")
+    print(f"  Pes:                {p.track_total_mass*g:>10.0f} N")
+    print(f"  Imbalance:          {p.track_buoyancy - p.track_total_mass*g:>10.0f} N "
+          f"({'✓ neutre' if abs(p.track_buoyancy - p.track_total_mass*g) < 0.05*p.track_buoyancy else '✗ ajustar'})")
+
+    # --- Flotabilitat objecte ---
+    r0 = energies(p, with_waves=False)
+    print(f"\n--- Objecte ---")
+    print(f"  F sense lastre:     {r0['F_alone']:>10.0f} N  "
+          f"({'✓ flota' if r0['F_alone'] > 0 else '✗ s\\'enfonsa'})")
+    print(f"  F amb lastre:       {r0['F_lastre']:>10.0f} N  "
+          f"({'✓ s\\'enfonsa' if r0['F_lastre'] < 0 else '✗ flota'})")
+
+    # --- Balanç sense ones ---
+    print(f"\n--- Balanç SENSE ones ---")
+    for k in ['E1', 'E2', 'E3', 'E4', 'E5', 'E6']:
+        print(f"  Etapa {k}: {r0[k]/1e6:+10.4f} MJ")
+    print(f"  ------------------------------")
+    print(f"  NET:      {r0['E_net']/1e6:+10.4f} MJ  "
+          f"({'✓ positiu' if r0['E_net'] > 0 else '✗ no positiu (esperat: Noether)'})")
+
+    # --- Balanç amb ones ---
+    r1 = energies(p, with_waves=True)
+    print(f"\n--- Balanç AMB ones (A={p.wave_amp} m, T={p.wave_period} s) ---")
+    print(f"  E_wave:   {r1['E_wave']/1e6:+10.4f} MJ")
+    print(f"  NET:      {r1['E_net']/1e6:+10.4f} MJ  "
+          f"({'✓ GENERADOR' if r1['E_net'] > 0 else '✗ encara negatiu'})")
+
+    # --- Barrid d'amplitud d'ona: on creua zero? ---
+    amps, nets = sweep_wave_amplitude(p)
+    cross = None
+    for i in range(1, len(nets)):
+        if nets[i-1] < 0 <= nets[i]:
+            a0, a1 = amps[i-1], amps[i]
+            n0, n1 = nets[i-1], nets[i]
+            cross = a0 - n0 * (a1 - a0) / (n1 - n0)
+            break
+    print(f"\n--- Llindar d'amplitud d'ona ---")
+    if cross is not None:
+        print(f"  Net creua zero a A ≈ {cross:.2f} m")
+        print(f"  (per a A > {cross:.2f} m, el sistema és generador net)")
+    else:
+        print(f"  Net no creua zero a l'interval [0, 3] m")
+
+    # --- Barrid de mida del track (sense ones) ---
+    vols, nets_t = sweep_track_size(p)
+    print(f"\n--- Efecte de la mida del track (SENSE ones) ---")
+    for v, n in zip(vols[::3], nets_t[::3]):
+        print(f"  {v:>8.0f} m³ → {n:+.4f} MJ")
+    print("  → La mida del track NO canvia el signe del balanç.")
+
+    # --- Quina eficiència del track caldria per net > 0 sense ones? ---
+    etas, nets_e = sweep_track_efficiency(p)
+    cross_e = None
+    for i in range(1, len(nets_e)):
+        if nets_e[i-1] < 0 <= nets_e[i]:
+            e0, e1 = etas[i-1], etas[i]
+            n0, n1 = nets_e[i-1], nets_e[i]
+            cross_e = e0 - n0 * (e1 - e0) / (n1 - n0)
+            break
+    print(f"\n--- Eficiència del track per net > 0 SENSE ones ---")
+    if cross_e is not None:
+        print(f"  Caldria η_track ≥ {cross_e:.2f}")
+        print(f"  Això exigiria un 'truc' físic (heli compressible, pressió del mar)")
+        print(f"  que no està en el model bàsic. Si existeix, s'ha de justificar.")
+    else:
+        print(f"  Fins i tot amb η_track = {etas[-1]:.1f}, net < 0")
+
+    # --- Gràfiques ---
+    plot_all(p)
+
+    print("\n" + "=" * 68)
+    print(" CONCLUSIONS")
+    print("=" * 68)
+    print(" 1. El track gran i neutre NO subeix el lastre 'gratis':")
+    print("    el cost és m_L · g · h, independent de la mida del track.")
+    print(" 2. La mida del track redueix pèrdues paràsites, no crea energia.")
+    print(" 3. La font d'energia real són les ONES (pressió oscil·lant).")
+    print(" 4. Per damunt del llindar d'amplitud, el sistema és generador net.")
+    print(" 5. Per sota, és bateria (net ≤ 0), com diu Noether.")
+    print("=" * 68)

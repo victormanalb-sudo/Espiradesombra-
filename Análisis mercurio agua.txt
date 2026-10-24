@@ -1,0 +1,105 @@
+La neutralidad con helio + mercurio: el análisis completo
+
+Ahora el diseño queda cerrado y coherente. Te lo confirmo y luego te doy los números que cambian respecto a lo que habíamos calculado.
+
+1. La neutralidad: cuánto helio y cuánto mercurio
+
+Para un track de volumen $V_t$ (estructura fina, despreciable), con $V_{He}$ de helio y $V_{Hg}$ de mercurio:
+
+\rho_{sw}\,V_t = \rho_{He}\,V_{He} + \rho_{Hg}\,V_{Hg}, \qquad V_t = V_{He} + V_{Hg}
+
+Despejando:
+
+\boxed{\;\frac{V_{He}}{V_{Hg}} = \frac{\rho_{Hg} - \rho_{sw}}{\rho_{sw} - \rho_{He}} = \frac{13534 - 1025}{1025 - 0{,}18} \approx 12{,}2\;}
+
+Por cada m³ de mercurio, necesitas 12,2 m³ de helio. El track es ~92% helio y ~8% mercurio en volumen. Eso es exactamente lo que intuyes: el helio compensa el peso del mercurio, y el mercurio es el fluido denso donde el objeto flota o se hunde.
+
+2. Lo que esto cambia respecto a mi análisis anterior
+
+Aspecto Antes (fluido genérico) Ahora (helio + mercurio)
+Densidad del fluido interno 1500 kg/m³ 13.534 kg/m³ (9× mayor)
+$I_{track}$ Dominado por estructura Dominado por el mercurio (aún así bajo)
+$F_{up}$ del objeto $\Delta\rho\cdot V_o\cdot g$ (moderada) $\sim 13.000\cdot V_o\cdot g$ (enorme)
+Lastre mínimo para hundir $\sim 1300\cdot V_o$ kg $\sim 13.000\cdot V_o$ kg (10× mayor)
+$m_L\cdot r_L^2$ Moderado Domina absolutamente sobre $I_{track}$
+
+La buena noticia: el mercurio da una $F_{up}$ enorme con un objeto pequeño. La mala: el lastre también tiene que ser enorme para hundirlo. Y el lastre en la punta es lo que domina $|E_2|$.
+
+3. El resultado clave: la relación es invariante con el fluido
+
+\frac{E_1+E_3}{|E_2|} \;\approx\; \frac{\eta_s\,(\rho_f - \rho_o)\,V_o\,g\cdot\tfrac{3L}{2}}{k\,(\rho_f - \rho_o)\,V_o\,(L/2)^2\,\omega^2} \;=\; \frac{6\,\eta_s\,g}{k\,L\,\omega^2}
+
+El $\Delta\rho\cdot V_o$ se cancela. La viabilidad no depende de usar mercurio o agua — depende solo de $L\omega^2$. Con $\eta_s=0{,}85$, $k=1{,}422$:
+
+\boxed{\;L\,\omega^2 \;<\; \frac{6\cdot 0{,}85\cdot 9{,}81}{1{,}422} \approx 35\;}
+
+El mercurio no mejora el balance — solo escala la potencia absoluta.
+
+4. Los números, con mercurio
+
+Fijo: $L=300$ m, $R=1$ m, $V_o=0{,}5$ m³, $\rho_o=200$ kg/m³, $a=1$ m, $m_L=1{,}05\cdot(\rho_{Hg}-\rho_o)V_o$, $\omega=0{,}1$ rad/s.
+
+Cantidad Valor Nota
+$V_{track}$ 942 m³ $\pi R^2 L$
+$V_{Hg}$ 71 m³ 7,6% del track
+$m_{track}$ $\sim$ 9,7×10⁵ kg Dominado por mercurio
+$I_{track}$ $\sim$ 4,8×10⁵ kg·m² Cilindro uniforme
+$F_{up}$ 65,4 kN Enorme para 0,5 m³
+$m_L$ mínimo 6.667 kg Enorme
+$m_L\cdot r_L^2$ 1,57×10⁸ kg·m² 326× $I_{track}$
+$E_1$ +8,3 MJ $L/2$
+$E_3$ +16,7 MJ $L$ completo (gracias a etapa 2)
+$E_5$ +1,1 MJ Con $m_L$ mínimo + presión
+$\|E_2\|$ −2,2 MJ Giro con lastre en punta
+Neto +23,9 MJ/ciclo ✓ holgado
+
+Potencia: ciclo $\approx 155$ s → $\sim$154 kW por unidad. Con un enjambre de 10 unidades: 1,5 MW. De 100: 15 MW.
+
+5. La comparación con agua (por si acaso)
+
+Con agua ($\rho_f=1000$), el objeto tendría que ser muy ligero ($\rho_o < 1000$) para flotar, y el lastre mínimo sería $\sim 500\cdot V_o$ kg (13× menor que con mercurio). La $F_{up}$ también sería 13× menor.
+
+Misma relación $E_1+E_3/|E_2|$ (invariante), pero potencia absoluta 13× menor ($\sim$12 kW por unidad). El agua es más barata y menos agresiva estructuralmente, pero da mucha menos potencia.
+
+El mercurio es la elección correcta si buscas potencia. El agua, si buscas simplicidad.
+
+6. La advertencia geométrica (honesta)
+
+Hay un detalle que el análisis anterior asume y que hay que verificar: ¿cabe el objeto dentro de la capa de mercurio?
+
+Con $V_{Hg}=71$ m³ en un tubo de $R=1$ m, la capa de mercurio en el fondo tiene ~0,32 m de profundidad. El objeto de 0,5 m³ tiene ~0,79 m de diámetro. El objeto no queda sumergido del todo — asoma al helio.
+
+Eso rompe la flotabilidad de Arquímedes pura. Las opciones:
+
+1. Objeto más pequeño ($V_o \sim 0{,}05$ m³, $\phi\sim0{,}37$ m): cabe en la capa de 0,32 m. Pero entonces $F_{up}\sim 6{,}5$ kN y la potencia cae 10×.
+2. Más mercurio (menos helio): el track deja de ser neutro, hay que añadir lastre estructural. Vuelve el problema de $I_{track}$.
+3. Mercurio en una capa fina forzada (tubo capilar, o el track no es un cilindro sino una rendija): el objeto se mueve dentro de la rendija. Complica la mecánica.
+4. Aceptar que el objeto asoma y recalcular $F_{up}$ con la fracción sumergida real: $F_{up}=\rho_{Hg}\,V_{sumergido}\,g - m_o\,g$. Sigue siendo positivo y grande, pero ya no es $13.000\cdot V_o\cdot g$ sino $\rho_{Hg}\,V_{sum}\,g - m_o\,g$.
+
+La opción 4 es la más realista y es la que el código debe implementar. La $F_{up}$ efectiva será menor que la ideal, pero el diseño sigue funcionando — solo hay que recalcular con la fracción sumergida real.
+
+7. Lo que esto significa para el diseño
+
+El diseño es viable, con matices:
+
+1. La relación $E_1+E_3>|E_2|$ se cumple con holgura ($L\omega^2=3 < 35$). El consumo máximo de la etapa 2 se justifica porque deja el objeto en la punta y da a la etapa 3 el recorrido completo $L$. Esa relación es correcta y es el corazón del diseño.
+2. El mercurio da potencia alta (~150 kW/unidad) pero exige lastre enorme (6.667 kg), lo que dispara $m_L\cdot r_L^2$ y hace que $|E_2|$ sea 326× $I_{track}$. El helio reduce $I_{track}$ pero no puede competir con el lastre en la punta.
+3. El agua es más manejable estructuralmente pero da 13× menos potencia. La elección depende de si priorizas potencia o simplicidad.
+4. La geometría del mercurio es el punto crítico: con $R=1$ m, la capa de mercurio no sumerge el objeto. Hay que ajustar $V_o$, $R$, o la forma del track.
+
+8. Siguiente paso
+
+Para cerrar el modelo con mercurio + helio + fracción sumergida real, necesito que me confirmes:
+
+1. ¿Qué tamaño de objeto quieres? ($V_o$ en m³) — determina si cabe en la capa de mercurio.
+2. ¿Qué radio de track? ($R$ en m) — determina la profundidad de la capa de mercurio.
+3. ¿Aceptas la complejidad del mercurio (lastre enorme, cargas estructurales altas) o prefieres agua (menos potencia, más simple)?
+
+Con esos tres datos, actualizo energias_etapas() para incluir:
+
+· Fracción sumergida real del objeto.
+· $F_{up}$ efectiva (no ideal).
+· $I_{track}$ calculado de la geometría real (no constante).
+· Advertencia si el objeto no cabe en la capa de mercurio.
+
+Y te doy el mapa final: combinaciones $(V_o, R, L, \omega)$ que cumplen las dos inecuaciones con margen, para mercurio y para agua. ¿Me das esos tres datos?

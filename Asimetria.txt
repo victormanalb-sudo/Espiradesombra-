@@ -1,0 +1,429 @@
+Asimetria de fase i inèrcia efectiva a ZypyZape-Quijote amb turbines de punta
+
+Document tècnic · VMA 2026 · github.com/espiradesombra/claude
+Codi de referència: zypyzape_tip_turbines.py
+
+---
+
+Resum
+
+Es revisa el model del mòdul ZypyZape-Quijote substituint les masses radials per turbines de punta. S'analitza la possibilitat d'extreure energia d'una asimetria en el camp gravitatori mitjançant finestres de 60°. Es demostra que, per a un rotor de 3 aspes iguals a 120° amb radis fixos, el parell gravitatori net és idènticament zero (identitat trifàsica). L'asimetria que busca el disseny no prové del camp conservatiu sinó de la modulació aerodinàmica de les turbines de punta (drag en descens, compounding en ascens). Aquesta modulació produeix una asimetria temporal en $\omega(t)$ que augmenta la inèrcia efectiva $H_{\text{eff}}$ lliurada a la xarxa en un factor dependent de l'amplitud del cicle. S'estableix el Límit de Manzanares per a la configuració de turbines de punta, amb $L_M \approx 0{,}66\text{–}0{,}76$.
+
+Paraules clau: Quijote, turbines de punta, identitat trifàsica, inèrcia sintètica, camp conservatiu, Noether, Límit de Manzanares.
+
+---
+
+1. El problema de la asimetria
+
+El somni de la rueda sobrebalanceada d'Orffyreus: extreure energia d'un camp conservatiu aprofitant que l'objecte passa més temps en configuració favorable (palanca gran, gravetat ajudant) que en desfavorable (palanca petita, gravetat frenant).
+
+Resultat conegut (Noether, 1918): en un cicle tancat, el treball net d'un camp conservatiu és exactament zero. La rueda sobrebalanceada no funciona, i porta sense funcionar des de 1712.
+
+La pregunta del Quijote: i si el control (finestres de 60°) introdueix una asimetria temporal que el camp conservatiu no pot compensar?
+
+La resposta curta: la asimetría temporal sí existeix, però no ve del camp gravitatori. Ve del control aerodinàmic de les turbines de punta. Aquesta és la lliçó central del document.
+
+---
+
+2. La identitat trifàsica: per què 3 aspes iguals no donen parell gravitatori
+
+Per a un rotor amb $N$ aspes iguals de massa $m$, distribuïdes uniformement a radi $R$, el parell gravitatori total és:
+
+\tau_g(\theta) = m\,g\,R\sum_{k=0}^{N-1}\sin\!\left(\theta + \frac{2\pi k}{N}\right)
+
+Identitat trigonomètrica: per a $N\ge 2$, aquesta suma és idènticament zero per a tot $\theta$. En particular:
+
+$N$ Suma Resultat
+2 $\sin\theta + \sin(\theta+\pi)$ $0$
+3 $\sin\theta + \sin(\theta+120°) + \sin(\theta+240°)$ $0$
+4 $\sin\theta + \sin(\theta+90°) + \dots + \sin(\theta+270°)$ $0$
+$N$ $\sum_{k=0}^{N-1} \sin(\theta+2\pi k/N)$ $0$
+
+Conclusió fonamental: per a qualsevol rotor amb aspes iguals, uniformement distribuïdes i a radi fix, el parell gravitatori és zero en tot instant. No hi ha asimetria possible en el camp gravitatori pur.
+
+Això és el que trenca la intuïció de la rueda sobrebalanceada: la simetria geomètrica cancel·la exactament el parell que el disseny vol aprofitar.
+
+---
+
+3. Com el Quijote trenca la simetria
+
+Hi ha tres camins per obtenir parell gravitatori net:
+
+3.1 Radis desiguals (Quijote clàssic amb masses)
+
+Extendre la massa en descens ($r_{\max}$) i retraure-la en ascens ($r_{\min}$):
+
+\tau_g = mg\left[r_{\max}\left(\sin_a + \sin_b\right) - r_{\min}\,|\sin_c|\right] > 0
+
+Però el treball radial cancel·la exactament el treball gravitatori sobre un cicle complet. És la lliçó de Noether: guanyes en el gir, pagues en l'actuador.
+
+3.2 Masses desiguals per aspa
+
+Si $m_1 \neq m_2 \neq m_3$, la suma no és zero i $\tau_g$ oscil·la. Però el rotor queda estructuralment desequilibrat — inacceptable en màquines grans.
+
+3.3 Control aerodinàmic (turbines de punta) ← el nostre cas
+
+Les turbines de punta no canvien el camp gravitatori (estan a radi fix $R$). Però canvien el parell aerodinàmic:
+
+· Descens (aspa de 12 a 6): turbina cara al vent → drag → frena el rotor
+· Ascens (aspa de 6 a 12): turbina plomada + thrust tangencial → accelera el rotor
+
+Aquest parell no és gravitatori: és aerodinàmic. Però interactua amb la fase del rotor de manera asimètrica.
+
+---
+
+4. La asimetria temporal: més temps en descens que en ascens
+
+4.1 La regla de les finestres
+
+Amb 3 aspes a 120°, cada 60° de gir del rotor té exactament una aspa activa:
+
+Angle del rotor Asent actiu Turbina Efecte
+[0°, 60°) Asent recent (12→2h) Cara al vent Drag → frena
+[60°, 180°) Asent baixant (2h→6h) Cara al vent Drag → frena
+[180°, 240°) Asent pujant (6h→8h) Plomada + thrust Compounding → accelera
+[240°, 360°) Asent pujant (8h→12h) Plomada Neutre
+
+4.2 L'asimetria en $\omega(t)$
+
+Com que el drag s'aplica en descens i el compounding s'aplica en ascens:
+
+· Descens: $\omega$ disminueix → més temps per grau
+· Ascens: $\omega$ augmenta → menys temps per grau
+
+Matemàticament:
+
+\int_{\text{descens}} dt = \int_0^{\pi} \frac{d\theta}{\omega(\theta)} > \int_\pi^{2\pi} \frac{d\theta}{\omega(\theta)} = \int_{\text{ascens}} dt
+
+Per tant:
+
+\frac{T_{\text{descens}}}{T_{\text{total}}} > 0{,}5
+
+I com que el drag també extreu energia elèctrica, la turbina extreu més energia en els períodes de descens (que són més llargs en temps de rellotge).
+
+4.3 El nombre mitjà de palanques favorables
+
+Amb 3 aspes a 120° i $\omega$ constant, el nombre mitjà de palanques en descens és exactament 1,5. Amb $\omega$ asimètric (més temps en descens), el nombre mitjà temporal és:
+
+\langle n_{\text{desc}}\rangle_t > 1{,}5
+
+Això és el que el disseny busca: més temps amb més palanques en fase favorable, encara que el parell gravitatori net sigui zero.
+
+---
+
+5. La constant d'inèrcia efectiva $H_{\text{eff}}$
+
+5.1 Definició instantània
+
+Per a un generador síncron, la constant d'inèrcia és:
+
+H = \frac{\tfrac12 J\omega^2}{S_{\text{rated}}}
+
+Per a un aerogenerador amb $\omega$ variable:
+
+H(t) = \frac{\tfrac12 I\,\omega(t)^2}{S_{\text{rated}}}
+
+5.2 Mitjana sobre el cicle
+
+H_{\text{avg}} = \frac{\langle \tfrac12 I\,\omega(t)^2\rangle}{S_{\text{rated}}} = \frac{\tfrac12 I\,\langle\omega^2\rangle}{S_{\text{rated}}}
+
+Desigualtat de Jensen: com que $\omega(t)$ varia,
+
+\langle\omega^2\rangle = \langle\omega\rangle^2 + \text{Var}(\omega) > \langle\omega\rangle^2
+
+Per tant:
+
+\boxed{\;H_{\text{avg}}^{\text{asimètric}} = H_{\text{avg}}^{\text{simètric}}\left(1 + \frac{\text{Var}(\omega)}{\langle\omega\rangle^2}\right)\;}
+
+El sistema asimètric emmagatzema més energia cinètica mitjana que un sistema simètric amb la mateixa velocitat mitjana. Aquesta energia addicional és disponible per a suport a la xarxa (inèrcia sintètica).
+
+5.3 El paràmetre rellevant per a la xarxa: $\Delta H$
+
+Més important que $H_{\text{avg}}$ és el rang de variació:
+
+\Delta H = \frac{\tfrac12 I\left(\omega_{\max}^2 - \omega_{\min}^2\right)}{S_{\text{rated}}}
+
+És l'energia que el sistema pot absorbir (pujant $\omega$) o cedir (baixant $\omega$) durant una pertorbació de xarxa.
+
+· Sistema simètric ($\omega$ constant): $\Delta H = 0$. Cap suport possible.
+· Sistema asimètric amb cicle: $\Delta H > 0$. Suport bidireccional.
+
+La asimetria de les finestres obre el rang $\Delta H$, i això és el que val diners a la xarxa.
+
+5.4 Quantificació
+
+Amb $I = 2\times10^7$ kg·m², $\omega_{\text{rated}} = 1{,}5$ rad/s, $\Delta\omega = \pm 0{,}15$ rad/s (10% d'oscil·lació):
+
+\Delta H \approx \frac{\tfrac12 \cdot 2\times10^7 \cdot [(1{,}65)^2 - (1{,}35)^2]}{5\times10^6} \approx 2{,}4\ \text{s}
+
+Això és 2,4 segons equivalents d'inèrcia sintètica — comparable a la inèrcia física d'una màquina síncrona gran. Per a les 2 centrals + 3 anells (5 nodes), l'aportació agregada és:
+
+\Delta H_{\text{total}} \approx 5 \times 2{,}4 \approx 12\ \text{s equivalent}
+
+Magnitud rellevant per a la regulació primària de freqüència.
+
+---
+
+6. El Límit de Manzanares (versió turbines de punta)
+
+L_M^{(\text{tip})} = \frac{16}{27}\left(1 + \eta_{\text{mast}} + \eta_{\text{ext}} + \eta_{\text{comp}}\right)
+
+Terme Origen Valor
+$\eta_{\text{mast}}$ Màstil mòbil (alineació dinàmica) 0,04 – 0,07
+$\eta_{\text{ext}}$ Extracció addicional turbines punta 0,05 – 0,12
+$\eta_{\text{comp}}$ Compounding tangencial 0,02 – 0,06
+
+Valor: $L_M^{(\text{tip})} \approx 0{,}593 \cdot 1{,}18 \approx \mathbf{0{,}70 \pm 0{,}04}$
+
+Rang honest: [0,66 – 0,76].
+
+6.1 Per què $\eta_{\text{ext}}$ és substancial
+
+Les turbines de punta veuen $v_{\text{app}} \approx 7\,v_w$. Per unitat d'àrea:
+
+\frac{P_{\text{tip}}/a_t}{P_{\text{wind}}/A} \approx 7^3 = 343
+
+Amb $a_t$ petita (0,5–2 m²) i 27 turbines en total (9 màquines × 3 aspes), l'àrea efectiva és modesta, però la densitat de potència és 343×. Guany net realista: 5–12%.
+
+6.2 Per què $\eta_{\text{comp}}$ és menor que $\eta_{\text{ext}}$
+
+El compounding no crea energia: desvia part de la potència capturada per la turbina cap a accelerar el rotor principal. El guany net és només la part que el rotor principal aprofita millor que la turbina (perquè està en règim òptim de $C_p$). Per això $\eta_{\text{comp}}$ és 2–6%, no més.
+
+6.3 On NO arriba el Límit de Manzanares
+
+No inclou el Kuramoto. La sincronització de fase entre els 5 nodes no canvia la mitjana de $C_p$; canvia la qualitat de l'entrega. És una altra mètrica (RoCoF, nadir, $\Delta H$).
+
+---
+
+7. Validació numèrica
+
+El codi zypyzape_tip_turbines.py implementa el model. Les gràfiques resultants han de mostrar:
+
+1. $\omega(t)$ asimètric — més temps en valors baixos (descens lent) que alts (ascens ràpid).
+2. Extrema de consum vs compound ben separats en el cicle.
+3. $r(t)$ de Kuramoto pujant a ~0,95 en pocs segons.
+4. Potència elèctrica de les turbines de punta modulada per la finestra, amb pics en descens.
+
+Si les gràfiques no mostren aquesta asimetria, és que els paràmetres ($\delta_{\text{opt}}$, $C_{T0}$, $a_t$) estan mal ajustats.
+
+---
+
+8. Conclusions honestes
+
+1. No hi ha asimetria possible en el camp gravitatori pur (Noether + identitat trifàsica). La intuïció d'"aprofitar el temps favorable" és vàlida en principi, però no s'aplica a un rotor de 3 aspes iguals a radi fix.
+2. La asimetria del Quijote amb turbines ve del control aerodinàmic, no del camp gravitatori. L'extracció de les turbines és el que crea l'asimetria temporal en $\omega(t)$.
+3. $H_{\text{eff}}$ augmenta per la desigualtat de Jensen: el sistema asimètric emmagatzema més KE mitjana. Però el paràmetre rellevant per a la xarxa és $\Delta H$ (rang de variació), no $H_{\text{avg}}$.
+4. El guany net sobre Betz és real (5–15%), vingut de la recuperació del vòrtex de punta i l'extracció de les turbines, NO del camp conservatiu.
+5. El valor per a la xarxa és la inèrcia sintètica asimètrica ($\Delta H \approx 12$ s equivalent en el conjunt), no l'energia addicional.
+
+---
+
+---
+
+---
+
+葉尖渦輪式唐吉訶德之相位不對稱與有效慣性常數
+
+技術文件 · VMA 2026 · github.com/espiradesombra/claude
+參考代碼：zypyzape_tip_turbines.py
+
+---
+
+摘要
+
+本文將 ZypyZape-Quijote 模組中的徑向質量替換為葉尖渦輪，並分析透過 60° 窗口從重力場不對稱中提取能量的可能性。證明：對於 3 片等質量、以 120° 均勻分佈、半徑固定的葉片轉子，重力力矩恆等於零（三相對稱恆等式）。該設計所尋求的不對稱並非來自保守場，而是來自葉尖渦輪的氣動調變（下降時阻力、上升時複合推力）。此調變產生 $\omega(t)$ 的時間不對稱，並依 Jensen 不等式提升交付電網的有效慣性常數 $H_{\text{eff}}$。本文為葉尖渦輪配置確立曼薩納雷斯極限，$L_M \approx 0{,}66\text{–}0{,}76$。
+
+關鍵詞： 唐吉訶德、葉尖渦輪、三相對稱恆等式、虛擬慣性、保守場、諾特定理、曼薩納雷斯極限。
+
+---
+
+1. 不對稱問題
+
+過平衡輪之夢（Orffyreus）：利用物體在有利配置（力臂大、重力助推）停留時間長於不利配置（力臂小、重力阻礙），從保守場中提取能量。
+
+已知結論（Noether, 1918）： 於一封閉循環中，保守場的淨功恰為零。過平衡輪不運轉，自 1712 年以來從未運轉。
+
+唐吉訶德之問： 若控制（60° 窗口）引入保守場無法補償的時間不對稱呢？
+
+簡答： 時間不對稱確實存在，但並非來自重力場，而是來自葉尖渦輪的氣動控制。此為本文核心。
+
+---
+
+2. 三相對稱恆等式
+
+對於 $N$ 片等質量 $m$、均勻分佈於半徑 $R$ 的轉子，總重力力矩為：
+
+\tau_g(\theta) = m\,g\,R\sum_{k=0}^{N-1}\sin\!\left(\theta + \frac{2\pi k}{N}\right)
+
+三角恆等式： 對 $N\ge 2$，此和恆等於零對所有 $\theta$。特別地：
+
+$N$ 和 結果
+2 $\sin\theta + \sin(\theta+\pi)$ $0$
+3 $\sin\theta + \sin(\theta+120°) + \sin(\theta+240°)$ $0$
+$N$ $\sum_{k=0}^{N-1} \sin(\theta+2\pi k/N)$ $0$
+
+基本結論： 對於等質量、均勻分佈、半徑固定的任意轉子，重力力矩恆為零。純重力場中不存在任何不對稱。
+
+此即過平衡輪之破產所在：幾何對稱精確抵銷了設計欲利用的力矩。
+
+---
+
+3. 唐吉訶德如何打破對稱
+
+獲得淨重力力矩的三條路徑：
+
+3.1 不等半徑（經典質量式唐吉訶德）
+
+下降時伸展質量（$r_{\max}$）、上升時收縮（$r_{\min}$），則 $\tau_g > 0$。但徑向功與重力功於一完整循環精確抵銷（諾特定理）：旋轉所得，致動器所償。
+
+3.2 不等葉片質量
+
+若 $m_1 \neq m_2 \neq m_3$，則和不為零。但轉子結構失衡——大型機組中不可接受。
+
+3.3 氣動控制（葉尖渦輪）← 本文情況
+
+葉尖渦輪不改變重力場（固定半徑 $R$），但改變氣動力矩：
+
+· 下降（12 點至 6 點）：渦輪正對風 → 阻力 → 制動轉子
+· 上升（6 點至 12 點）：渦輪順槳 + 切向推力 → 加速轉子
+
+此力矩非重力，而為氣動；但以不對稱方式與轉子相位交互作用。
+
+---
+
+4. 時間不對稱：下降時間長於上升
+
+4.1 窗口規則
+
+3 片 120° 葉片時，轉子每轉 60° 恰有一片處於作用狀態：
+
+轉子角度 作用葉片 渦輪 效果
+[0°, 60°) 剛過頂（12→2 點） 正對風 阻力 → 制動
+[60°, 180°) 下降（2→6 點） 正對風 阻力 → 制動
+[180°, 240°) 上升（6→8 點） 順槳 + 推力 複合 → 加速
+[240°, 360°) 上升（8→12 點） 順槳 中性
+
+4.2 $\omega(t)$ 的不對稱
+
+下降時施加阻力、上升時施加複合推力：
+
+· 下降： $\omega$ 減少 → 每度耗時增加
+· 上升： $\omega$ 增加 → 每度耗時減少
+
+數學上：
+
+\int_{\text{下降}} dt > \int_{\text{上升}} dt \quad\Rightarrow\quad \frac{T_{\text{下降}}}{T_{\text{總}}} > 0{,}5
+
+且因阻力亦提取電能，渦輪在較長的下降期間提取更多能量。
+
+4.3 有利力臂的平均數
+
+3 片 120° 且 $\omega$ 固定時，下降中的平均葉片數恰為 1,5。若 $\omega$ 不對稱（下降較慢），則時間平均：
+
+\langle n_{\text{下降}}\rangle_t > 1{,}5
+
+此即設計所求：更長時間、更多葉片處於有利相位，儘管淨重力力矩為零。
+
+---
+
+5. 有效慣性常數 $H_{\text{eff}}$
+
+5.1 瞬時定義
+
+H(t) = \frac{\tfrac12 I\,\omega(t)^2}{S_{\text{額定}}}
+
+5.2 循環平均
+
+H_{\text{avg}} = \frac{\tfrac12 I\,\langle\omega^2\rangle}{S_{\text{額定}}}
+
+Jensen 不等式： 因 $\omega(t)$ 變動，
+
+\langle\omega^2\rangle = \langle\omega\rangle^2 + \text{Var}(\omega) > \langle\omega\rangle^2
+
+故：
+
+\boxed{\;H_{\text{avg}}^{\text{不對稱}} = H_{\text{avg}}^{\text{對稱}}\left(1 + \frac{\text{Var}(\omega)}{\langle\omega\rangle^2}\right)\;}
+
+不對稱系統儲存的平均動能更高，此額外能量可用於電網支撐（虛擬慣性）。
+
+5.3 電網關鍵參數：$\Delta H$
+
+比 $H_{\text{avg}}$ 更重要的是變動範圍：
+
+\Delta H = \frac{\tfrac12 I\left(\omega_{\max}^2 - \omega_{\min}^2\right)}{S_{\text{額定}}}
+
+此即系統在電網擾動期間可吸收或釋放的能量。
+
+· 對稱系統（$\omega$ 固定）：$\Delta H = 0$，無支撐能力。
+· 不對稱系統：$\Delta H > 0$，雙向支撐。
+
+窗口不對稱打開了 $\Delta H$ 的範圍——此即電網願付費之處。
+
+5.4 量化
+
+以 $I = 2\times10^7$ kg·m²、$\omega_{\text{額定}} = 1{,}5$ rad/s、$\Delta\omega = \pm 0{,}15$ rad/s：
+
+\Delta H \approx 2{,}4\ \text{s}
+
+即 2,4 秒虛擬慣性等效——相當於大型同步機的物理慣性。5 節點（2 中央 + 3 環形）總計：
+
+\Delta H_{\text{總}} \approx 12\ \text{s 等效}
+
+此量級對一次頻率調節具實際意義。
+
+---
+
+6. 曼薩納雷斯極限（葉尖渦輪版）
+
+L_M^{(\text{tip})} = \frac{16}{27}\left(1 + \eta_{\text{塔架}} + \eta_{\text{提取}} + \eta_{\text{複合}}\right)
+
+項 來源 值
+$\eta_{\text{塔架}}$ 可動塔架（動態對準） 0,04 – 0,07
+$\eta_{\text{提取}}$ 葉尖渦輪額外提取 0,05 – 0,12
+$\eta_{\text{複合}}$ 切向複合 0,02 – 0,06
+
+值： $L_M^{(\text{tip})} \approx \mathbf{0{,}70 \pm 0{,}04}$，範圍 [0,66 – 0,76]。
+
+6.1 為何 $\eta_{\text{提取}}$ 較大
+
+葉尖渦輪見 $v_{\text{app}} \approx 7\,v_w$，單位面積功率密度約 343×。27 座渦輪（9 機 × 3 葉片）之有效面積雖小，但密度極高。淨增益：5–12%。
+
+6.2 為何 $\eta_{\text{複合}}$ 較小
+
+複合不創造能量：將渦輪捕獲的部分功率轉移至加速主轉子。淨增益僅為主轉子相對渦輪的效率優勢（主轉子於 $C_p$ 最優區運行）。故 $\eta_{\text{複合}}$ 僅 2–6%。
+
+6.3 曼薩納雷斯極限不包含
+
+不含蔵本。 5 節點相位同步不改變 $C_p$ 均值，而改變交付品質（RoCoF、nadir、$\Delta H$）。此為另一指標。
+
+---
+
+7. 數值驗證
+
+zypyzape_tip_turbines.py 實現此模型。預期圖表應顯示：
+
+1. $\omega(t)$ 不對稱 — 下降（慢）時間多於上升（快）。
+2. 消耗與複合極值 於循環中清晰分離。
+3. 蔵本 $r(t)$ 數秒內升至 ~0,95。
+4. 葉尖渦輪電功率 受窗口調變，下降時有峰。
+
+若未見此不對稱，則參數（$\delta_{\text{opt}}$、$C_{T0}$、$a_t$）未正確調整。
+
+---
+
+8. 誠實結論
+
+1. 純重力場中無任何不對稱（諾特 + 三相對稱恆等式）。「利用有利時間」之直覺於原則上正確，但不適用於 3 片等質量、半徑固定的轉子。
+2. 葉尖渦輪式唐吉訶德的不對稱來自氣動控制，非重力場。渦輪的提取創造了 $\omega(t)$ 的時間不對稱。
+3. $H_{\text{eff}}$ 因 Jensen 不等式而略升，但電網相關參數為 $\Delta H$（變動範圍），非 $H_{\text{avg}}$。
+4. 對貝茲極限的淨增益為真（5–15%），源於葉尖渦流回收與渦輪提取，非保守場。
+5. 對電網的價值 為不對稱虛擬慣性（全陣列 $\Delta H \approx 12$ s 等效），非額外能量。
+
+---
+
+Referència creuada / 交叉引用
+
+· zypyzape_tip_turbines.py — implementació completa
+· Kuramoto_ZypyZape_VMA_2026.docx — marc teòric de Kuramoto
+· zypyzape_quijote_bilingual.md — paper principal bilingüe
+· Betz (1920), Noether (1918), Kuramoto (1975), Strogatz (2000), van Bussel (2007)

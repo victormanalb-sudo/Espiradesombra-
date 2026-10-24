@@ -1,0 +1,474 @@
+# ZypyZape-Quijote: Un conjunt acoblat de Kuramoto amb 2 molins centrals i 6 mini-rotors per a la captura i regulació eòlica
+
+**Autor:** Víctor Manzanares Alberola (espiradesombra) · EPSA-UPV Alcoi  
+**Col·laboració tècnica:** Lee Arbusto · any 2026  
+**Repositori:** `github.com/espiradesombra/claude`  
+**Fitxers de referència:** `zypyzape_minigemelo.py`, `Kuramoto_ZypyZape_VMA_2026.docx`, `zypyzape_quijote_5node.py`
+
+---
+
+## Resum
+
+Es presenta una arquitectura de conjunt eòlic format per **2 molins Quijote centrals** (extractors primaris de vent) i **6 mini-rotors** organitzats en **3 nodes d'anell de 2 màquines en sèrie**. Els 5 nodes (2 centrals + 3 anells) s'acoblen mitjançant un model de **Kuramoto** adaptat, amb un tensor antisimètric 3×3 que codifica els desfasaments U-V-W de 120° heretats del devanat original (`Va1-vm1 wa1-vm2 / Wa2-wm1 ua2-wm2 / Ua3-um1 va3-um2 / Ua1-va2-wa3`). Cada molí Quijote disposa de **3 aspes amb massa radialment mòbil**, governades per **finestres de 60°** que alternen extensió (frenada del central per efecte Coriolis) i retracció (acceleració). Es demostra que el conjunt no vulnera el límit de Betz en termes agregats, però que **els 6 mini-rotors no hi estan subjectes de la mateixa manera** perquè la seua funció principal no és l'extracció primària sinó la **regulació bidireccional** (inèrcia sintètica, suport de freqüència, esmorteïment del RoCoF). El treball detalla la física del flux energètic vent–gravetat–bus, quantifica el buffer energètic (~75 MJ per conjunt, ~15 s a 5 MW de càrrega) i estableix els límits termodinàmics del sistema.
+
+**Paraules clau:** Kuramoto, Quijote, inèrcia sintètica, límit de Betz, efecte Coriolis, energia eòlica, regulació de freqüència.
+
+---
+
+## 1. Introducció
+
+La variabilitat del vent i la creixent penetració de fonts renovables no gestionables plantegen dos reptes simultanis als sistemes elèctrics: (i) **maximitzar la captura** d'energia per unitat de superfície escombrada, i (ii) **mantindre l'estabilitat** de freqüència i tensió davant de pertorbacions sobtades. Els aerogeneradors convencionals aborden (i) amb el límit de Betz com a sostre teòric, però la resposta a (ii) depén críticament de la inèrcia física del rotor, que en màquines modernes és escassa.
+
+El projecte **ZypyZape-Quijote** proposa una arquitectura híbrida: dos molins centrals de grans dimensions com a extractors primaris, i sis mini-rotors distribuïts com a capa de regulació i emmagatzematge temporal. L'acoblament de fase entre tots ells es realitza mitjançant el **model de Kuramoto**, que aprofita el bus elèctric com a canal de sincronització sense necessitat de comunicació explícita [Kuramoto 1975; Strogatz 2000].
+
+---
+
+## 2. Topologia del conjunt
+
+El conjunt consta de **8 rotors físics** distribuïts en **5 nodes de Kuramoto**:
+
+| Node | Tipus | Rotors físics | Funció |
+|------|-------|---------------|--------|
+| C1 | Central | 1 (gran) | Extracció primària + ancoratge de fase |
+| C2 | Central | 1 (gran) | Extracció primària + ancoratge de fase |
+| A1 | Anell | 2 (mini, en sèrie) | Regulació + buffer |
+| A2 | Anell | 2 (mini, en sèrie) | Regulació + buffer |
+| A3 | Anell | 2 (mini, en sèrie) | Regulació + buffer |
+
+L'**adjacència** $A_{ij}$ connecta cada central amb els tres anells, i cada anell amb les dues centrals i els altres dos anells. El **tensor antisimètric** $T\in\mathbb{R}^{3\times3}$ codifica els desfasaments trifàsics heretats del devanat original:
+
+$$
+T = \begin{pmatrix} 0 & 1 & -1 \\ -1 & 0 & 1 \\ 1 & -1 & 0 \end{pmatrix}
+$$
+
+Aquest tensor substitueix el placeholder simètric del prototip original (`Kuramoto_ZypyZape_VMA_2026.docx`, p. 18) i restaura la informació de fase U-V-W de 120° que el devanat `Va1-vm1 wa1-vm2…` contenia implícitament.
+
+---
+
+## 3. Model físic
+
+### 3.1 Captura eòlica i límit de Betz
+
+Per a un rotor obert en flux estacionari incompressible, la teoria de moment (Betz, 1920) estableix que el coeficient de potència $C_p$ està fitat per:
+
+$$
+C_{p,\max} = \frac{16}{27} \approx 0.593
+$$
+
+La potència elèctrica d'un molí central és, doncs:
+
+$$
+P_{e,i} = \eta_i \cdot C_{p,i} \cdot \tfrac{1}{2}\rho A_i v^3, \qquad C_{p,i}\le \tfrac{16}{27}
+$$
+
+on $\eta_i$ inclou les pèrdues mecàniques i elèctriques.
+
+### 3.2 Dinàmica radial del Quijote
+
+Cada molí $i$ disposa de $N_b=3$ aspes, cadascuna amb una massa $m_i$ que pot desplaçar-se radialment entre $r_{\min}$ i $r_{\max}$. La inèrcia efectiva és:
+
+$$
+I_i(\mathbf r_i) = I_{g,i} + n_i\,m_i\sum_{j=1}^{N_b} r_{ij}^2
+$$
+
+on $n_i$ és el nombre de rotors físics del node ($n_i=1$ per a centrals, $n_i=2$ per a anells).
+
+Els parells que actuen sobre el rotor són:
+
+- **Gravetat:** $\tau_{g,i} = n_i m_i g \sum_j r_{ij}\sin\theta_{ij}$
+- **Coriolis:** $\tau_{c,i} = -2\,n_i m_i\,\omega_i \sum_j \dot r_{ij}\,r_{ij}$
+- **Vent:** $\tau_{w,i} = P_{w,i}/\omega_i$
+- **Fricció:** $\tau_{f,i} = -\beta_i\omega_i$
+- **Kuramoto:** $\tau_{k,i} = K\sum_j A_{ij}\sin(\varphi_j-\varphi_i)$
+
+L'equació de moviment del rotor és:
+
+$$
+\frac{d\omega_i}{dt} = \frac{\tau_{g,i}+\tau_{c,i}+\tau_{w,i}+\tau_{f,i}+\tau_{k,i}}{I_i(\mathbf r_i)}
+$$
+
+i la dinàmica radial ve governada per les finestres de 60° (secció 4).
+
+### 3.3 Acoblament de Kuramoto
+
+La fase $\varphi_i$ de cada node evoluciona segons:
+
+$$
+\frac{d\varphi_i}{dt} = \omega_{\text{elec}} + \frac{K}{N}\sum_j A_{ij}\sin(\varphi_j-\varphi_i) + K_{\text{bus}}\sin(\varphi_{\text{bus}}-\varphi_i) + u_i(t)
+$$
+
+on $\varphi_{\text{bus}}$ és la fase del bus, ancorada per les centrals ($\varphi_{\text{bus}} = \tfrac12(\varphi_{C1}+\varphi_{C2})$), i $u_i(t)$ recull l'efecte local de l'actuació radial.
+
+---
+
+## 4. Les finestres de 60° i el cicle asimètric
+
+Amb 3 aspes a 120°, cada aspa recorre 6 sectors de 60° per volta. La classificació és:
+
+| Sector | Angle (des de les 12, horari) | Estat | Efecte sobre el central |
+|--------|-------------------------------|-------|--------------------------|
+| 0 | [0°, 60°) | **Extend** | **Frena** (Coriolis) |
+| 1 | [60°, 180°) | Hold $r_{\max}$ | Neutre |
+| 2 | [180°, 240°) | **Retract** | **Accelera** (Coriolis) |
+| 3 | [240°, 360°) | Hold $r_{\min}$ | Neutre |
+
+La disposició de les 3 aspes a 120° garanteix que **en qualsevol instant exactament una aspa està activa** (extend o retract), una altra està a $r_{\max}$ i la tercera a $r_{\min}$. Això és el que anomenem *"només l'activa"*.
+
+La regla operativa és:
+
+- **Des de les 12 d'un aspa fins a les 6 de la següent** (60° de gir): l'aspa activa **s'estén** → el Coriolis **frena** el central (consum).
+- **Des de les 6 d'un aspa fins a les 12 de la següent** (60° de gir): l'aspa activa **es retrau** → el Coriolis **accelera** el central (inversió).
+
+### 4.1 Asimetria favorable
+
+Amb els paràmetres del simulador ($m=500$ kg, $\omega\approx 1{,}5$ rad/s, $r\approx 30$ m, $\dot r_{\max}\approx 34$ m/s):
+
+- Parell gravitatori per aspa: $\sim 1{,}5\times10^5$ N·m
+- Parell Coriolis per aspa: $\sim 1{,}5\times10^6$ N·m
+
+El Coriolis **domina la gravetat per un factor $\sim 10$**. Això produeix l'asimetria que busquem: el descens (extensió, frenada) dura uns punts percentuals més que l'ascens (retracció, acceleració), de manera que el central passa **més temps en fase gravitatòria favorable** i **menys temps patint el parell gravitatori advers**.
+
+---
+
+## 5. Flux d'energia: vent, gravetat i bus
+
+L'energia que entra al conjunt segueix tres canals acoblats:
+
+1. **Canal eòlic:** $P_{\text{wind}} \to$ energia cinètica del rotor $\to$ eix $\to$ generador. És l'únic canal que aporta energia neta al sistema, i està fitat per Betz en els centrals.
+2. **Canal Quijote:** l'actuació radial intercanvia energia entre (a) energia cinètica rotacional, (b) energia potencial gravitatòria de les masses, i (c) energia centrífuga aparent. En un cicle complet, la integral del treball radial és zero (conservació), però **la distribució temporal** es pot esguitar per afavorir el central.
+3. **Canal Kuramoto:** l'acoblament de fase a través del bus permet que l'energia flua entre rotors ($P_{ij}\propto\sin(\varphi_j-\varphi_i)$). No crea energia; la redistribueix.
+
+**Balanç global:** en qualsevol instant,
+
+$$
+\sum_i P_{e,i} = P_{\text{wind,total}} - P_{\text{pèrdues}} - \frac{dE_{\text{emmagatzemada}}}{dt}
+$$
+
+on $E_{\text{emmagatzemada}} = \sum_i\tfrac12 I_i\omega_i^2 + \sum_{i,j} n_i m_i g r_{ij}\cos\theta_{ij}$.
+
+**Quantificació del buffer:** amb els paràmetres del simulador, $E_{\text{emmagatzemada}}\approx 75$ MJ per conjunt. A 5 MW de càrrega, el conjunt pot sostenir el consum **$\sim 15$ segons** sense vent. És un buffer de **segons a minuts**, no d'hores.
+
+---
+
+## 6. Per què Betz aplica als centrals i no exactament als minis
+
+Aquesta és la qüestió central del disseny i mereix una resposta rigorosa.
+
+### 6.1 El límit de Betz en sentit estricte
+
+El límit $C_p\le 16/27$ és un **teorema de teoria de moment** que assumeix:
+
+- Rotor obert (sense carenats ni difusors),
+- Flux estacionari, incompressible,
+- Cap força externa sobre el volum de control més enllà del disc actuador.
+
+Sota aquestes hipòtesis, el màxim és $16/27$, i punt.
+
+### 6.2 Els centrals: subjecció plena
+
+Els dos molins centrals són rotors oberts convencionals. La seua funció és **extraure energia del vent**, i per tant **estan plenament subjectes a Betz**. El seu $C_p$ no pot superar $16/27$, i en la pràctica es queda en $0{,}45$–$0{,}50$ per dissenys reals.
+
+### 6.3 Els minis: no exactament per tres raons
+
+Els 6 mini-rotors **també són rotors oberts**, i per tant el seu $C_p$ **eòlic** també està fitat per $16/27$. Però la seua funció al conjunt és diferent, i això fa que Betz no siga la mètrica adequada per a ells:
+
+1. **Àrea escombrada petita.** La contribució eòlica dels minis al total és menor que la dels centrals. Betz s'aplica, però el numerador és menut.
+2. **Potència bidireccional.** El mini-rotor pot funcionar com a **motor** (absorbint energia del bus per frenar el central) o com a **generador** (cedint energia al bus per accelerar el central). La potència neta observable $P_{\text{net},i}$ pot ser **negativa**. Betz fita el terme eòlic positiu, no el balanç net.
+3. **Intercanvi amb la gravetat.** L'actuació radial intercanvia energia amb el camp gravitatori i amb l'energia cinètica del rotor. Aquesta energia **no prové del vent**, i per tant no està subjecta a Betz. És un canal addicional.
+
+### 6.4 La formulació correcta
+
+> **Proposició.** La suma de potències elèctriques de tots els rotors del conjunt està fitada per $\sum_i \eta_i (16/27) \tfrac12\rho A_i v^3$, menys pèrdues. És a dir, **el conjunt respecta Betz en agregat**.
+>
+> **Corol·lari.** La potència *observable* d'un mini-rotor individual pot excedir $(16/27)\tfrac12\rho A_{\text{mini}} v^3$ (o ser negativa) perquè inclou intercanvi amb el bus i amb la gravetat. Açò **no és una violació de Betz**, sinó una redefinició del numerador.
+
+### 6.5 El cas del "wind lens"
+
+Si els mini-rotors estigueren configurats físicament com a **carenats o difusors** que acceleraren el flux cap als centrals (configuració *wind lens*, van Bussel 2007), llavors el límit efectiu del conjunt **sí podria superar $16/27$**, perquè el carenat captura flux addicional que no passa pel disc del central. Però això requereix una **estructura aerodinàmica real**, no només acoblament elèctric o de Kuramoto. En la configuració actual —sense carenat— el conjunt és un conjunt de rotors oberts, i Betz s'aplica en agregat.
+
+---
+
+## 7. Regulació: RoCoF, inèrcia sintètica i nadir
+
+El valor operatiu del conjunt no és la captura addicional (que és marginal), sinó la **qualitat de l'entrega**:
+
+- **RoCoF (Rate of Change of Frequency):** la variació de freqüència davant d'una pertorbació. El Quijote, en estendre masses durant el descens, **frena el central suaument** i redueix el RoCoF. Això és **inèrcia sintètica**.
+- **Nadir de freqüència:** el mínim de freqüència després d'una pertorbació. Com més inèrcia efectiva, més alt el nadir. El buffer de 75 MJ del conjunt aporta uns segons de sosteniment.
+- **Temps de resposta:** l'acoblament de Kuramoto sincronitza en **menys d'1 segon** (vegeu `Kuramoto_ZypyZape_VMA_2026.docx`, p. 19). L'actuació Quijote opera per finestres de 60° ($\sim 0{,}7$ s a $\omega$ nominal). El conjunt pot respondre en l'escala de **desenes de mil·lisegons** gràcies a la inèrcia electromagnètica del bus.
+- **Suport de tensió:** el bus actua com a referència de fase; les centrals ancoran $\varphi_{\text{bus}}$, i els anells s'hi acoblen. El conjunt pot operar en mode *grid-forming*.
+
+---
+
+## 8. Límits i conservació
+
+El sistema **no crea energia**. Les limitacions fonamentals són:
+
+1. **Conservació:** el balanç global (secció 5) es compleix en tot instant. El buffer és finit ($\sim 75$ MJ).
+2. **Potència d'actuació:** estendre o retraure masses requereix potència. A $\omega$ alt i $m\cdot r\cdot\dot r$ gran, pot excedir la ràting del generador. Cal dimensionar l'actuador.
+3. **Esforç mecànic:** el Coriolis domina la gravetat per un factor $\sim 10$. L'arrel de l'aspa suporta parells considerables. Cal material i disseny adequats.
+4. **Llindar de sincronització:** Kuramoto només sincronitza si $K > K_c$ (equació [K2] del document de referència). Amb $K=0{,}5$ i $K_{\text{bus}}=1{,}0$, el conjunt assoleix $r(t)\to 0{,}95$ en pocs segons.
+5. **Escala temporal:** les pertorbacions de xarxa poden ser més ràpides que la finestra de 60°. Cal *feedforward* (mesura de $df/dt$ i actuació anticipada) per cobrir aquesta bretxa.
+
+---
+
+## 9. Conclusions
+
+S'ha presentat una arquitectura de conjunt eòlic amb 2 molins Quijote centrals i 6 mini-rotors en 3 nodes d'anell de 2 màquines en sèrie, acoblats per Kuramoto amb tensor antisimètric U-V-W. Les conclusions principals són:
+
+1. **El conjunt no vulnera Betz en agregat**, però la potència observable dels minis no està fitada per Betz perquè inclou intercanvi bidireccional amb el bus i amb la gravetat.
+2. **La asimetria de les finestres de 60°** (Coriolis domina gravetat $\sim 10\times$) fa que el central passe més temps en fase gravitatòria favorable, cosa que redueix el RoCoF i millora el nadir.
+3. **El buffer energètic és de segons a minuts** ($\sim 75$ MJ, $\sim 15$ s a 5 MW), no d'hores. El valor és la **qualitat de l'entrega**, no l'energia addicional.
+4. **Kuramoto forneix sincronització sub-segon** sense comunicació explícita, utilitzant el bus com a canal.
+
+**Treball futur:** validació experimental en un prototip d'1 molí amb Quijote, integració amb el model de 3 vs 7 del projecte original, i estudi del cas *wind lens* per al conjunt complet.
+
+---
+
+## Referències
+
+- Betz, A. (1920). *Das Maximum der theoretisch möglichen Ausnützung des Windes durch Windmotoren*.
+- Kuramoto, Y. (1975). *Self-entrainment of a population of coupled non-linear oscillators*. Lecture Notes in Physics, 39, 420–422.
+- Strogatz, S. H. (2000). *From Kuramoto to Crawford: exploring the onset of synchronization in populations of coupled oscillators*. Physica D, 143(1–4), 1–20.
+- van Bussel, G. J. W. (2007). *The science of making more torque from wind: Diffuser experiments and theory revisited*. Journal of Physics: Conference Series, 75, 012010.
+- Manzanares Alberola, V. (2026). *Kuramoto_ZypyZape_VMA_2026*. Repositori `github.com/espiradesombra/claude`.
+
+---
+---
+
+# ZypyZape-Quijote：由 2 座中央唐吉訶德風車與 6 座微型轉子構成的蔵本耦合陣列：風能捕獲與調節
+
+**作者：** Víctor Manzanares Alberola（espiradesombra）· EPSA-UPV Alcoi  
+**技術協作：** Lee Arbusto · 2026 年  
+**程式碼倉庫：** `github.com/espiradesombra/claude`  
+**參考檔案：** `zypyzape_minigemelo.py`、`Kuramoto_ZypyZape_VMA_2026.docx`、`zypyzape_quijote_5node.py`
+
+---
+
+## 摘要
+
+本文提出一種風力機陣列架構：由 **2 座中央唐吉訶德風車**（主要風能提取器）與 **6 座微型轉子**（組織為 **3 個環形節點，每節點 2 台串聯**）所組成。5 個節點（2 座中央 + 3 個環形）透過改編的 **蔵本模型**耦合，並以 3×3 反對稱張量編碼源自原始繞組（`Va1-vm1 wa1-vm2 / Wa2-wm1 ua2-wm2 / Ua3-um1 va3-um2 / Ua1-va2-wa3`）的 U-V-W 120° 相位差。每座唐吉訶德風車具有 **3 片葉片，其質量可沿徑向移動**，並由 **60° 窗口**控制，交替執行延伸（透過科里奧利力制動中央風車）與收縮（加速）。本文證明：整體而言，該陣列 **不違反貝茲極限**；但 **6 座微型轉子並非以完全相同方式受其約束**，因為其主要功能並非初級風能提取，而是 **雙向調節**（虛擬慣性、頻率支撐、RoCoF 抑制）。本文詳述風—重力—匯流排的能量流物理，量化能量緩衝（每陣列約 75 MJ，5 MW 負載下約 15 秒），並確立系統的熱力學極限。
+
+**關鍵詞：** 蔵本模型、唐吉訶德、虛擬慣性、貝茲極限、科里奧利效應、風能、頻率調節。
+
+---
+
+## 1. 引言
+
+風的變異性與非可調度再生能源滲透率的提升，同時對電力系統提出兩項挑戰：(i) **最大化單位掃掠面積的能量捕獲**，(ii) **在突發擾動下維持頻率與電壓穩定**。傳統風力機以貝茲極限作為 (i) 的理論上限，但對 (ii) 的響應關鍵取決於轉子物理慣性，而現代機組的慣性往往不足。
+
+**ZypyZape-Quijote** 專案提出混合架構：兩座大型中央風車作為初級提取器，六座分散式微型轉子作為調節與臨時儲能層。所有機組之間的相位耦合透過 **蔵本模型** 實現，利用電力匯流排作為同步通道，無需額外通訊 [Kuramoto 1975; Strogatz 2000]。
+
+---
+
+## 2. 陣列拓撲
+
+本陣列由 **8 座物理轉子** 組成，分佈於 **5 個蔵本節點**：
+
+| 節點 | 類型 | 物理轉子 | 功能 |
+|------|------|----------|------|
+| C1 | 中央 | 1（大型） | 初級提取 + 相位錨定 |
+| C2 | 中央 | 1（大型） | 初級提取 + 相位錨定 |
+| A1 | 環形 | 2（微型，串聯） | 調節 + 緩衝 |
+| A2 | 環形 | 2（微型，串聯） | 調節 + 緩衝 |
+| A3 | 環形 | 2（微型，串聯） | 調節 + 緩衝 |
+
+**鄰接矩陣** $A_{ij}$ 將每座中央風車連接至三個環形節點，並將每個環形節點連接至兩座中央風車及另外兩個環形節點。**反對稱張量** $T\in\mathbb{R}^{3\times3}$ 編碼源自原始繞組的三相 120° 相位差：
+
+$$
+T = \begin{pmatrix} 0 & 1 & -1 \\ -1 & 0 & 1 \\ 1 & -1 & 0 \end{pmatrix}
+$$
+
+此張量取代原型的對稱占位矩陣（`Kuramoto_ZypyZape_VMA_2026.docx` 第 18 頁），並恢復繞組 `Va1-vm1 wa1-vm2…` 隱含的 U-V-W 120° 相位資訊。
+
+---
+
+## 3. 物理模型
+
+### 3.1 風能捕獲與貝茲極限
+
+對於穩態不可壓縮流場中的開放轉子，動量理論（Betz, 1920）給出功率係數 $C_p$ 的上限：
+
+$$
+C_{p,\max} = \frac{16}{27} \approx 0.593
+$$
+
+因此，每座中央風車的電功率為：
+
+$$
+P_{e,i} = \eta_i \cdot C_{p,i} \cdot \tfrac{1}{2}\rho A_i v^3, \qquad C_{p,i}\le \tfrac{16}{27}
+$$
+
+其中 $\eta_i$ 包含機械與電氣損失。
+
+### 3.2 唐吉訶德徑向動力學
+
+每座風車 $i$ 具有 $N_b=3$ 片葉片，每片配有質量 $m_i$，可沿徑向在 $r_{\min}$ 與 $r_{\max}$ 之間移動。有效慣性為：
+
+$$
+I_i(\mathbf r_i) = I_{g,i} + n_i\,m_i\sum_{j=1}^{N_b} r_{ij}^2
+$$
+
+其中 $n_i$ 為節點的物理轉子數（中央風車 $n_i=1$，環形 $n_i=2$）。
+
+作用於轉子的力矩為：
+
+- **重力：** $\tau_{g,i} = n_i m_i g \sum_j r_{ij}\sin\theta_{ij}$
+- **科里奧利：** $\tau_{c,i} = -2\,n_i m_i\,\omega_i \sum_j \dot r_{ij}\,r_{ij}$
+- **風力矩：** $\tau_{w,i} = P_{w,i}/\omega_i$
+- **摩擦：** $\tau_{f,i} = -\beta_i\omega_i$
+- **蔵本耦合：** $\tau_{k,i} = K\sum_j A_{ij}\sin(\varphi_j-\varphi_i)$
+
+轉子運動方程為：
+
+$$
+\frac{d\omega_i}{dt} = \frac{\tau_{g,i}+\tau_{c,i}+\tau_{w,i}+\tau_{f,i}+\tau_{k,i}}{I_i(\mathbf r_i)}
+$$
+
+徑向動力學由 60° 窗口驅動（第 4 節）。
+
+### 3.3 蔵本耦合
+
+每個節點的相位 $\varphi_i$ 演化為：
+
+$$
+\frac{d\varphi_i}{dt} = \omega_{\text{elec}} + \frac{K}{N}\sum_j A_{ij}\sin(\varphi_j-\varphi_i) + K_{\text{bus}}\sin(\varphi_{\text{bus}}-\varphi_i) + u_i(t)
+$$
+
+其中 $\varphi_{\text{bus}}$ 為匯流排相位，由中央風車錨定（$\varphi_{\text{bus}} = \tfrac12(\varphi_{C1}+\varphi_{C2})$），$u_i(t)$ 反映徑向驅動的局部效應。
+
+---
+
+## 4. 60° 窗口與非對稱循環
+
+在 3 片葉片互差 120° 的配置下，每片葉片每轉經過 6 個 60° 扇區。分類如下：
+
+| 扇區 | 角度（自 12 點起，順時針） | 狀態 | 對中央風車的作用 |
+|------|---------------------------|------|------------------|
+| 0 | [0°, 60°) | **延伸** | **制動**（科里奧利） |
+| 1 | [60°, 180°) | 保持 $r_{\max}$ | 中性 |
+| 2 | [180°, 240°) | **收縮** | **加速**（科里奧利） |
+| 3 | [240°, 360°) | 保持 $r_{\min}$ | 中性 |
+
+3 片葉片互差 120° 的佈局保證 **任意時刻恰有一片葉片處於作用狀態**（延伸或收縮），另一片位於 $r_{\max}$，第三片位於 $r_{\min}$。此即所謂「**僅作用者**」。
+
+操作規則為：
+
+- **自某葉片 12 點至下一葉片 6 點**（旋轉 60°）：作用葉片 **延伸** → 科里奧利 **制動** 中央風車（消耗）。
+- **自某葉片 6 點至下一葉片 12 點**（旋轉 60°）：作用葉片 **收縮** → 科里奧利 **加速** 中央風車（反轉）。
+
+### 4.1 有利的非對稱性
+
+以模擬參數（$m=500$ kg、$\omega\approx 1.5$ rad/s、$r\approx 30$ m、$\dot r_{\max}\approx 34$ m/s）：
+
+- 每片葉片的重力力矩：$\sim 1.5\times10^5$ N·m
+- 每片葉片的科里奧利力矩：$\sim 1.5\times10^6$ N·m
+
+**科里奧利力比重力大約 $\sim 10$ 倍**。此即產生吾人所追求的非對稱性：下降段（延伸、制動）比上升段（收縮、加速）多持續數個百分點，使中央風車 **在有利重力相位中停留更久**，在不利重力力矩中停留更短。
+
+---
+
+## 5. 能量流：風、重力與匯流排
+
+進入陣列的能量經由三條耦合通道：
+
+1. **風能通道：** $P_{\text{wind}} \to$ 轉子動能 $\to$ 軸 $\to$ 發電機。這是唯一向系統淨輸入能量的通道，且在中央風車上受貝茲限制。
+2. **唐吉訶德通道：** 徑向驅動在 (a) 旋轉動能、(b) 質量重力位能、(c) 離心慣性之間交換能量。在完整循環中，徑向功的積分為零（守恆），但 **時間分佈** 可被塑造成有利於中央風車。
+3. **蔵本通道：** 透過匯流排的相位耦合允許能量在轉子之間流動（$P_{ij}\propto\sin(\varphi_j-\varphi_i)$）。此通道不創造能量，僅重新分配。
+
+**全局平衡：** 任意時刻，
+
+$$
+\sum_i P_{e,i} = P_{\text{wind,total}} - P_{\text{損失}} - \frac{dE_{\text{儲能}}}{dt}
+$$
+
+其中 $E_{\text{儲能}} = \sum_i\tfrac12 I_i\omega_i^2 + \sum_{i,j} n_i m_i g r_{ij}\cos\theta_{ij}$。
+
+**緩衝量化：** 依模擬參數，$E_{\text{儲能}}\approx 75$ MJ（每陣列）。在 5 MW 負載下，無風時陣列可支撐 **約 15 秒**。此為 **秒至分鐘級** 緩衝，而非小時級。
+
+---
+
+## 6. 為何貝茲適用於中央風車，而對微型轉子並非完全如此
+
+此為設計核心問題，值得嚴謹回答。
+
+### 6.1 貝茲極限的嚴格含義
+
+$C_p\le 16/27$ 是 **動量理論定理**，其假設為：
+
+- 開放轉子（無整流罩、無擴壓器），
+- 穩態、不可壓縮流，
+- 除致動盤外無外力作用於控制體積。
+
+在此假設下，最大值為 $16/27$，無例外。
+
+### 6.2 中央風車：完全受約束
+
+兩座中央風車為傳統開放轉子，其功能為 **從風中提取能量**，因此 **完全受貝茲約束**。其 $C_p$ 不得超過 $16/27$，實際設計約為 $0.45$–$0.50$。
+
+### 6.3 微型轉子：三個原因使其並非完全如此
+
+6 座微型轉子 **亦為開放轉子**，其 **風能** $C_p$ **同樣受 $16/27$ 約束**。但其在陣列中的功能不同，因此貝茲並非其適切指標：
+
+1. **掃掠面積小。** 微型轉子對總風能的貢獻小於中央風車。貝茲適用，但分子很小。
+2. **雙向功率。** 微型轉子可作為 **馬達**（從匯流排吸收能量以制動中央風車）或 **發電機**（向匯流排輸出能量以加速中央風車）。可觀測的淨功率 $P_{\text{net},i}$ 可為 **負值**。貝茲僅約束正向風能項，而非淨平衡。
+3. **與重力交換。** 徑向驅動與重力場及轉子動能交換能量。此能量 **不來自風**，因此不受貝茲約束。此為額外通道。
+
+### 6.4 正確表述
+
+> **命題.** 陣列全部轉子電功率之總和，受 $\sum_i \eta_i (16/27) \tfrac12\rho A_i v^3$（扣除損失）約束。換言之，**陣列整體遵守貝茲**。
+>
+> **推論.** 單座微型轉子的 **可觀測** 功率可超過 $(16/27)\tfrac12\rho A_{\text{mini}} v^3$（或為負），因其包含與匯流排及重力場的交換。此 **並不違反貝茲**，而是重新定義了分子。
+
+### 6.5 「風透鏡」情形
+
+若微型轉子以 **整流罩或擴壓器** 的物理構型將氣流加速導向中央風車（*wind lens* 構型，van Bussel 2007），則陣列的 **有效極限確實可超過 $16/27$**，因為整流罩捕獲了未通過中央風車掃掠盤的額外流量。但此需 **實際的氣動結構**，而非僅電氣或蔵本耦合。在當前構型（無整流罩）下，陣列為開放轉子之集合，貝茲以整體形式適用。
+
+---
+
+## 7. 調節：RoCoF、虛擬慣性與最低點
+
+陣列的運轉價值不在額外捕獲（邊際），而在 **交付品質**：
+
+- **RoCoF（頻率變化率）：** 擾動下頻率的變化速度。唐吉訶德於下降段延伸質量時 **平順制動** 中央風車，降低 RoCoF。此即 **虛擬慣性**。
+- **頻率最低點（nadir）：** 擾動後頻率的最低值。有效慣性越大，最低點越高。陣列的 75 MJ 緩衝提供數秒支撐。
+- **響應時間：** 蔵本耦合於 **1 秒內** 完成同步（見 `Kuramoto_ZypyZape_VMA_2026.docx` 第 19 頁）。唐吉訶德驅動以 60° 窗口運行（額定 $\omega$ 下約 $0.7$ 秒）。陣列可憑匯流排的電磁慣性在 **數十毫秒** 尺度響應。
+- **電壓支撐：** 匯流排作為相位參考；中央風車錨定 $\varphi_{\text{bus}}$，環形節點與之耦合。陣列可以 *grid-forming* 模式運行。
+
+---
+
+## 8. 限制與守恆
+
+本系統 **不創造能量**。基本限制如下：
+
+1. **守恆：** 全局平衡（第 5 節）始終成立。緩衝有限（$\sim 75$ MJ）。
+2. **驅動功率：** 延伸或收縮質量需要功率。在高 $\omega$ 與大 $m\cdot r\cdot\dot r$ 下，可能超過發電機額定值。致動器需相應設計。
+3. **機械應力：** 科里奧利力約為重力的 $\sim 10$ 倍。葉根承受顯著力矩，需適當材料與設計。
+4. **同步閾值：** 蔵本模型僅在 $K > K_c$ 時同步（參考文件式 [K2]）。以 $K=0.5$、$K_{\text{bus}}=1.0$，陣列於數秒內達到 $r(t)\to 0.95$。
+5. **時間尺度：** 電網擾動可能快於 60° 窗口。需 *前饋*（量測 $df/dt$ 並預先驅動）以涵蓋此差距。
+
+---
+
+## 9. 結論
+
+本文提出一種風力機陣列架構：2 座中央唐吉訶德風車與 6 座微型轉子（3 個環形節點，每節點 2 台串聯），以 U-V-W 反對稱張量的蔵本模型耦合。主要結論如下：
+
+1. **陣列整體不違反貝茲**，但微型轉子的可觀測功率不受貝茲約束，因其包含與匯流排及重力場的雙向交換。
+2. **60° 窗口的非對稱性**（科里奧利力約為重力的 $10$ 倍）使中央風車在有利重力相位停留更久，從而降低 RoCoF 並改善 nadir。
+3. **能量緩衝為秒至分鐘級**（$\sim 75$ MJ，5 MW 下 $\sim 15$ 秒），而非小時級。其價值在於 **交付品質**，而非額外能量。
+4. **蔵本模型提供次秒級同步**，無需顯式通訊，以匯流排為通道。
+
+**未來工作：** 以單座唐吉訶德風車原型進行實驗驗證；與原專案 3 vs 7 模型整合；研究完整陣列的 *wind lens* 情形。
+
+---
+
+## 參考文獻
+
+- Betz, A. (1920). *Das Maximum der theoretisch möglichen Ausnützung des Windes durch Windmotoren*.
+- Kuramoto, Y. (1975). *Self-entrainment of a population of coupled non-linear oscillators*. Lecture Notes in Physics, 39, 420–422.
+- Strogatz, S. H. (2000). *From Kuramoto to Crawford: exploring the onset of synchronization in populations of coupled oscillators*. Physica D, 143(1–4), 1–20.
+- van Bussel, G. J. W. (2007). *The science of making more torque from wind: Diffuser experiments and theory revisited*. Journal of Physics: Conference Series, 75, 012010.
+- Manzanares Alberola, V. (2026). *Kuramoto_ZypyZape_VMA_2026*. 倉庫 `github.com/espiradesombra/claude`.
+
+---
+
+*Autor: Víctor Manzanares Alberola · EPSA-UPV Alcoi · github.com/espiradesombra/claude · 2026*

@@ -1,0 +1,887 @@
+"""
+================================================================================
+KILÓMETRO — AUDITORÍA TEÓRICA COMPLETA
+================================================================================
+Generador-batería de 6 etapas con track neutro (helio + líquido denso)
+
+Autor: VMA 2026 · github.com/espiradesombra/claude
+Licencia: uso libre para auditoría y estudio
+
+--------------------------------------------------------------------------------
+¿QUÉ ES ESTA MÁQUINA?
+--------------------------------------------------------------------------------
+
+El Kilómetro es un GENERADOR-BATERÍA que extrae energía de variaciones de
+presión (olas en el mar, vibraciones de suspensión en un vehículo, o flujo
+de un río), la convierte en electricidad mediante un sinfín, y la almacena
+temporalmente en forma de posición de un objeto dentro de un track neutro.
+
+NO es una máquina de movimiento perpetuo. La fuente de energía es EXTERNA
+(presión oscilante del medio). El track neutro (helio + mercurio) NO crea
+energía: solo permite que el conjunto no se hunda ni flote, y que girarlo
+sea barato.
+
+--------------------------------------------------------------------------------
+FORMA DE LA MÁQUINA
+--------------------------------------------------------------------------------
+
+    ┌─────────────────────────────────────────────┐
+    │  TRACK (tubo cerrado, neutro en flotabilidad)│
+    │  ┌───────────────────────────────────────┐  │
+    │  │  HELIO (compensa el peso del mercurio)│  │
+    │  │  ┌─────────────────────────────────┐  │  │
+    │  │  │  MERCURIO (o agua, o Galinstan) │  │  │
+    │  │  │  ┌───────────────────────────┐  │  │  │
+    │  │  │  │  OBJETO flotante          │  │  │  │
+    │  │  │  │  (con lastre variable)    │  │  │  │
+    │  │  │  └───────────────────────────┘  │  │  │
+    │  │  └─────────────────────────────────┘  │  │
+    │  └───────────────────────────────────────┘  │
+    │  EJE DE GIRO (etapa 2, 1.5 vueltas)         │
+    │  SINFÍN (convierte movimiento lineal en     │
+    │           rotación unidireccional)           │
+    └─────────────────────────────────────────────┘
+
+El track es un tubo largo y fino. El eje de giro está en el centro
+geométrico. El objeto se mueve a lo largo del tubo; el track gira
+alrededor del eje en la etapa 2.
+
+--------------------------------------------------------------------------------
+LAS 6 ETAPAS (ciclo completo)
+--------------------------------------------------------------------------------
+
+  ETAPA 1: objeto sube de 0 a L/2, sin lastre (flota)
+           → GENERA E1 (sinfín extrae energía de la flotabilidad + presión)
+           → La presión del medio empuja al objeto; el sinfín rectifica.
+
+  ETAPA 2: track gira 1.5 vueltas con el objeto en el eje y el lastre en
+           la punta.
+           → CONSUME E2 (motor eléctrico o batería)
+           → Consumo MÁXIMO porque el lastre está en la punta (r = L/2).
+           → PERO deja el objeto en la punta del track.
+
+  ETAPA 3: objeto recorre L COMPLETO (de L a 0), sin lastre (flota)
+           → GENERA E3 (recorrido completo gracias a la etapa 2)
+           → CLAVE DEL DISEÑO: la etapa 2 consume al máximo pero da a la
+             etapa 3 el recorrido completo. La inversión se recupera aquí.
+
+  ETAPA 4: objeto recoge lastre en el origen (0)
+           → NEUTRO (sin generación ni consumo neto)
+           → Transición: el objeto pasa de flotante a hundible.
+
+  ETAPA 5: objeto recorre L COMPLETO (de 0 a L), hundiéndose con lastre
+           → GENERA E5 (gravedad + presión del medio)
+           → La gravedad del lastre y la presión del medio empujan al
+             objeto; el sinfín rectifica.
+
+  ETAPA 6: objeto deja lastre en la punta (L)
+           → NEUTRO (sin generación ni consumo neto)
+           → Transición: el objeto vuelve a ser flotante.
+
+--------------------------------------------------------------------------------
+¿POR QUÉ NO ES INTERMITENTE?
+--------------------------------------------------------------------------------
+
+Las fuentes renovables convencionales (solar, eólica) son INTERMITENTES:
+dependen del sol o del viento, que fluctúan. El Kilómetro, en cambio, puede
+diseñarse para operar de forma CASI CONTINUA porque:
+
+  1. En el mar, las olas son cuasi-periódicas (no paran del todo).
+  2. En un vehículo, la suspensión vibra constantemente mientras se mueve.
+  3. El enjambre de unidades desfasadas (ZypyZape) suaviza la entrega.
+
+Y sobre todo: el Kilómetro es GENERADOR-BATERÍA. Cuando hay presión, genera
+y almacena; cuando no hay, descarga lo almacenado. No hay "apagón" como en
+solar nocturno.
+
+--------------------------------------------------------------------------------
+LA FUENTE DE ENERGÍA (honestidad termodinámica)
+--------------------------------------------------------------------------------
+
+La energía viene de:
+
+  W_medio = ∮ ∮_S P(r,t) v(r,t) · dA dt
+
+Descomposición de la presión:
+  P = P_hidrostática + P_onda + P_radiación
+
+  - P_hidrostática: campo conservativo. Trabajo neto en ciclo cerrado = 0.
+    NO es fuente. Solo media el intercambio (Arquímedes).
+  - P_onda: varía en el tiempo. Trabajo neto > 0 si el objeto está
+    sintonizado. ESTA ES LA FUENTE.
+  - P_radiación: el objeto empuja al medio. Trabajo neto < 0. Es el precio
+    de moverse (drag).
+
+En un vehículo, la "presión oscilante" viene de la aceleración de la
+suspensión. En el mar, de las olas. En ambos casos es una FUENTE EXTERNA
+de energía, no un campo conservativo.
+
+--------------------------------------------------------------------------------
+LAS DOS INECUACIONES PARA SER GENERADOR
+--------------------------------------------------------------------------------
+
+INECUACIÓN 1 (compensación): E1 + E3 > |E2|
+  La generación de las etapas 1 y 3 (objeto flotando) debe superar el
+  consumo de la etapa 2 (giro del track con lastre en punta).
+
+  E1 = η_s · F_up · (L/2)
+  E3 = η_s · F_up · L              ← L completo, gracias a la etapa 2
+  |E2| = [(1/2)(1+C_add)·I_total·ω² + τ_fric·3π] · (1/η_m - η_regen)
+
+  Con I_total ≈ I_track + m_L·(L/2)², y m_L ≈ (1.05)·Δρ·V_o:
+
+  Simplificando: L·ω² < 6·η_s·g / [(1+C_add)·(1/η_m - η_regen)·1.05/4]
+  Para valores típicos: L·ω² < 35 (adimensional)
+
+INECUACIÓN 2 (ganancia pura): E5 > 0
+  E5 = η_s · F_down · L
+  F_down = m_L·g - F_up > 0  ⟺  m_L > Δρ·V_o
+
+  Es decir, el lastre debe superar la flotabilidad para hundir el objeto.
+
+Si se cumplen las dos, el sistema es generador neto. Si solo la 2, es
+batería (almacena pero no gana). Si ninguna, no funciona.
+
+--------------------------------------------------------------------------------
+RELACIÓN VELOCIDAD DE GIRO ↔ CONSUMO EN 2 ↔ GENERACIÓN EN 3
+--------------------------------------------------------------------------------
+
+La etapa 2 consume |E2| ∝ ω² (energía cinética de giro).
+La etapa 3 genera E3 ∝ L (recorrido completo).
+El tiempo del ciclo t_ciclo ≈ 3L/v + 3π/ω (movimientos lineales + giro).
+
+  - Si ω es GRANDE: la etapa 2 es rápida pero consume mucho (ω²). El
+    ciclo es corto. La potencia P = E_net/t_ciclo puede caer porque E_net
+    se hace negativo.
+  - Si ω es PEQUEÑO: la etapa 2 consume poco, pero el ciclo es largo.
+    P = E_net/t_ciclo cae por el denominador.
+  - ÓPTIMO: ω tal que L·ω² esté cerca pero por debajo de 35.
+
+La etapa 3 es la que "paga" la etapa 2. Sin el recorrido completo de la 3
+(gracias al giro de 1.5 vueltas de la 2), el sistema no se compensa.
+
+--------------------------------------------------------------------------------
+LÍQUIDOS: DENSIDAD, TOXICIDAD, SEGURIDAD
+--------------------------------------------------------------------------------
+
+El fluido interno del track cumple dos funciones:
+  1. Dar flotabilidad al objeto (F_up = Δρ·V_o·g).
+  2. Ser el medio donde el objeto se mueve y donde el sinfín extrae energía.
+
+Candidatos:
+  - MERCURIO (Hg): ρ = 13.534 kg/m³. MÁXIMA flotabilidad por volumen.
+    TÓXICO por inhalación e ingestión. En caso de fuga, contaminación
+    grave. Requiere contención redundante y protocolos de emergencia.
+  - GALINSTAN (Ga-In-Sn): ρ = 6.440 kg/m³. Menos tóxico que el mercurio,
+    pero contiene galio (irritante) e indio (caro). Buena alternativa si
+    la seguridad es prioritaria.
+  - AGUA (H2O): ρ = 1.000 kg/m³. No tóxica, barata, pero 13× menos
+    flotabilidad que el mercurio. Requiere objetos mucho más ligeros.
+  - SALMUERA (agua + sal): ρ = 1.200 kg/m³. No tóxica, algo más densa que
+    el agua. Compromiso razonable.
+
+El helio (ρ = 0.18 kg/m³) compensa el peso del líquido para que el track
+sea neutro. La proporción V_He/V_líquido depende de la densidad:
+  V_He/V_líq = (ρ_líq - ρ_medio) / (ρ_medio - ρ_He)
+
+  - Con mercurio en agua de mar: V_He/V_Hg ≈ 12.2
+  - Con agua en agua de mar: V_He/V_agua ≈ ∞ (no flota, hay que lastrar)
+  - Con Galinstan en agua de mar: V_He/V_Ga ≈ 5.4
+
+Si el líquido se escapa: el track deja de ser neutro y se hunde o flota
+violentamente. La seguridad de contención es CRÍTICA en todas las
+aplicaciones, y por eso el mercurio solo es aceptable en entornos donde
+una fuga esté controlada (submarinos militares, instalaciones fijas).
+
+--------------------------------------------------------------------------------
+ESCALADO: VENTAJAS E INCONVENIENTES DEL TAMAÑO
+--------------------------------------------------------------------------------
+
+Leyes de escala self-similar (todas las dimensiones × k):
+  - V_obj  ∝ k³   → 8× más volumen con k=2
+  - L      ∝ k    → 2× más largo
+  - E_net  ∝ k³   → 8× más energía por ciclo
+  - t_ciclo ∝ k   → 2× más lento
+  - P_ciclo ∝ k²  → 4× más potencia
+  - M_total ∝ k³  → 8× más masa
+  - P/M    ∝ 1/k  → 2× PEOR densidad de potencia
+
+Conclusión:
+  - Aumentar tamaño DA MÁS POTENCIA TOTAL pero PEOR DENSIDAD DE POTENCIA.
+  - En el mar (submarino, boya), el track neutro no añade peso al vehículo.
+    ESCALAR ES LA SOLUCIÓN.
+  - En tierra (camión, tren), el peso sí importa. ESCALAR NO AYUDA.
+
+Alternativa al gigantismo: ENJAMBRE de muchas unidades pequeñas,
+sincronizadas por Kuramoto (ZypyZape). La potencia agregada crece como N
+(si están en fase) o √N (si están desfasadas).
+
+================================================================================
+"""
+
+import numpy as np
+import matplotlib.pyplot as plt
+from dataclasses import dataclass, field, asdict, replace
+from typing import Optional, Dict, List, Tuple
+
+
+# =============================================================================
+# CONSTANTES FÍSICAS
+# =============================================================================
+G = 9.81                    # m/s²
+RHO_SEA = 1025.0            # kg/m³  agua de mar
+RHO_FRESH = 1000.0          # kg/m³  agua dulce
+RHO_AIR = 1.225             # kg/m³  aire
+RHO_HELIUM = 0.1786         # kg/m³  helio
+RHO_STEEL = 7850.0          # kg/m³  acero estructural
+
+
+# =============================================================================
+# BASE DE DATOS DE FLUIDOS
+# =============================================================================
+@dataclass
+class FluidProps:
+    """Propiedades de un fluido candidato para el track."""
+    name: str
+    rho: float              # kg/m³ densidad
+    toxicity: str           # "baja", "media", "alta"
+    notes: str
+    emergency: str          # qué hacer si se escapa
+
+
+FLUIDS: Dict[str, FluidProps] = {
+    "mercury": FluidProps(
+        name="Mercurio (Hg)",
+        rho=13534.0,
+        toxicity="ALTA",
+        notes="Máxima flotabilidad por volumen. Tóxico por inhalación "
+              "e ingestión. Contaminante persistente.",
+        emergency="Contención redundante obligatoria. Protocolo de "
+                  "derrame con azufre. Solo para entornos controlados "
+                  "(submarinos, instalaciones fijas).",
+    ),
+    "galinstan": FluidProps(
+        name="Galinstan (Ga-In-Sn)",
+        rho=6440.0,
+        toxicity="MEDIA",
+        notes="Alternativa al mercurio. Contiene galio (irritante) e "
+              "indio (caro). Menos tóxico pero no inocuo.",
+        emergency="Ventilación, guantes, recogida con material absorbente. "
+                  "Coste elevado limita el tamaño del track.",
+    ),
+    "brine": FluidProps(
+        name="Salmuera (agua + NaCl)",
+        rho=1200.0,
+        toxicity="BAJA",
+        notes="No tóxica, barata. Solo 1.2× el agua. Requiere objeto muy "
+              "ligero para flotar.",
+        emergency="Lavado con agua. Sin riesgo ambiental significativo.",
+    ),
+    "water": FluidProps(
+        name="Agua dulce (H2O)",
+        rho=1000.0,
+        toxicity="BAJA",
+        notes="No tóxica, barata. Mínima flotabilidad. Objeto debe tener "
+              "ρ < 1000 kg/m³.",
+        emergency="Ninguna. Sin riesgo.",
+    ),
+}
+
+
+# =============================================================================
+# PARÁMETROS DE LA MÁQUINA
+# =============================================================================
+@dataclass
+class KilometroParams:
+    """
+    Parámetros completos de una unidad Kilómetro.
+
+    Los valores por defecto representan una unidad pequeña para auditoría
+    (cabe en un camión). Para submarino/boya, escalar todos los geométricos
+    por el mismo factor k.
+    """
+    # --- Geometría del track ---
+    R_track: float = 0.20       # m, radio del tubo
+    L: float = 1.50             # m, longitud del tubo
+    V_structure: float = 0.001  # m³, volumen de la estructura (acero)
+
+    # --- Objeto móvil ---
+    V_obj: float = 0.005        # m³, volumen del objeto
+    rho_obj: float = 500.0      # kg/m³, densidad del objeto (sin lastre)
+
+    # --- Fluido del track ---
+    fluid_key: str = "mercury"  # clave en FLUIDS
+    ambient_key: str = "sea"    # "sea" (agua de mar) o "air" (aire)
+
+    # --- Lastre ---
+    m_lastre_fact: float = 1.10  # multiplicador sobre el mínimo
+
+    # --- Etapa 2 (giro) ---
+    omega_peak: float = 2.0      # rad/s
+    C_add: float = 1.0           # coeficiente de masa añadida
+    eta_motor: float = 0.90      # eficiencia del motor
+    eta_regen: float = 0.40      # fracción recuperada al frenar
+    tau_fric: float = 30.0       # N·m, fricción del eje
+    n_turns: float = 1.5         # vueltas de la etapa 2
+
+    # --- Sinfín ---
+    eta_s: float = 0.85          # eficiencia de conversión lineal → eléctrica
+
+    # --- Fuente de presión (olas o suspensión) ---
+    a_source: float = 2.0        # m/s² amplitud de aceleración del medio
+    f_source: float = 2.0        # Hz frecuencia dominante
+    eta_capture: float = 0.20    # eficiencia de captura de la presión
+
+    # --- Velocidad lineal del objeto ---
+    v_lin: float = 0.50          # m/s en etapas 1, 3, 5
+
+    # --- Enjambre ---
+    n_units: int = 8             # unidades en el conjunto
+
+    # ---- Propiedades derivadas (calculadas en __post_init__) ----
+    rho_fluid: float = field(init=False)
+    rho_ambient: float = field(init=False)
+    m_obj: float = field(init=False)
+    delta_rho: float = field(init=False)
+    F_up: float = field(init=False)
+    m_L_min: float = field(init=False)
+    m_L: float = field(init=False)
+    F_down: float = field(init=False)
+    V_track: float = field(init=False)
+    V_fluid: float = field(init=False)
+    V_helium: float = field(init=False)
+    m_fluid_track: float = field(init=False)
+    m_helium: float = field(init=False)
+    m_structure: float = field(init=False)
+    m_total: float = field(init=False)
+    I_track: float = field(init=False)
+    I_total: float = field(init=False)
+    is_neutral: bool = field(init=False)
+
+    def __post_init__(self):
+        # Propiedades de los fluidos
+        self.rho_fluid = FLUIDS[self.fluid_key].rho
+        self.rho_ambient = RHO_SEA if self.ambient_key == "sea" else RHO_AIR
+
+        # Objeto
+        self.m_obj = self.rho_obj * self.V_obj
+        self.delta_rho = self.rho_fluid - self.rho_obj
+        self.F_up = self.delta_rho * self.V_obj * G
+        self.m_L_min = self.delta_rho * self.V_obj
+        self.m_L = self.m_lastre_fact * self.m_L_min
+        self.F_down = self.m_L * G - self.F_up
+
+        # Track: geometría y neutralidad
+        self.V_track = np.pi * self.R_track**2 * self.L
+        # Volumen de fluido (lleno ~mitad para dejar espacio al helio)
+        # La proporción V_He/V_fluido depende de la densidad:
+        #   rho_amb * V_track = rho_He * V_He + rho_fluid * V_fluid
+        #   V_track = V_He + V_fluid
+        # → V_He/V_fluid = (rho_fluid - rho_amb) / (rho_amb - rho_He)
+        if self.rho_fluid > self.rho_ambient:
+            ratio = (self.rho_fluid - self.rho_ambient) / (
+                self.rho_ambient - RHO_HELIUM)
+            V_fluid = self.V_track / (1 + ratio)
+            V_he = self.V_track - V_fluid
+        else:
+            # Fluido menos denso que el ambiente: no puede ser neutro solo
+            # con helio. Haría falta lastre estructural.
+            V_fluid = self.V_track * 0.5
+            V_he = self.V_track - V_fluid
+        self.V_fluid = V_fluid
+        self.V_helium = V_he
+
+        self.m_fluid_track = self.rho_fluid * V_fluid
+        self.m_helium = RHO_HELIUM * V_he
+        self.m_structure = RHO_STEEL * self.V_structure
+        self.m_total = self.m_fluid_track + self.m_helium + self.m_structure + \
+                       self.m_obj + self.m_L
+
+        # Verificar neutralidad aproximada
+        buoy = self.rho_ambient * self.V_track * G
+        weight = (self.m_fluid_track + self.m_helium +
+                  self.m_structure + self.m_obj + self.m_L) * G
+        self.is_neutral = abs(buoy - weight) < 0.1 * buoy
+
+        # Inercia del track (aproximación cilindro uniforme)
+        # Dominada por el fluido (el helio pesa poco)
+        self.I_track = (self.m_fluid_track * self.R_track**2 / 2.0 +
+                        self.m_structure * self.R_track**2 / 2.0)
+
+        # Inercia total en la etapa 2 (lastre en la punta, objeto en eje)
+        self.I_total = self.I_track + self.m_L * (self.L / 2)**2
+
+    # ---- Utilidades de reporte ----
+    def report_geometry(self) -> str:
+        s = []
+        s.append("── GEOMETRÍA Y PROPIEDADES ──")
+        s.append(f"  Track: R={self.R_track:.3f} m, L={self.L:.2f} m, "
+                 f"V={self.V_track:.4f} m³")
+        s.append(f"  V_fluido={self.V_fluid:.4f} m³  "
+                 f"V_helio={self.V_helium:.4f} m³  "
+                 f"({100*self.V_helium/self.V_track:.1f}% He)")
+        s.append(f"  Masa: fluido={self.m_fluid_track:.1f} kg, "
+                 f"helio={self.m_helium:.2f} kg, "
+                 f"estructura={self.m_structure:.1f} kg")
+        s.append(f"  Masa total: {self.m_total:.1f} kg")
+        s.append(f"  Track {'✓ NEUTRO' if self.is_neutral else '✗ NO NEUTRO'}")
+        s.append(f"  Fluido: {FLUIDS[self.fluid_key].name} "
+                 f"(ρ={self.rho_fluid:.0f} kg/m³, "
+                 f"toxicidad={FLUIDS[self.fluid_key].toxicity})")
+        return "\n".join(s)
+
+    def report_object(self) -> str:
+        s = []
+        s.append("── OBJETO Y LASTRE ──")
+        s.append(f"  Objeto: V={self.V_obj:.4f} m³, ρ={self.rho_obj:.0f} kg/m³, "
+                 f"m={self.m_obj:.1f} kg")
+        s.append(f"  Δρ = ρ_fluido - ρ_obj = {self.delta_rho:.0f} kg/m³")
+        s.append(f"  F_up (sin lastre) = {self.F_up:.1f} N "
+                 f"({'✓ flota' if self.F_up > 0 else '✗ se hunde'})")
+        s.append(f"  m_L,min (para hundir) = {self.m_L_min:.1f} kg")
+        s.append(f"  m_L actual = {self.m_L:.1f} kg "
+                 f"({self.m_lastre_fact:.2f}× mínimo)")
+        s.append(f"  F_down (con lastre) = {self.F_down:.1f} N "
+                 f"({'✓ se hunde' if self.F_down > 0 else '✗ no se hunde'})")
+        return "\n".join(s)
+
+
+# =============================================================================
+# ENERGÍA DE LAS 6 ETAPAS
+# =============================================================================
+def stage_energies(p: KilometroParams) -> Dict[str, float]:
+    """
+    Calcula las energías de las 6 etapas (en julios).
+
+    Convención: E > 0 = el sistema GANA energía (genera electricidad).
+                E < 0 = el sistema PIERDE energía (consume).
+    """
+    # ─── Etapa 1: objeto 0 → L/2 flotando ───
+    # Trabajo de la flotabilidad más trabajo de la presión del medio
+    dx1 = p.L / 2
+    E1 = p.eta_s * (p.F_up * dx1 + pressure_work(p, dx1))
+
+    # ─── Etapa 2: giro 1.5 vueltas (CONSUMO MÁXIMO) ───
+    E_kin = 0.5 * (1 + p.C_add) * p.I_total * p.omega_peak**2
+    E_fric = p.tau_fric * 2 * np.pi * p.n_turns
+    E2_in = (E_kin + E_fric) / p.eta_motor
+    E2_rec = p.eta_regen * E_kin
+    E2 = -(E2_in - E2_rec)
+
+    # ─── Etapa 3: objeto L → 0 flotando (RECORRIDO COMPLETO) ───
+    # ESTA ES LA CLAVE: la etapa 2 consume al máximo pero deja al objeto
+    # en la punta, así que la etapa 3 recorre L completo.
+    dx3 = p.L
+    E3 = p.eta_s * (p.F_up * dx3 + pressure_work(p, dx3))
+
+    # ─── Etapa 4: recoge lastre ───
+    E4 = 0.0
+
+    # ─── Etapa 5: objeto 0 → L hundiéndose ───
+    dx5 = p.L
+    E5 = p.eta_s * (p.F_down * dx5 + pressure_work(p, dx5))
+
+    # ─── Etapa 6: deja lastre ───
+    E6 = 0.0
+
+    E_gen = E1 + E3 + E5
+    E_cons = -E2
+    E_net = E_gen - E_cons
+
+    return dict(
+        E1=E1, E2=E2, E3=E3, E4=E4, E5=E5, E6=E6,
+        E_gen=E_gen, E_cons=E_cons, E_net=E_net,
+        E_kin=E_kin, E_fric=E_fric, E2_in=E2_in, E2_rec=E2_rec,
+    )
+
+
+def pressure_work(p: KilometroParams, dx: float) -> float:
+    """
+    Trabajo de la presión oscilante del medio sobre el objeto.
+
+    Modelo simplificado: la presión oscilante efectiva sobre el objeto
+    es ΔP ≈ ρ_amb · a_source / (2π f_source) · (algo de acoplamiento).
+    Para un objeto pequeño y cuasi-estático, el trabajo por unidad de
+    desplazamiento es ΔP · A_efectiva.
+    """
+    # Amplitud de presión efectiva
+    delta_P = p.rho_ambient * p.a_source / (2 * np.pi * p.f_source)
+    # Área efectiva del objeto (proyección)
+    A_eff = p.V_obj ** (2/3)
+    # Trabajo
+    return p.eta_capture * delta_P * A_eff * dx
+
+
+# =============================================================================
+# POTENCIA Y TIEMPO DE CICLO
+# =============================================================================
+def cycle_dynamics(p: KilometroParams) -> Dict[str, float]:
+    """Tiempos y potencia del ciclo."""
+    # Tiempos
+    t1 = (p.L / 2) / p.v_lin
+    t3 = p.L / p.v_lin
+    t5 = p.L / p.v_lin
+    t2 = (2 * np.pi * p.n_turns) / p.omega_peak
+    t_cycle = t1 + t3 + t5 + t2
+
+    r = stage_energies(p)
+    P_cycle = r["E_net"] / t_cycle
+
+    # Contribución de vibración (complemento)
+    P_vib = vibration_power(p)
+
+    return dict(
+        t_cycle=t_cycle, t1=t1, t2=t2, t3=t3, t5=t5,
+        P_cycle=P_cycle, P_vib=P_vib, P_total=P_cycle + P_vib,
+    )
+
+
+def vibration_power(p: KilometroParams) -> float:
+    """Potencia complementaria capturada de la vibración del medio."""
+    a_rms = p.a_source / np.sqrt(2)
+    v_rms = p.a_source / (2 * np.pi * p.f_source) / np.sqrt(2)
+    return p.eta_s * p.delta_rho * p.V_obj * a_rms * v_rms
+
+
+# =============================================================================
+# INECUACIONES DE VIABILIDAD
+# =============================================================================
+def check_inequalities(p: KilometroParams) -> Dict[str, float]:
+    """
+    Verifica las dos inecuaciones que determinan si la máquina es
+    generador neto.
+    """
+    r = stage_energies(p)
+
+    # Inecuación 1: E1 + E3 > |E2|
+    lhs1 = r["E1"] + r["E3"]
+    rhs1 = -r["E2"]
+    margin1 = lhs1 - rhs1
+
+    # Inecuación 2: E5 > 0
+    ok2 = r["E5"] > 0
+
+    # Inecuación 3 (escala): L·ω² < 35 (regla práctica para track fino)
+    scale_metric = p.L * p.omega_peak**2
+    ok3 = scale_metric < 35.0
+
+    return dict(
+        ineq1_lhs=lhs1, ineq1_rhs=rhs1, ineq1_margin=margin1,
+        ineq1_ok=margin1 > 0,
+        ineq2_lhs=r["E5"], ineq2_ok=ok2,
+        ineq3_metric=scale_metric, ineq3_ok=ok3,
+        is_generator=(margin1 > 0) and ok2,
+        is_battery=(margin1 > 0) and (not ok2),
+    )
+
+
+# =============================================================================
+# BÚSQUEDA DE DIMENSIONES Y DENSIDADES ÓPTIMAS
+# =============================================================================
+def sweep_parameter(
+    base: KilometroParams,
+    param_name: str,
+    values: np.ndarray,
+    metric: str = "P_total",
+) -> Tuple[np.ndarray, np.ndarray]:
+    """Barrido genérico de un parámetro."""
+    results = []
+    for v in values:
+        try:
+            p = replace(base, **{param_name: float(v)})
+            d = cycle_dynamics(p)
+            results.append(d[metric] * p.n_units)
+        except Exception:
+            results.append(np.nan)
+    return values, np.array(results)
+
+
+def find_optimal_omega(
+    base: KilometroParams,
+    omega_range: Tuple[float, float] = (0.1, 8.0),
+    n_points: int = 40,
+) -> Dict[str, float]:
+    """Busca el ω que maximiza P_total respetando L·ω² < 35."""
+    omegas = np.linspace(omega_range[0], omega_range[1], n_points)
+    best = dict(omega=base.omega_peak, P=-np.inf)
+    for w in omegas:
+        if base.L * w**2 >= 35.0:
+            continue
+        p = replace(base, omega_peak=float(w))
+        d = cycle_dynamics(p)
+        P = d["P_total"] * p.n_units
+        if P > best["P"]:
+            best = dict(omega=float(w), P=float(P),
+                        margin=float(check_inequalities(p)["ineq1_margin"]))
+    return best
+
+
+def find_optimal_fluid(
+    base: KilometroParams,
+    fluid_keys: Optional[List[str]] = None,
+) -> Dict[str, Dict]:
+    """Compara todos los fluidos candidatos."""
+    if fluid_keys is None:
+        fluid_keys = list(FLUIDS.keys())
+    results = {}
+    for key in fluid_keys:
+        try:
+            p = replace(base, fluid_key=key)
+            d = cycle_dynamics(p)
+            chk = check_inequalities(p)
+            results[key] = dict(
+                params=p,
+                P_total=d["P_total"] * p.n_units,
+                mass=p.m_total,
+                P_per_kg=d["P_total"] * p.n_units / max(p.m_total, 1.0),
+                is_generator=chk["is_generator"],
+                toxicity=FLUIDS[key].toxicity,
+            )
+        except Exception as e:
+            results[key] = dict(error=str(e))
+    return results
+
+
+def scaling_laws(k_values: np.ndarray) -> Dict[str, np.ndarray]:
+    """
+    Calcula las leyes de escala para un conjunto de factores k.
+    Todos los parámetros geométricos escalan con k, densidades iguales.
+    """
+    base = KilometroParams()
+    P_list, M_list, P_per_M = [], [], []
+    for k in k_values:
+        p = replace(
+            base,
+            R_track=base.R_track * k,
+            L=base.L * k,
+            V_obj=base.V_obj * k**3,
+            V_structure=base.V_structure * k**3,
+        )
+        d = cycle_dynamics(p)
+        P_list.append(d["P_total"])
+        M_list.append(p.m_total)
+        P_per_M.append(d["P_total"] / p.m_total)
+    return dict(
+        k=k_values, P=np.array(P_list), M=np.array(M_list),
+        P_per_M=np.array(P_per_M),
+    )
+
+
+def audit_report(p: KilometroParams) -> str:
+    """Genera un informe completo de auditoría."""
+    s = []
+    s.append("=" * 72)
+    s.append(" AUDITORÍA DE LA MÁQUINA KILÓMETRO")
+    s.append("=" * 72)
+    s.append("")
+    s.append(p.report_geometry())
+    s.append("")
+    s.append(p.report_object())
+    s.append("")
+    s.append("── ENERGÍAS POR ETAPA (J, por unidad) ──")
+    r = stage_energies(p)
+    for key in ["E1", "E2", "E3", "E4", "E5", "E6"]:
+        s.append(f"  {key}: {r[key]:+10.2f}")
+    s.append(f"  ──────────────────────")
+    s.append(f"  E_gen:  {r['E_gen']:+10.2f}")
+    s.append(f"  E_cons: {r['E_cons']:+10.2f}")
+    s.append(f"  NETO:   {r['E_net']:+10.2f}")
+    s.append("")
+    s.append("── INECUACIONES ──")
+    chk = check_inequalities(p)
+    s.append(f"  Ineq 1: E1+E3 > |E2|  "
+             f"[{chk['ineq1_lhs']:.1f} > {chk['ineq1_rhs']:.1f}]  "
+             f"{'✓' if chk['ineq1_ok'] else '✗'}  "
+             f"margen={chk['ineq1_margin']:.1f} J")
+    s.append(f"  Ineq 2: E5 > 0         "
+             f"[E5={chk['ineq2_lhs']:.1f}]  "
+             f"{'✓' if chk['ineq2_ok'] else '✗'}")
+    s.append(f"  Ineq 3: L·ω² < 35      "
+             f"[L·ω²={chk['ineq3_metric']:.2f}]  "
+             f"{'✓' if chk['ineq3_ok'] else '✗'}")
+    s.append("")
+    s.append(f"  → {'GENERADOR NETO' if chk['is_generator'] else 'BATERÍA / NO VIABLE'}")
+    s.append("")
+    s.append("── POTENCIA ──")
+    d = cycle_dynamics(p)
+    s.append(f"  Tiempo de ciclo: {d['t_cycle']:.2f} s")
+    s.append(f"    t1={d['t1']:.2f}  t2={d['t2']:.2f}  t3={d['t3']:.2f}  t5={d['t5']:.2f}")
+    s.append(f"  P_ciclo:    {d['P_cycle']*1000:.2f} mW/unidad")
+    s.append(f"  P_vibración:{d['P_vib']*1000:.2f} mW/unidad")
+    s.append(f"  P_total:    {d['P_total']*1000:.2f} mW/unidad")
+    s.append(f"  Con {p.n_units} unidades: "
+             f"{d['P_total']*p.n_units:.3f} W")
+    s.append("")
+    s.append("── SEGURIDAD DEL FLUIDO ──")
+    fp = FLUIDS[p.fluid_key]
+    s.append(f"  {fp.name}")
+    s.append(f"  Toxicidad: {fp.toxicity}")
+    s.append(f"  {fp.notes}")
+    s.append(f"  Emergencia: {fp.emergency}")
+    s.append("")
+    s.append("=" * 72)
+    return "\n".join(s)
+
+
+# =============================================================================
+# VISUALIZACIÓN
+# =============================================================================
+def plot_audit(p: KilometroParams):
+    """Genera gráficas de auditoría."""
+    fig, axes = plt.subplots(2, 3, figsize=(18, 11))
+
+    # (1) Balance por etapa
+    ax = axes[0, 0]
+    r = stage_energies(p)
+    labels = ["E1", "E2", "E3", "E4", "E5", "E6", "Neto"]
+    vals = [r["E1"], r["E2"], r["E3"], r["E4"], r["E5"], r["E6"], r["E_net"]]
+    colors = ["seagreen" if v > 0 else "indianred" for v in vals]
+    ax.bar(labels, vals, color=colors, alpha=0.85)
+    ax.axhline(0, color="black", lw=1)
+    ax.set_ylabel("Energía (J)")
+    ax.set_title("Balance por etapa (unidad individual)")
+    ax.grid(alpha=0.3, axis="y")
+
+    # (2) Inecuación 1: E1+E3 vs |E2|
+    ax = axes[0, 1]
+    chk = check_inequalities(p)
+    ax.bar(["E1+E3", "|E2|"],
+           [chk["ineq1_lhs"], chk["ineq1_rhs"]],
+           color=["seagreen", "indianred"], alpha=0.85)
+    ax.set_title(f"Ineq 1: E1+E3 > |E2|  "
+                 f"({'✓' if chk['ineq1_ok'] else '✗'})")
+    ax.set_ylabel("J")
+    ax.grid(alpha=0.3, axis="y")
+
+    # (3) P_total vs V_obj
+    ax = axes[0, 2]
+    Vs = np.linspace(0.001, 0.05, 25)
+    _, P = sweep_parameter(p, "V_obj", Vs)
+    ax.plot(Vs * 1000, P * 1000, "o-", color="seagreen", lw=2)
+    ax.axvline(p.V_obj * 1000, color="gray", ls=":", label="Actual")
+    ax.set_xlabel("V_obj (L)")
+    ax.set_ylabel("P_total (mW)")
+    ax.set_title(f"Potencia vs volumen del objeto")
+    ax.legend(); ax.grid(alpha=0.3)
+
+    # (4) P_total vs ω
+    ax = axes[1, 0]
+    ws = np.linspace(0.1, min(8.0, np.sqrt(35 / p.L)), 30)
+    _, P = sweep_parameter(p, "omega_peak", ws)
+    ax.plot(ws, P * 1000, "D-", color="purple", lw=2)
+    ax.axvline(p.omega_peak, color="gray", ls=":", label="Actual")
+    w_lim = np.sqrt(35 / p.L)
+    ax.axvline(w_lim, color="red", ls="--", label=f"Lω²=35 (ω={w_lim:.2f})")
+    ax.set_xlabel("ω_peak (rad/s)")
+    ax.set_ylabel("P_total (mW)")
+    ax.set_title("Potencia vs velocidad de giro")
+    ax.legend(); ax.grid(alpha=0.3)
+
+    # (5) Fluidos: P vs masa
+    ax = axes[1, 1]
+    fluids = find_optimal_fluid(p)
+    names = [FLUIDS[k].name.split("(")[0].strip()
+             for k in fluids if "error" not in fluids[k]]
+    Ps = [fluids[k]["P_total"] * 1000 for k in fluids if "error" not in fluids[k]]
+    Ms = [fluids[k]["mass"] for k in fluids if "error" not in fluids[k]]
+    x = np.arange(len(names))
+    ax2 = ax.twinx()
+    ax.bar(x - 0.2, Ps, 0.35, color="seagreen", alpha=0.85, label="Potencia (mW)")
+    ax2.bar(x + 0.2, Ms, 0.35, color="steelblue", alpha=0.85, label="Masa (kg)")
+    ax.set_xticks(x); ax.set_xticklabels(names, rotation=15)
+    ax.set_ylabel("Potencia (mW)")
+    ax2.set_ylabel("Masa (kg)")
+    ax.set_title("Comparación de fluidos")
+    ax.grid(alpha=0.3, axis="y")
+
+    # (6) Leyes de escala
+    ax = axes[1, 2]
+    ks = np.linspace(0.5, 10, 20)
+    sl = scaling_laws(ks)
+    ax.loglog(sl["k"], sl["P"] / sl["P"][0], "o-", color="seagreen",
+              label="P ∝ k²")
+    ax.loglog(sl["k"], sl["M"] / sl["M"][0], "s-", color="steelblue",
+              label="M ∝ k³")
+    ax.loglog(sl["k"], sl["P_per_M"] / sl["P_per_M"][0], "^-",
+              color="crimson", label="P/M ∝ 1/k")
+    ax.set_xlabel("factor de escala k")
+    ax.set_ylabel("ratio vs k=1")
+    ax.set_title("Leyes de escala")
+    ax.legend(); ax.grid(alpha=0.3, which="both")
+
+    plt.tight_layout()
+    plt.savefig("kilometro_audit.png", dpi=140)
+    plt.show()
+
+
+# =============================================================================
+# MAIN
+# =============================================================================
+if __name__ == "__main__":
+    p = KilometroParams()
+
+    # ─── Informe completo ───
+    print(audit_report(p))
+
+    # ─── Búsqueda del ω óptimo ───
+    print("\n" + "=" * 72)
+    print(" BÚSQUEDA DEL ω ÓPTIMO")
+    print("=" * 72)
+    best = find_optimal_omega(p, omega_range=(0.1, 8.0), n_points=50)
+    print(f"  ω_óptimo = {best['omega']:.3f} rad/s")
+    print(f"  P_total  = {best['P']*1000:.2f} mW/unidad")
+    print(f"  Margen ineq1 = {best['margin']:.1f} J")
+
+    # ─── Comparación de fluidos ───
+    print("\n" + "=" * 72)
+    print(" COMPARACIÓN DE FLUIDOS")
+    print("=" * 72)
+    fluids = find_optimal_fluid(p)
+    for key, res in fluids.items():
+        if "error" in res:
+            print(f"  {key}: ERROR — {res['error']}")
+            continue
+        print(f"  {FLUIDS[key].name:30s}  "
+              f"P={res['P_total']*1000:8.2f} mW  "
+              f"masa={res['mass']:8.0f} kg  "
+              f"P/m={res['P_per_kg']*1000:.4f} mW/kg  "
+              f"toxicidad={res['toxicity']}")
+
+    # ─── Leyes de escala ───
+    print("\n" + "=" * 72)
+    print(" LEYES DE ESCALA")
+    print("=" * 72)
+    print(f"  {'k':>5}  {'L (m)':>8}  {'V_obj (L)':>10}  "
+          f"{'P (W)':>10}  {'M (kg)':>12}  {'P/M (mW/kg)':>14}")
+    ks = np.array([1, 2, 5, 10, 20, 50, 100])
+    for k in ks:
+        pp = replace(p,
+                     R_track=p.R_track * k,
+                     L=p.L * k,
+                     V_obj=p.V_obj * k**3,
+                     V_structure=p.V_structure * k**3)
+        d = cycle_dynamics(pp)
+        print(f"  {k:>5}  {pp.L:>8.2f}  {pp.V_obj*1000:>10.2f}  "
+              f"{d['P_total']:>10.3f}  {pp.m_total:>12.1f}  "
+              f"{d['P_total']/pp.m_total*1000:>14.4f}")
+
+    # ─── Conclusiones ───
+    print("\n" + "=" * 72)
+    print(" CONCLUSIONES")
+    print("=" * 72)
+    print("  1. La máquina es GENERADOR-BATERÍA, no perpetuum mobile.")
+    print("  2. La energía viene de la presión oscilante del medio.")
+    print("  3. La etapa 2 consume al máximo PERO deja el objeto en la")
+    print("     punta, dando a la etapa 3 el recorrido L completo.")
+    print("  4. Las inecuaciones E1+E3>|E2| y E5>0 son la condición de")
+    print("     viabilidad; L·ω²<35 es la restricción de escala.")
+    print("  5. Escalar: P∝k², M∝k³, P/M∝1/k. Más grande = más potencia")
+    print("     total pero peor densidad. En el mar (track neutro) escalar")
+    print("     es viable; en tierra (peso) no.")
+    print("  6. Fluidos: mercurio da 13× más que agua, pero es MUY tóxico.")
+    print("     Galinstan es alternativa intermedia; agua/salmuera segura")
+    print("     pero de baja potencia. La elección depende de la aplicación.")
+    print("=" * 72)
+
+    # ─── Gráficas ───
+    plot_audit(p)

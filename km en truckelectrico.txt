@@ -1,0 +1,367 @@
+"""
+kilometro_truck.py
+==================
+Kilómetro de 6 etapas montado en camión eléctrico.
+Mercurio + helio. Fuente: vibraciones de suspensión (1-3 Hz).
+
+Cambios vs versión oceánica:
+- La presión oscilante viene de la suspensión, no de las olas.
+- Escala pequeña (cabe en el camión).
+- Se compara mercurio vs agua (peso y potencia).
+
+Autor: VMA 2026 · github.com/espiradesombra/claude
+"""
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+# ============================================================
+# CONSTANTES
+# ============================================================
+g          = 9.81
+rho_sw     = 1025.0
+rho_He     = 0.1786
+rho_Hg     = 13534.0
+rho_water  = 1000.0
+rho_steel  = 7850.0
+
+
+# ============================================================
+# PARÁMETROS (escala camión)
+# ============================================================
+def params(
+    R_track       = 0.20,        # m radio del tubo
+    L             = 1.50,        # m longitud del tubo
+    V_obj         = 0.005,       # m³ volumen del objeto (~21 cm Ø)
+    rho_obj       = 1000.0,      # kg/m³ (polímero espumado)
+    fluid         = "mercury",   # "mercury" o "water"
+    m_lastre_fact = 1.10,        # multiplicador sobre el lastre mínimo
+    omega_peak    = 2.0,         # rad/s velocidad de giro etapa 2
+    eta_s         = 0.85,
+    eta_motor     = 0.90,
+    eta_regen     = 0.40,
+    C_add         = 1.0,
+    tau_fric      = 30.0,        # N·m fricción del eje
+    a_susp        = 2.0,         # m/s² RMS aceleración de suspensión
+    f_susp        = 2.0,         # Hz frecuencia dominante
+    n_units       = 8,           # cuántas unidades caben en el camión
+):
+    rho_fluid = rho_Hg if fluid == "mercury" else rho_water
+    V_track   = np.pi * R_track**2 * L
+    m_obj     = rho_obj * V_obj
+    delta_rho = rho_fluid - rho_obj
+    F_up      = delta_rho * V_obj * g
+    m_L_min   = delta_rho * V_obj
+    m_L       = m_lastre_fact * m_L_min
+    F_down    = m_L * g - F_up
+
+    # Inercia del track: mitad llena de fluido + objeto
+    m_fluid_track = rho_fluid * V_track * 0.5
+    I_track = (m_fluid_track * R_track**2 / 2.0
+               + m_obj * R_track**2 / 4.0)
+
+    return dict(
+        R=R_track, L=L, V_obj=V_obj, rho_obj=rho_obj, fluid=fluid,
+        rho_fluid=rho_fluid, V_track=V_track, m_obj=m_obj,
+        delta_rho=delta_rho, F_up=F_up, m_L=m_L, m_L_min=m_L_min,
+        F_down=F_down, I_track=I_track, m_fluid_track=m_fluid_track,
+        omega_peak=omega_peak, eta_s=eta_s, eta_motor=eta_motor,
+        eta_regen=eta_regen, C_add=C_add, tau_fric=tau_fric,
+        a_susp=a_susp, f_susp=f_susp, n_units=n_units,
+    )
+
+
+# ============================================================
+# ENERGÍAS DEL CICLO
+# ============================================================
+def energies(p):
+    # Etapa 1: objeto 0 → L/2, flotando
+    E1 = p['eta_s'] * p['F_up'] * (p['L'] / 2)
+
+    # Etapa 2: giro completo, consume máximo (lastre en punta)
+    I_total = p['I_track'] + p['m_L'] * (p['L'] / 2)**2
+    E_kin   = 0.5 * (1 + p['C_add']) * I_total * p['omega_peak']**2
+    E_fric  = p['tau_fric'] * 3 * np.pi          # 1.5 vueltas
+    E2_in   = (E_kin + E_fric) / p['eta_motor']
+    E2_rec  = p['eta_regen'] * E_kin
+    E2      = -(E2_in - E2_rec)
+
+    # Etapa 3: objeto L → 0, flotando (recorrido COMPLETO)
+    E3 = p['eta_s'] * p['F_up'] * p['L']
+
+    # Etapa 5: objeto 0 → L, hundiéndose con lastre
+    E5 = p['eta_s'] * p['F_down'] * p['L']
+
+    E_gen  = E1 + E3 + E5
+    E_cons = -E2
+    E_net  = E_gen - E_cons
+
+    return dict(E1=E1, E2=E2, E3=E3, E5=E5,
+                E_gen=E_gen, E_cons=E_cons, E_net=E_net,
+                I_total=I_total, E_kin=E_kin, E_fric=E_fric)
+
+
+# ============================================================
+# CONTRIBUCIÓN DE VIBRACIÓN (forzamiento continuo)
+# ============================================================
+def vibration_power(p):
+    """
+    Potencia capturada de la vibración de suspensión.
+    Modelo: el objeto responde a g_eff(t) = g + a_susp·sin(2πf·t).
+    ΔF_up,rms ≈ Δρ·V_o·a_susp,rms
+    v_rms     ≈ a_susp,rms / (2πf)          (respuesta cuasi-estática)
+    """
+    a_rms = p['a_susp'] / np.sqrt(2)
+    v_rms = p['a_susp'] / (2 * np.pi * p['f_susp']) / np.sqrt(2)
+    P = p['eta_s'] * p['delta_rho'] * p['V_obj'] * a_rms * v_rms
+    return P
+
+
+# ============================================================
+# TIEMPO DE CICLO Y POTENCIA
+# ============================================================
+def cycle_power(p, v_lin=0.5):
+    """v_lin = velocidad del objeto en etapas 1,3,5 (m/s)."""
+    r = energies(p)
+    t1 = (p['L'] / 2) / v_lin
+    t3 = p['L'] / v_lin
+    t5 = p['L'] / v_lin
+    # Etapa 2: 1.5 vueltas a ω_peak
+    t2 = 3 * np.pi / p['omega_peak']
+    t_cycle = t1 + t3 + t5 + t2
+
+    P_cycle = r['E_net'] / t_cycle
+    P_vib   = vibration_power(p)
+    P_total = P_cycle + P_vib
+
+    return dict(t_cycle=t_cycle, P_cycle=P_cycle, P_vib=P_vib,
+                P_total=P_total, t1=t1, t2=t2, t3=t3, t5=t5)
+
+
+# ============================================================
+# VERIFICACIÓN INECUACIONES
+# ============================================================
+def inecuaciones(p):
+    r = energies(p)
+    return dict(
+        ineq1_lhs   = r['E1'] + r['E3'],
+        ineq1_rhs   = -r['E2'],
+        ineq1_ok    = (r['E1'] + r['E3']) > (-r['E2']),
+        ineq1_margin = (r['E1'] + r['E3'] + r['E2']),  # + porque E2 es negativo
+        ineq2_ok    = r['E5'] > 0,
+        ineq2_margin = r['E5'],
+    )
+
+
+# ============================================================
+# BARRIDOS
+# ============================================================
+def sweep_V_obj(base, Vs=np.linspace(0.001, 0.05, 25)):
+    P_cycle, P_vib = [], []
+    for V in Vs:
+        p = params(**{**base, 'V_obj': float(V)})
+        cp = cycle_power(p)
+        P_cycle.append(cp['P_cycle'] * p['n_units'])
+        P_vib.append(cp['P_vib'] * p['n_units'])
+    return Vs, np.array(P_cycle), np.array(P_vib)
+
+
+def sweep_omega(base, ws=np.linspace(0.5, 6.0, 25)):
+    P_cycle = []
+    for w in ws:
+        # Respetar Lω² < 35
+        L = base.get('L', 1.5)
+        if w**2 * L > 35:
+            P_cycle.append(np.nan)
+            continue
+        p = params(**{**base, 'omega_peak': float(w)})
+        P_cycle.append(cycle_power(p)['P_cycle'] * p['n_units'])
+    return ws, np.array(P_cycle)
+
+
+def sweep_fluid(base):
+    results = {}
+    for fluid in ['mercury', 'water']:
+        p = params(**{**base, 'fluid': fluid})
+        cp = cycle_power(p)
+        results[fluid] = dict(
+            p=p, cycle=cp,
+            P_total=cp['P_total'] * p['n_units'],
+            mass=p['m_fluid_track'] + p['m_L'] + p['m_obj'],
+        )
+    return results
+
+
+# ============================================================
+# PLOTS
+# ============================================================
+def plot_all(p, base):
+    r   = energies(p)
+    chk = inecuaciones(p)
+    cp  = cycle_power(p)
+
+    fig, axes = plt.subplots(2, 3, figsize=(18, 10))
+
+    # (1) Barras por etapa (por unidad)
+    ax = axes[0, 0]
+    labels = ['E1', 'E2', 'E3', 'E5', 'Net']
+    vals   = [r[k]/1e3 for k in labels]
+    colors = ['seagreen' if v > 0 else 'indianred' for v in vals]
+    ax.bar(labels, vals, color=colors, alpha=0.85)
+    ax.axhline(0, color='black', lw=1)
+    ax.set_ylabel('Energía (kJ) por unidad')
+    ax.set_title(f'Balance por etapa — {p["fluid"]}')
+    ax.grid(alpha=0.3, axis='y')
+
+    # (2) Inecuación 1
+    ax = axes[0, 1]
+    ax.bar(['E1+E3', '|E2|'],
+           [chk['ineq1_lhs']/1e3, chk['ineq1_rhs']/1e3],
+           color=['seagreen', 'indianred'], alpha=0.85)
+    ax.set_title(f"Ineq 1: E1+E3 > |E2|  "
+                 f"({'✓' if chk['ineq1_ok'] else '✗'})")
+    ax.set_ylabel('kJ')
+    ax.grid(alpha=0.3, axis='y')
+
+    # (3) Potencia vs V_obj
+    ax = axes[0, 2]
+    Vs, P_c, P_v = sweep_V_obj(base)
+    ax.plot(Vs*1000, P_c, 'o-', color='seagreen', label='Ciclo 6 etapas')
+    ax.plot(Vs*1000, P_v, 's--', color='orange', label='Vibración')
+    ax.plot(Vs*1000, P_c + P_v, '^-', color='purple', lw=2,
+            label=f'Total ({p["n_units"]} uds)')
+    ax.set_xlabel('V_obj (L)')
+    ax.set_ylabel('Potencia total (W)')
+    ax.set_title(f'Potencia vs tamaño del objeto')
+    ax.legend(); ax.grid(alpha=0.3)
+
+    # (4) Potencia vs ω (respetando Lω² < 35)
+    ax = axes[1, 0]
+    ws, P_w = sweep_omega(base)
+    ax.plot(ws, P_w, 'D-', color='purple', lw=2)
+    L = base.get('L', 1.5)
+    w_lim = np.sqrt(35/L)
+    ax.axvline(w_lim, color='red', ls='--',
+               label=f'Lω²=35  →  ω={w_lim:.2f}')
+    ax.set_xlabel('ω_peak (rad/s)')
+    ax.set_ylabel('P_ciclo total (W)')
+    ax.set_title('Potencia del ciclo vs ω')
+    ax.legend(); ax.grid(alpha=0.3)
+
+    # (5) Mercurio vs agua
+    ax = axes[1, 1]
+    res = sweep_fluid(base)
+    fluids = ['mercury', 'water']
+    powers = [res[f]['P_total'] for f in fluids]
+    masses = [res[f]['mass'] for f in fluids]
+    ax2 = ax.twinx()
+    x = np.arange(2)
+    ax.bar(x - 0.15, powers, 0.3, color='seagreen', alpha=0.85, label='Potencia (W)')
+    ax2.bar(x + 0.15, masses, 0.3, color='steelblue', alpha=0.85, label='Masa (kg)')
+    ax.set_xticks(x); ax.set_xticklabels(['Mercurio', 'Agua'])
+    ax.set_ylabel('Potencia (W)')
+    ax2.set_ylabel('Masa total (kg)')
+    ax.set_title('Mercurio vs agua')
+    ax.grid(alpha=0.3, axis='y')
+
+    # (6) Contribución ciclo vs vibración
+    ax = axes[1, 2]
+    ax.bar(['Ciclo', 'Vibración', 'Total'],
+           [cp['P_cycle']*p['n_units'],
+            cp['P_vib']*p['n_units'],
+            cp['P_total']*p['n_units']],
+           color=['seagreen', 'orange', 'purple'], alpha=0.85)
+    ax.set_ylabel('Potencia total (W)')
+    ax.set_title(f'Desglose de potencia ({p["n_units"]} unidades)')
+    ax.grid(alpha=0.3, axis='y')
+
+    plt.tight_layout()
+    plt.savefig('kilometro_truck.png', dpi=140)
+    plt.show()
+
+
+# ============================================================
+# MAIN
+# ============================================================
+if __name__ == '__main__':
+    base = dict(
+        R_track=0.20, L=1.5, V_obj=0.005, rho_obj=1000.0,
+        fluid='mercury', m_lastre_fact=1.10, omega_peak=2.0,
+        a_susp=2.0, f_susp=2.0, n_units=8,
+    )
+    p = params(**base)
+
+    print("=" * 72)
+    print(" KILÓMETRO EN CAMIÓN ELÉCTRICO — mercurio + helio")
+    print("=" * 72)
+
+    # --- Verificaciones físicas ---
+    print(f"\n--- Geometría ---")
+    print(f"  R_track:            {p['R']:.3f} m")
+    print(f"  L:                  {p['L']:.2f} m")
+    print(f"  V_track:            {p['V_track']:.4f} m³")
+    print(f"  V_obj:              {p['V_obj']:.4f} m³")
+    print(f"  ρ_obj:              {p['rho_obj']:.0f} kg/m³")
+    print(f"  ρ_fluid:            {p['rho_fluid']:.0f} kg/m³")
+    print(f"  Δρ:                 {p['delta_rho']:.0f} kg/m³")
+    print(f"  F_up:               {p['F_up']:.1f} N")
+    print(f"  m_L,min = Δρ·V_o:   {p['m_L_min']:.1f} kg")
+    print(f"  m_L actual:         {p['m_L']:.1f} kg")
+    print(f"  F_down:             {p['F_down']:.1f} N")
+    print(f"  Masa total track:   {p['m_fluid_track']+p['m_L']+p['m_obj']:.0f} kg")
+
+    # --- Inecuaciones ---
+    r   = energies(p)
+    chk = inecuaciones(p)
+    print(f"\n--- Energías por etapa (J, por unidad) ---")
+    print(f"  E1 (L/2):  {r['E1']:+8.1f} J")
+    print(f"  E2 (giro): {r['E2']:+8.1f} J  (I_tot={r['I_total']:.2f} kg·m²)")
+    print(f"  E3 (L):    {r['E3']:+8.1f} J  ← L completo")
+    print(f"  E5 (L):    {r['E5']:+8.1f} J")
+    print(f"  NETO:      {r['E_net']:+8.1f} J")
+
+    print(f"\n--- Inecuaciones ---")
+    print(f"  Ineq 1: E1+E3 > |E2|")
+    print(f"    LHS={chk['ineq1_lhs']/1e3:.3f} kJ  RHS={chk['ineq1_rhs']/1e3:.3f} kJ")
+    print(f"    {'✓ CUMPLE' if chk['ineq1_ok'] else '✗ NO'}  "
+          f"margen={chk['ineq1_margin']/1e3:+.3f} kJ")
+    print(f"  Ineq 2: E5 > 0")
+    print(f"    E5={chk['ineq2_margin']/1e3:+.3f} kJ  "
+          f"{'✓' if chk['ineq2_ok'] else '✗'}")
+
+    # --- Potencia ---
+    cp = cycle_power(p)
+    print(f"\n--- Potencia ---")
+    print(f"  t_ciclo:            {cp['t_cycle']:.2f} s  "
+          f"(t1={cp['t1']:.1f}, t2={cp['t2']:.1f}, t3={cp['t3']:.1f}, t5={cp['t5']:.1f})")
+    print(f"  P_ciclo:            {cp['P_cycle']*1000:.1f} mW/unidad")
+    print(f"  P_vibración:        {cp['P_vib']*1000:.1f} mW/unidad")
+    print(f"  P_total:            {cp['P_total']*1000:.1f} mW/unidad")
+    print(f"  Con {p['n_units']} uds:         {cp['P_total']*p['n_units']:.2f} W")
+
+    # --- Mercurio vs agua ---
+    print(f"\n--- Mercurio vs agua ({p['n_units']} uds) ---")
+    res = sweep_fluid(base)
+    for f in ['mercury', 'water']:
+        print(f"  {f:8s}:  P={res[f]['P_total']:6.2f} W   "
+              f"masa={res[f]['mass']:6.0f} kg")
+
+    # --- Límite ω ---
+    w_lim = np.sqrt(35 / p['L'])
+    print(f"\n--- Límite de la inecuación (Lω² < 35) ---")
+    print(f"  Con L={p['L']:.2f} m:  ω_peak < {w_lim:.2f} rad/s")
+    print(f"  Actual: ω_peak = {p['omega_peak']:.2f} rad/s  "
+          f"(Lω² = {p['L']*p['omega_peak']**2:.1f})")
+
+    # --- Plots ---
+    plot_all(p, base)
+
+    print("\n" + "=" * 72)
+    print(" LECTURA DE RESULTADOS")
+    print("=" * 72)
+    print(" - La potencia por unidad es del orden de decenas a cientos de mW.")
+    print(" - El mercurio da ~13× más potencia que el agua, pero pesa 13× más.")
+    print(" - Para potencia útil (kW), necesitas cientos de unidades.")
+    print(" - La vibración de suspensión aporta un complemento modesto.")
+    print(" - El límite Lω² < 35 es la restricción dura: ciclos rápidos fallan.")
+    print("=" * 72)

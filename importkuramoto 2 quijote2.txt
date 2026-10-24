@@ -1,0 +1,156 @@
+import numpy as np
+from scipy.integrate import odeint
+import matplotlib.pyplot as plt
+
+TWO_PI = 2*np.pi
+g = 9.81
+RHO = 1.225
+
+class QuijoteMill:
+    def __init__(self, name, R, m_blade, I_gen, r_min, r_max,
+                 omega_rated, K_relax, beta, K_wind, n_physical=1):
+        self.name = name; self.R = R; self.m = m_blade
+        self.I_gen = I_gen; self.r_min = r_min; self.r_max = r_max
+        self.K_relax = K_relax; self.beta = beta; self.K_wind = K_wind
+        self.n_physical = n_physical
+        self.v_max = (r_max - r_min) * omega_rated * 3.0 / np.pi
+
+    def sector(self, theta):
+        th = theta % TWO_PI
+        if th < np.pi/3:      return 'extend',   self.r_max
+        elif th < np.pi:      return 'hold_ext', self.r_max
+        elif th < 4*np.pi/3:  return 'retract',  self.r_min
+        else:                 return 'hold_min', self.r_min
+
+    def blade_dr(self, theta, r):
+        state, target = self.sector(theta)
+        if state == 'extend':
+            return np.clip(self.K_relax*(target-r), 0, self.v_max)
+        elif state == 'retract':
+            return np.clip(self.K_relax*(target-r), -self.v_max, 0)
+        return 0.0
+
+    def inertia(self, r):
+        return self.I_gen + self.n_physical*self.m*np.sum(r**2)
+
+    def gravity_torque(self, theta_rot, r):
+        tau = 0.0
+        for j in range(3):
+            th = theta_rot + j*TWO_PI/3
+            tau += self.n_physical*self.m*g*r[j]*np.sin(th)
+        return tau
+
+    def wind_torque(self, w, v):
+        if w < 0.1: return 0.0
+        return 0.45 * 0.5*RHO*np.pi*self.R**2 * v**3 / w
+
+    def coriolis_torque(self, w, r, dr):
+        tau = 0.0
+        for j in range(3):
+            tau -= 2.0*self.n_physical*self.m*w*dr[j]*r[j]
+        return tau
+
+
+class Network:
+    def __init__(self):
+        self.C1 = QuijoteMill('C1', 40, 500, 2e7, 6, 30, 1.5, 6.0, 5e5, 1.0, 1)
+        self.C2 = QuijoteMill('C2', 40, 500, 2e7, 6, 30, 1.5, 6.0, 5e5, 1.0, 1)
+        self.A1 = QuijoteMill('A1', 20, 150, 4e6, 3, 15, 2.0, 6.0, 1.5e5, 0.6, 2)
+        self.A2 = QuijoteMill('A2', 20, 150, 4e6, 3, 15, 2.0, 6.0, 1.5e5, 0.6, 2)
+        self.A3 = QuijoteMill('A3', 20, 150, 4e6, 3, 15, 2.0, 6.0, 1.5e5, 0.6, 2)
+        self.mills = [self.C1, self.C2, self.A1, self.A2, self.A3]
+        self.A = np.array([[0,0,1,1,1],[0,0,1,1,1],
+                           [1,1,0,1,1],[1,1,1,0,1],[1,1,1,1,0]], float)
+        self.T = np.array([[0,1,-1],[-1,0,1],[1,-1,0]], float)
+        self.K = 0.5; self.K_bus = 1.0
+        self.omega_elec = 5.0
+        self.v_base = 12.0
+
+    def rhs(self, s, t):
+        n = 5
+        theta = s[0:n]; omega = s[n:2*n]
+        r_mat = s[2*n:2*n+3*n].reshape(n, 3)
+        phi   = s[2*n+3*n:2*n+3*n+n]
+        dtheta = omega.copy(); domega = np.zeros(n)
+        dr_mat = np.zeros((n, 3)); dphi = np.zeros(n)
+        phi_bus = np.angle(np.mean(np.exp(1j*phi[:2])))
+        v = self.v_base*(1 + 0.1*np.sin(0.3*t))
+        for i, mill in enumerate(self.mills):
+            r = r_mat[i]; dr = np.zeros(3)
+            for j in range(3):
+                dr[j] = mill.blade_dr(theta[i] + j*TWO_PI/3, r[j])
+            dr_mat[i] = dr
+            I = mill.inertia(r)
+            t_g = mill.gravity_torque(theta[i], r)
+            t_w = mill.wind_torque(omega[i], v)
+            t_f = -mill.beta*omega[i]
+            t_c = mill.coriolis_torque(omega[i], r, dr)
+            t_k = sum(self.K*self.A[i, j]*np.sin(phi[j]-phi[i])
+                      for j in range(n) if j != i)
+            domega[i] = (t_g + t_w + t_f + t_c + t_k) / I
+            coupling = (self.K/n)*np.sum(self.A[i]*np.sin(phi - phi[i]))
+            u_i = 0.02*np.sum(dr)/max(mill.v_max, 1e-6)
+            dphi[i] = self.omega_elec + coupling + self.K_bus*np.sin(phi_bus - phi[i]) + u_i
+        return np.concatenate([dtheta, domega, dr_mat.flatten(), dphi])
+
+
+def run(duration=60.0, dt=1e-3):
+    net = Network(); n = 5
+    theta0 = np.array([0.0, np.pi/3, np.pi/6, np.pi/2, 2*np.pi/3])
+    omega0 = np.array([1.4, 1.6, 1.8, 2.0, 2.2])
+    r0 = np.array([np.full(3, m.r_min) for m in net.mills])
+    phi0 = np.array([0.0, 0.5, 1.0, 1.5, 2.0])
+    s0 = np.concatenate([theta0, omega0, r0.flatten(), phi0])
+    t = np.arange(0, duration, dt)
+    sol = odeint(net.rhs, s0, t, rtol=1e-6, atol=1e-8)
+    theta = sol[:, :n]; omega = sol[:, n:2*n]
+    r_all = sol[:, 2*n:2*n+3*n].reshape(len(t), n, 3)
+    phi   = sol[:, 2*n+3*n:2*n+3*n+n]
+    return net, t, theta, omega, r_all, phi
+
+
+def plot_all(net, t, theta, omega, r_all, phi):
+    labels = ['C1','C2','A1','A2','A3']
+    colors = ['tab:red','tab:orange','tab:blue','tab:green','tab:purple']
+    fig, ax = plt.subplots(3, 2, figsize=(15, 11))
+    for i in range(5):
+        ax[0,0].plot(t, omega[:,i], color=colors[i], label=labels[i])
+    ax[0,0].set_title('ω_i(t) — rotor speed (rad/s)'); ax[0,0].legend(); ax[0,0].grid(alpha=0.3)
+
+    r_ord = np.abs(np.mean(np.exp(1j*phi), axis=1))
+    ax[0,1].plot(t, r_ord, color='purple')
+    ax[0,1].axhline(0.9, ls='--', color='red', label='sync=0.9')
+    ax[0,1].set_title('Kuramoto r(t)'); ax[0,1].legend(); ax[0,1].grid(alpha=0.3)
+
+    for j in range(3):
+        ax[1,0].plot(t, r_all[:,0,j], label=f'aspa {j+1}')
+    ax[1,0].set_title('C1 (central): r(t) por aspa — extiende/frena o retrae/acelera')
+    ax[1,0].set_ylabel('r (m)'); ax[1,0].legend(); ax[1,0].grid(alpha=0.3)
+
+    for j in range(3):
+        ax[1,1].plot(t, r_all[:,2,j], label=f'aspa {j+1}')
+    ax[1,1].set_title('A1 (anillo, 2 en serie): r(t) por aspa')
+    ax[1,1].set_ylabel('r (m)'); ax[1,1].legend(); ax[1,1].grid(alpha=0.3)
+
+    n_fav = ((theta % TWO_PI) < np.pi).sum(axis=1)
+    ax[2,0].plot(t, n_fav, alpha=0.5, color='teal')
+    ax[2,0].set_title('Aspas en fase favorable (descendente) — total de 15')
+    ax[2,0].set_xlabel('t (s)'); ax[2,0].grid(alpha=0.3)
+
+    sec = np.floor((theta[:,0] % TWO_PI)/(np.pi/3)).astype(int)
+    ax[2,1].scatter(t[::100], sec[::100], c=sec[::100], cmap='twilight', s=3)
+    ax[2,1].set_title('C1: sector activo de 60° (0=12h, 1=2h, ..., 3=6h)')
+    ax[2,1].set_xlabel('t (s)'); ax[2,1].set_yticks(range(6)); ax[2,1].grid(alpha=0.3)
+
+    plt.tight_layout(); plt.savefig('zypyzape_quijote_5node.png', dpi=140); plt.show()
+
+    print("="*60)
+    print(f"Kuramoto r final: {r_ord[-1]:.3f}")
+    print(f"ω final: {dict(zip(labels, np.round(omega[-1],3)))}")
+    print(f"Aspas favorables medias: {n_fav.mean():.1f}/15")
+    print("="*60)
+
+
+if __name__ == '__main__':
+    net, t, theta, omega, r_all, phi = run(60.0, 1e-3)
+    plot_all(net, t, theta, omega, r_all, phi)
