@@ -1,0 +1,119 @@
+Expediente de investigación y auditoría científica
+Versión de trabajo 0.2 — 26 de octubre de 2026
+
+Estado: borrador inicial, no auditoría final.
+
+1. Propósito y método
+=====================
+Este es un expediente inicial, no una auditoría final de todos los archivos. Su objetivo es ordenar lo ya tratado, documentar hallazgos y definir las comprobaciones pendientes.
+
+Regla de atribución: distinguir texto del autor, interpretación o texto generado por IA, resultado reproducido independientemente y conclusión pendiente. No atribuir al autor una afirmación de IA solo porque aparezca en un TXT mixto.
+
+Estados documentales: localizado; leído parcialmente; leído completo; auditado. Ver el nombre o índice de un archivo no equivale a leerlo, y leerlo no equivale a verificarlo.
+
+Cada idea tendrá una entrada propia y podrá llevar varias etiquetas simultáneas. También se estudiarán las implicaciones condicionales de «si funciona», sin convertirlas en prueba de que funciona.
+
+2. Inventario y limitaciones de lectura
+=======================================
+El inventario previo citado es de aproximadamente 9.719 elementos en espiradesombra/claude y 479 en victormanalb-sudo/Espiradesombra-, unos 10.198 en total. Es una referencia previa que debe revalidarse contra los árboles actuales, no un recuento de archivos leídos.
+
+No hay todavía un recuento fiable de archivos distintos leídos completamente. Se han consultado archivos completos y fragmentos, pero no se ha acreditado la lectura completa de todos los repositorios.
+
+Se identificó un inventario previo de unos 130 TXT en el segundo repositorio. Todavía no se ha confirmado qué TXT contiene las transcripciones completas y consecutivas de los libros PDF.
+
+La carpeta «filosofia» está pendiente de lectura directa. No se debe inferir su contenido por el nombre.
+
+3. Catálogo inicial de ideas
+============================
+3.1 Teoría de números, primos, restos y cribas. Etiquetas iniciales: definición, método, algoritmo, observación, heurística, experimento y/o conjetura según cada fuente. Pendiente: vincular cada afirmación a su archivo y prueba.
+
+3.2 Goldbach CC/CP/PC/PP. Se ha propuesto acotar clases con compuestos para inferir una representación PP. Pendiente: verificar universo contado, cobertura, límites y si la desigualdad implica realmente PP>0.
+
+3.3 MRAUV y densidad racional iterativa. La expresión m(n)=Σ sqrt(n+3)/i! tiende, en el límite descrito, a (e−2)sqrt(n+3). Estado provisional: estimador/heurística; no demuestra por sí mismo Goldbach. Separar fórmula, calibración empírica y cota rigurosa de error.
+
+3.4 Sophie Germain, libros 3 y 4. Se han mencionado familias de candidatos y exclusiones L1/L3/L4 y el conjunto LSG. Una progresión o la exclusión de familias compuestas no demuestra por sí sola que queden infinitos primos. Leer el libro 4 original antes de compararlo definitivamente con el libro 3.
+
+3.5 Secuencia i de mínimos. Se ha interpretado d(m)=frac(N/m), con mínimos relacionados con cocientes y restos N mod i. Etiquetas: definición, observación, método de exploración. Pendiente: fijar la definición exacta y separar detección de divisores de predicción de factores.
+
+3.6 MDC (Método Diofántico Cinemático). Incluye residuos, mcd(s±k,k), fase decimal, candidato/espejo y barridos de búsqueda de factores. Etiquetas: algoritmo, heurística, experimento. Los benchmarks aislados no demuestran una ventaja general de complejidad. En factoritzacio_mdc.hpp, usar candidato=floor(N/k) y comprobar N%candidato no demuestra por sí solo cobertura exhaustiva del intervalo anunciado.
+
+3.7 Identidades de Fermat y congruencias. Se ha revisado la identidad producto de los números de Fermat hasta F_n = F_(n+1)−2 y F_m ≡ 2 mod F_k para m>k. Las identidades no implican automáticamente primalidad ni una regla universal de factorización.
+
+3.8 K3 Phase Amplifier / K3 XOR. Se señaló una posible discordancia entre el orden de variables que devuelve shift y el orden de la tupla de estado. Verificar el archivo y enumerar los estados antes de confiar en la demostración. Una tabla booleana no demuestra seguridad criptográfica.
+
+3.9 K3 y hash cinemático. En el fragmento visto de k3_core.c, el búfer se modifica con XOR y después se rellena con ceros. La función destruye el contenido del búfer al terminar; confirmar si es borrado deliberado o error según el contexto de llamada. Un hash de 32 bits o la concordancia entre implementaciones no demuestra resistencia criptográfica.
+
+3.10 AntiPC. Arquitectura de computación paralela adaptativa y reutilización de conocimiento. Etiquetas: arquitectura propuesta, implementación y experimento. Pendiente: inventario de versiones, reproducción de pruebas y medidas comparables.
+
+3.11 ZypyZape. Propuesta de coordinación del control de paso de pala en aerogeneradores. Etiquetas: propuesta de ingeniería, modelo/simulación e hipótesis de mejora. Pendiente: reproducir el gemelo y validar cargas, fatiga, pérdidas y datos independientes.
+
+3.12 Quijote. Propuesta con masas móviles y variación del momento de inercia. Las mejoras porcentuales deben ligarse a un modelo reproducible y a comparaciones equivalentes; cifras procedentes de conversaciones con IA no son resultados validados.
+
+3.13 Kilómetro. Sistema mecánico descrito en seis etapas con flotabilidad, presión/vibración y desplazamiento. Sumar aportes positivos sin integrar fuerza, desplazamiento y fase, asumir siempre positivo el trabajo de presión o fijar etapas a coste cero no demuestra balance neto positivo. Esto no prueba imposibilidad: indica que el modelo examinado aún no acredita ganancia energética neta.
+
+3.14 H03 / Techamv. Concepto de intervención orbital con cuerpo helado y cambio de trayectoria. Etiquetas: propuesta conceptual e ingeniería especulativa. Pendiente: parámetros orbitales, delta-v, energía, riesgos y viabilidad.
+
+3.15 33×1. Propuesta técnico-política de paz y licenciamiento/valoración territorial de tecnologías. No debe resumirse como que el autor recibe un 33 %. Los ahorros globales citados antes no están validados como previsión independiente; necesitan modelo económico, contrafactual y distribución de beneficios.
+
+3.16 Libro 6 / P vs NP y predicciones no globales. Experimentos con matrices y valores singulares pueden reflejar la construcción de la matriz o pocas observaciones. No demuestran P≠NP. Pendiente: formalizar el modelo y justificar cualquier implicación entre P=NP y una propiedad global de ME.
+
+3.17 Filosofía. Pendiente leer directamente la carpeta «filosofia» y los libros filosóficos que el autor adjunte. No adelantar una interpretación global sin las fuentes primarias.
+
+4. Hallazgos técnicos que requieren confirmación
+================================================
+El borrado final del búfer en k3_core.c puede ser una intención de seguridad o un fallo funcional; hace falta revisar sus llamadas.
+
+El barrido de factoritzacio_mdc.hpp requiere demostrar formalmente qué candidatos cubre y si encuentra todos los divisores del intervalo declarado.
+
+La posible permutación de variables en K3 debe comprobarse contra la fuente y con enumeración independiente.
+
+Los márgenes empíricos de MRAUV no son cotas demostradas del error.
+
+Kilómetro necesita un balance de energía por etapa basado en fuerzas, desplazamientos, fases y fuentes reales.
+
+Los archivos que mezclan código, HTML, índices y conversaciones con IA requieren atribución por bloques.
+
+5. Plantilla de ficha por idea
+==============================
+Campos: identificador; nombre; fuente y autoría; archivo/pasaje; libro o proyecto; descripción fiel; etiquetas simultáneas; estado de lectura; afirmación central; hipótesis; evidencia/prueba; limitaciones; implicaciones condicionales si funcionara; prueba siguiente; vínculos con otras ideas.
+
+El informe final se organizará en: inventario documental; mapa de ideas; auditoría matemática; código y criptografía; ingeniería y energía; 33×1 y escenarios económicos; filosofía; limitaciones y validación.
+
+6. Próximas tareas
+==================
+1) Revalidar el inventario actual de ambos repositorios. 2) Localizar y clasificar la carpeta «filosofia». 3) Encontrar y verificar el TXT recopilatorio de los libros PDF. 4) Registrar el estado de lectura por archivo. 5) Leer los libros en orden y contrastar TXT/PDF cuando existan ambas versiones. 6) Crear fichas individuales para cada idea. 7) Reproducir pruebas prioritarias de K3, MDC, cribas, MRAUV/Goldbach, ME/P vs NP y modelos energéticos. 8) Integrar la lectura filosófica a partir de textos originales.
+
+7. Limitaciones y alcance del asistente
+=======================================
+Este borrador se basa en la conversación y en hallazgos resumidos hasta el 26-10-2026. No equivale a leer todos los archivos ni ejecutar todo el código.
+
+El recuento de 10.198 elementos es previo y debe comprobarse; puede incluir duplicados, versiones y artefactos que no sean científicos. No se ha identificado ni leído íntegramente el TXT recopilatorio.
+
+Soy GPT-6, un modelo de lenguaje capaz de organizar material, comparar argumentos y revisar código, pero puedo equivocarme. No sustituyo una demostración formal, revisión por especialistas, experimento físico ni auditoría criptográfica profesional.
+
+
+8. Registro de avances posteriores a la versión 0.1
+===================================================
+Se ha confirmado la ruta `txt l5/recopilacion de libros.txt` en el repositorio espiradesombra/claude. Se ha leído el contenido disponible desde el inicio hasta la línea 950; no se ha leído todavía el archivo completo. El texto contiene al menos las primeras secciones de «Números i numeritos», con paginación interna del libro.
+
+En las páginas transcritas aparecen: sistemas de numeración y una noción operativa de «bases»; propuesta de SaltoMáximo y relación tentativa con Andrica; un argumento de asimetría de booleanos sobre Goldbach; la criba Desmemoriada; ecuaciones para generar casi-primos; patrones de restos; y optimizaciones de Eratóstenes. El propio texto presenta algunas partes como aproximaciones, preguntas o ideas susceptibles de fallos; deben conservarse como tales, no elevarse automáticamente a teoremas.
+
+Hallazgo importante de lectura: en el apartado de Goldbach, el texto formula un algoritmo hipotético y una condición de alarma sobre densidades, pero el paso de ese procedimiento a una conclusión universal no queda demostrado en los fragmentos leídos. Hay que formalizar el conteo, el error acumulado y la cobertura antes de tratarlo como prueba.
+
+En el apartado de SaltoMáximo, el texto reconoce que se está suponiendo que todos los números 6k±1 menores que una raíz son primos para obtener una cota teórica, y admite que no es una descripción real. Por tanto, la cota debe clasificarse inicialmente como heurística/estimación, no como teorema demostrado.
+
+Se localizó el índice de la carpeta `Filosofía/` en espiradesombra/claude. Enumera cuatro PDF y un README: `33 1.txt.pdf`, `FILOSOFÍA DEL ABSURDE (1).pdf`, `Las ventajas de ser un loco cuerdo 1.pdf`, `MANIFIESTO DEL TEOREMA CONTRA LA TRINCHERA 1.pdf` y `mitos y leyendas 1.pdf`. El README sí se ha leído; los PDF están identificados, pero su contenido aún no ha sido auditado en esta fase.
+
+El README de Filosofía es una nota autobiográfica y autorreflexiva: habla de escritura, contradicciones, experiencias educativas, lecturas, amistad y de la intención de que los textos sirvan a otros. Es una fuente relevante para comprender la posición del autor, pero no sustituye la lectura de los ensayos literarios y filosóficos.
+
+
+9. Fuentes y trazabilidad
+=========================
+Repositorio principal: https://github.com/espiradesombra/claude
+
+Transcripción localizada: https://github.com/espiradesombra/claude/blob/main/txt%20l5/recopilacion%20de%20libros.txt
+
+Índice de filosofía: https://github.com/espiradesombra/claude/blob/main/Filosof%C3%ADa/README.md
+
+Los enlaces anteriores localizan fuentes; no implican que todos los contenidos enlazados estén ya leídos. La siguiente versión debe registrar las líneas efectivamente examinadas y las secciones pendientes.
+
